@@ -19,7 +19,7 @@ const suites = [
   {
     title: 'react-stack',
     inputs: ['react', 'react-dom'],
-  }
+  },
 ]
 
 console.log(
@@ -28,10 +28,10 @@ console.log(
 
 for (const suite of suites) {
   const group = bencher.group(suite.title, (bench) => {
-    bench.add("rollup", async () => {
+    bench.add('rollup', async () => {
       await runRollup(suite)
     })
-    bench.add("esbuild", async () => {
+    bench.add('esbuild', async () => {
       await runEsbuild(suite)
     })
   })

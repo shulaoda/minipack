@@ -34,7 +34,7 @@ export function group(name, collectBenches, options) {
               mean: task.result.mean,
             }
           })
-          
+
           resultsForDisplay = lodash.sortBy(resultsForDisplay, 'mean')
 
           // Show which benchmark is the fastest

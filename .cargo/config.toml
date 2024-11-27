@@ -1,0 +1,3 @@
+# reference: https://github.com/rust-lang/cargo/issues/3946
+[env]
+WORKSPACE_DIR = { value = "", relative = true }

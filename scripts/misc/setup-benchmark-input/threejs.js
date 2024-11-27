@@ -5,7 +5,7 @@ if (fsExtra.existsSync('./tmp/bench/three')) {
   console.log('[skip] setup three already')
 } else {
   console.log('Setup `three` in tmp/bench')
-  fsExtra.copySync('./tmp/github/three', "./tmp/bench/three")
+  fsExtra.copySync('./tmp/github/three', './tmp/bench/three')
 
   fsExtra.writeFileSync(
     './tmp/bench/three/entry.js',

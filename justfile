@@ -15,6 +15,20 @@ setup:
     just setup-bench
     @echo "✅✅✅ Setup complete!"
 
+# Lint the codebase
+lint: lint-rust lint-node lint-repo
+
+lint-rust:
+    cargo fmt --all -- --check
+    cargo clippy --workspace --all-targets -- --deny warnings
+    cargo shear
+
+lint-node:
+    # pnpm lint-code
+
+lint-repo:
+    # pnpm lint-repo
+
 bench:
   pnpm --filter bench run bench
 

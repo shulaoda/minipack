@@ -3,14 +3,31 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "scripts": {},
+  "scripts": {
+    "lint-toml": "taplo format --check",
+    "lint-toml:fix": "taplo format"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@biomejs/biome": "1.9.4",
+    "@biomejs/biome": "^1.9.4",
+    "@taplo/cli": "^0.7.0",
     "@types/node": "^22.10.0",
+    "cspell": "^8.16.1",
     "typescript": "^5.7.2"
+  },
+  "prettier": {
+    "arrowParens": "always",
+    "printWidth": 80,
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all"
+  },
+  "lint-staged": {
+    "*.toml": "taplo format",
+    "*.{js,ts,json,md,yml,yaml,vue}": [],
+    "*": "cspell --no-progress --gitignore --no-must-find-files"
   },
   "packageManager": "pnpm@9.12.3"
 }
