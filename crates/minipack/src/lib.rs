@@ -1,4 +1,6 @@
+mod ast_scanner;
 mod bundler;
+mod module_loader;
 mod stages;
 mod utils;
 

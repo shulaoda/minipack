@@ -16,3 +16,4 @@ pub type DynImportUsageMap = FxHashMap<ModuleIdx, DynamicImportExportsUsage>;
 
 pub type SharedResolver = Arc<Resolver<OsFileSystem>>;
 pub type SharedOptions = Arc<NormalizedBundlerOptions>;
+pub type SharedNormalizedBundlerOptions = Arc<NormalizedBundlerOptions>;
