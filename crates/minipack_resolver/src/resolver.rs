@@ -15,7 +15,6 @@ use oxc_resolver::{
 };
 
 #[derive(Debug)]
-#[allow(dead_code)]
 pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
   cwd: PathBuf,
   default_resolver: ResolverGeneric<T>,

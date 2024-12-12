@@ -1,4 +1,5 @@
 pub mod input_item;
+pub mod module_type;
 pub mod normalized_bundler_options;
 pub mod output_format;
 pub mod platform;

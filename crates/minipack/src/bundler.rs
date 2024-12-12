@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use crate::{
-  types::bundle_output::BundleOutput,
+  stages::scan::ScanStage,
+  types::{SharedOptions, SharedResolver},
   utils::normalize_options::{normalize_options, NormalizeOptionsReturn},
-  SharedOptions, SharedResolver,
 };
 
+use anyhow::Ok;
 use minipack_common::BundlerOptions;
 use minipack_fs::OsFileSystem;
 use minipack_resolver::Resolver;
@@ -27,7 +28,9 @@ impl Bundler {
     Bundler { closed: false, fs: OsFileSystem, options: Arc::new(options), resolver }
   }
 
-  async fn build(&mut self, is_write: bool) -> anyhow::Result<BundleOutput> {
-    todo!()
+  pub async fn build(&mut self, is_write: bool) -> anyhow::Result<()> {
+    let scan_stage = ScanStage::new(self.fs, self.options.clone(), self.resolver.clone());
+
+    Ok(())
   }
 }

@@ -16,6 +16,10 @@ doctest = false
 workspace = true
 
 [dependencies]
+indexmap   = { workspace = true, features = ["serde"] }
 memchr     = { workspace = true }
+oxc        = { workspace = true }
 rayon      = { workspace = true }
+regex      = { workspace = true }
+rustc-hash = { workspace = true }
 sugar_path = { workspace = true }

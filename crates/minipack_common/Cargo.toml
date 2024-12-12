@@ -16,13 +16,19 @@ doctest = false
 workspace = true
 
 [dependencies]
-minipack_sourcemap = { workspace = true }
-minipack_utils     = { workspace = true }
+minipack_ecmascript = { workspace = true }
+minipack_sourcemap  = { workspace = true }
+minipack_utils      = { workspace = true }
 
-anyhow     = { workspace = true }
-arcstr     = { workspace = true }
-fast-glob  = { workspace = true }
-oxc        = { workspace = true }
-rustc-hash = { workspace = true }
-serde_json = { workspace = true }
-sugar_path = { workspace = true }
+anyhow        = { workspace = true }
+arcstr        = { workspace = true }
+bitflags      = { workspace = true }
+fast-glob     = { workspace = true }
+itertools     = { workspace = true }
+lightningcss  = { workspace = true }
+oxc           = { workspace = true }
+oxc_index     = { workspace = true }
+rustc-hash    = { workspace = true }
+serde_json    = { workspace = true }
+string_wizard = { workspace = true }
+sugar_path    = { workspace = true }
