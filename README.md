@@ -1,3 +1,3 @@
 # Minipack
 
-Minipack is a mini JS/TS bundler written in Rust intended to deeply learning and understanding [Rolldown](https://github.com/rolldown/rolldown).
+Minipack is based on [Rolldown](https://github.com/rolldown/rolldown), and is intended for personal learning purposes only.
