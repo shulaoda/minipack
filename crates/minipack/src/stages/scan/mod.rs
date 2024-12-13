@@ -1,7 +1,17 @@
-use minipack_common::{EntryPoint, ModuleTable, RuntimeModuleBrief, SymbolRefDb};
+mod resolve_id;
+
+use arcstr::ArcStr;
+use futures::future::join_all;
+use minipack_common::{ImportKind, ResolvedId};
 use minipack_fs::OsFileSystem;
 
-use crate::types::{DynImportUsageMap, IndexEcmaAst, SharedOptions, SharedResolver};
+use self::resolve_id::resolve_id;
+use crate::{
+  module_loader::{ModuleLoader, ModuleLoaderOutput},
+  types::{SharedOptions, SharedResolver},
+};
+
+pub type ScanStageOutput = ModuleLoaderOutput;
 
 pub struct ScanStage {
   fs: OsFileSystem,
@@ -10,26 +20,60 @@ pub struct ScanStage {
   // plugin_driver: SharedPluginDriver,
 }
 
-#[derive(Debug)]
-pub struct ScanStageOutput {
-  pub entry_points: Vec<EntryPoint>,
-  pub module_table: ModuleTable,
-  pub symbol_ref_db: SymbolRefDb,
-  pub runtime: RuntimeModuleBrief,
-  pub index_ecma_ast: IndexEcmaAst,
-  pub dyn_import_usage_map: DynImportUsageMap,
-}
-
 impl ScanStage {
   pub fn new(fs: OsFileSystem, options: SharedOptions, resolver: SharedResolver) -> Self {
     Self { fs, options, resolver }
   }
 
-  pub async fn scan(&mut self) -> anyhow::Result<ScanStageOutput> {
+  pub async fn scan(&mut self) -> anyhow::Result<ScanStageOutput, Vec<anyhow::Error>> {
     if self.options.input.is_empty() {
-      return Err(anyhow::format_err!("You must supply options.input to rolldown").into());
+      Err(vec![anyhow::anyhow!("You must supply options.input to rolldown")])?;
     }
 
-    todo!()
+    let user_entries = self.resolve_user_defined_entries().await?;
+
+    let module_loader = ModuleLoader::new(self.fs, self.options.clone(), self.resolver.clone())?;
+    let output = module_loader.fetch_all_modules(user_entries).await?;
+
+    Ok(output)
+  }
+
+  async fn resolve_user_defined_entries(
+    &mut self,
+  ) -> anyhow::Result<Vec<(Option<ArcStr>, ResolvedId)>, Vec<anyhow::Error>> {
+    let resolver = &self.resolver;
+
+    let resolved_ids = join_all(self.options.input.iter().map(|input_item| async move {
+      let resolved = resolve_id(resolver, &input_item.import, None, ImportKind::Import, true).await;
+
+      resolved.map(|info| ((input_item.name.clone().map(ArcStr::from)), info))
+    }))
+    .await;
+
+    let mut ret = Vec::with_capacity(self.options.input.len());
+
+    let mut errors = vec![];
+
+    for resolve_id in resolved_ids {
+      match resolve_id {
+        Ok(item) => {
+          if item.1.is_external {
+            errors.push(anyhow::anyhow!(
+              "Failed to resolve {:?} - entry can't be external",
+              item.1.id.to_string()
+            ));
+            continue;
+          }
+          ret.push(item);
+        }
+        Err(e) => errors.push(anyhow::anyhow!("ResolveError: {:?}", e)),
+      }
+    }
+
+    if !errors.is_empty() {
+      return Err(errors);
+    }
+
+    Ok(ret)
   }
 }

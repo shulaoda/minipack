@@ -28,6 +28,7 @@ pub use crate::{
       ImportMetaRolldownAssetReplacer, ThisExprReplaceKind,
     },
     module_idx::ModuleIdx,
+    node_builtin_modules::is_existing_node_builtin_modules,
   },
   module::{
     external_module::ExternalModule,
