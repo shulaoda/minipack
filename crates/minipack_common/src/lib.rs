@@ -50,6 +50,7 @@ pub use crate::{
     import_kind::ImportKind,
     import_record::{ImportRecordIdx, ImportRecordMeta, RawImportRecord, ResolvedImportRecord},
     importer_record::ImporterRecord,
+    interop::Interop,
     module_def_format::ModuleDefFormat,
     module_id::ModuleId,
     module_info::ModuleInfo,

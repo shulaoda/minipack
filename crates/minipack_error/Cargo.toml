@@ -1,6 +1,7 @@
 [package]
-name    = "minipack_sourcemap"
-version = "0.1.0"
+description = "minipack_error"
+name        = "minipack_error"
+version     = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -9,13 +10,11 @@ homepage.workspace   = true
 license.workspace    = true
 repository.workspace = true
 
+[lib]
+doctest = false
+
 [lints]
 workspace = true
 
 [dependencies]
-minipack_utils = { workspace = true }
-
-memchr        = { workspace = true }
-oxc           = { workspace = true }
-oxc_sourcemap = { workspace = true, features = ["rayon"] }
-rustc-hash    = { workspace = true }
+anyhow = { workspace = true }

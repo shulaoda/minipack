@@ -4,19 +4,23 @@ name    = "minipack"
 version = "0.1.0"
 
 [dependencies]
-anyhow              = { workspace = true }
-arcstr              = { workspace = true }
-futures             = { workspace = true }
-minipack_common     = { workspace = true }
-minipack_ecmascript = { workspace = true }
-minipack_fs         = { workspace = true, features = ["os"] }
-minipack_resolver   = { workspace = true }
-minipack_utils      = { workspace = true }
-oxc                 = { workspace = true }
-oxc_index           = { workspace = true }
-rustc-hash          = { workspace = true }
-sugar_path          = { workspace = true }
-tokio               = { workspace = true, features = ["rt", "macros", "sync"] }
+minipack_common           = { workspace = true }
+minipack_ecmascript       = { workspace = true }
+minipack_ecmascript_utils = { workspace = true }
+minipack_error            = { workspace = true }
+minipack_fs               = { workspace = true, features = ["os"] }
+minipack_resolver         = { workspace = true }
+minipack_utils            = { workspace = true }
+
+anyhow     = { workspace = true }
+arcstr     = { workspace = true }
+futures    = { workspace = true }
+itertools  = { workspace = true }
+oxc        = { workspace = true }
+oxc_index  = { workspace = true }
+rustc-hash = { workspace = true }
+sugar_path = { workspace = true }
+tokio      = { workspace = true, features = ["rt", "macros", "sync"] }
 
 [dev-dependencies]
 sugar_path = { workspace = true }

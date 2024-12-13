@@ -1,15 +1,14 @@
-mod lines_count;
-mod source;
-mod source_joiner;
-
-use minipack_utils::rayon::{IntoParallelRefIterator, ParallelIterator};
-use oxc::sourcemap::Token;
-use rustc_hash::FxHashMap;
-
-pub use lines_count::lines_count;
-pub use oxc::sourcemap::SourceMapBuilder;
-pub use oxc::sourcemap::{JSONSourceMap, SourceMap, SourcemapVisualizer};
+// cSpell:disable
+pub use oxc_sourcemap::SourceMapBuilder;
+use oxc_sourcemap::Token;
+pub use oxc_sourcemap::{JSONSourceMap, SourceMap, SourcemapVisualizer};
 pub use source_joiner::SourceJoiner;
+mod lines_count;
+pub use lines_count::lines_count;
+mod source_joiner;
+use minipack_utils::rayon::{IntoParallelRefIterator, ParallelIterator};
+use rustc_hash::FxHashMap;
+mod source;
 
 pub use crate::source::{Source, SourceMapSource};
 
@@ -82,9 +81,9 @@ fn test_collapse_sourcemaps() {
     allocator::Allocator,
     codegen::{CodeGenerator, CodegenOptions, CodegenReturn},
     parser::Parser,
-    sourcemap::SourcemapVisualizer,
     span::SourceType,
   };
+  use oxc_sourcemap::SourcemapVisualizer;
 
   let allocator = Allocator::default();
 

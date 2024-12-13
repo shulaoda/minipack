@@ -7,13 +7,15 @@ use std::sync::Arc;
 use arcstr::ArcStr;
 use minipack_common::{
   EntryPoint, ImporterRecord, Module, ModuleIdx, ModuleLoaderMsg, ModuleTable, ModuleType,
-  ResolvedId, RuntimeModuleBrief, SymbolRefDb,
+  ResolvedId, RuntimeModuleBrief, SymbolRefDb, RUNTIME_MODULE_ID,
 };
 use minipack_fs::OsFileSystem;
 use module_task::ModuleTaskOwner;
 use oxc_index::IndexVec;
+use runtime_module_task::RuntimeModuleTask;
 use rustc_hash::FxHashMap;
 use task_context::TaskContext;
+use tokio::sync::mpsc::{Receiver, Sender};
 
 use crate::types::{BuildResult, DynImportUsageMap, IndexEcmaAst, SharedOptions, SharedResolver};
 
@@ -33,22 +35,21 @@ impl IntermediateNormalModules {
   }
 
   pub fn alloc_ecma_module_idx(&mut self) -> ModuleIdx {
-    let id = self.modules.push(None);
     self.importers.push(Vec::new());
-    id
+    self.modules.push(None)
   }
 }
 
 pub struct ModuleLoader {
+  tx: Sender<ModuleLoaderMsg>,
+  rx: Receiver<ModuleLoaderMsg>,
+  remaining: u32,
   options: SharedOptions,
   shared_context: Arc<TaskContext>,
-  tx: tokio::sync::mpsc::Sender<ModuleLoaderMsg>,
-  rx: tokio::sync::mpsc::Receiver<ModuleLoaderMsg>,
-  visited: FxHashMap<ArcStr, ModuleIdx>,
   runtime_id: ModuleIdx,
-  remaining: u32,
-  intermediate_normal_modules: IntermediateNormalModules,
   symbol_ref_db: SymbolRefDb,
+  inm: IntermediateNormalModules,
+  visited: FxHashMap<ArcStr, ModuleIdx>,
 }
 
 pub struct ModuleLoaderOutput {
@@ -69,7 +70,37 @@ impl ModuleLoader {
     options: SharedOptions,
     resolver: SharedResolver,
   ) -> BuildResult<Self> {
-    todo!()
+    // 1024 should be enough for most cases
+    // over 1024 pending tasks are insane
+    let (tx, rx) = tokio::sync::mpsc::channel(1024);
+
+    let shared_context =
+      Arc::new(TaskContext { fs, resolver, options: options.clone(), tx: tx.clone() });
+
+    let mut inm = IntermediateNormalModules::new();
+
+    let runtime_id = inm.alloc_ecma_module_idx();
+    let symbol_ref_db = SymbolRefDb::default();
+
+    let task = RuntimeModuleTask::new(runtime_id, tx.clone(), options.clone());
+    let visited = FxHashMap::from_iter([(RUNTIME_MODULE_ID.into(), runtime_id)]);
+
+    // task is sync, but execution time is too short at the moment
+    // so we are using spawn instead of spawn_blocking here to avoid an additional blocking thread creation within tokio
+    let handle = tokio::runtime::Handle::current();
+    handle.spawn(async { task.run() });
+
+    Ok(Self {
+      tx,
+      rx,
+      remaining: 1,
+      options,
+      shared_context,
+      runtime_id,
+      symbol_ref_db,
+      inm,
+      visited,
+    })
   }
 
   fn try_spawn_new_task(

@@ -1,4 +1,5 @@
 use arcstr::ArcStr;
+use minipack_error::BuildResult;
 use oxc::{
   allocator::Allocator,
   ast::AstBuilder,
@@ -15,23 +16,24 @@ use crate::ecma_ast::{
 pub struct EcmaCompiler;
 
 impl EcmaCompiler {
-  pub fn parse(source: impl Into<ArcStr>, ty: SourceType) -> anyhow::Result<EcmaAst> {
+  pub fn parse(source: impl Into<ArcStr>, source_type: SourceType) -> BuildResult<EcmaAst> {
     let source: ArcStr = source.into();
     let allocator = oxc::allocator::Allocator::default();
     let inner =
       ProgramCell::try_new(ProgramCellOwner { source: source.clone(), allocator }, |owner| {
-        let parser = Parser::new(&owner.allocator, &owner.source, ty).with_options(ParseOptions {
-          allow_return_outside_function: true,
-          ..ParseOptions::default()
-        });
+        let parser =
+          Parser::new(&owner.allocator, &owner.source, source_type).with_options(ParseOptions {
+            allow_return_outside_function: true,
+            ..ParseOptions::default()
+          });
         let ret = parser.parse();
         if ret.panicked || !ret.errors.is_empty() {
-          Err(anyhow::anyhow!("{:?}", ret.errors))
+          Err(vec![anyhow::anyhow!("{:?}", ret.errors)])
         } else {
           Ok(ProgramCellDependent { program: ret.program })
         }
       })?;
-    Ok(EcmaAst { program: inner, source_type: ty, contains_use_strict: false })
+    Ok(EcmaAst { program: inner, source_type, contains_use_strict: false })
   }
 
   pub fn parse_expr_as_program(

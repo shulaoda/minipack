@@ -1,5 +1,5 @@
 [package]
-name    = "minipack_ecmascript"
+name    = "minipack_ecmascript_utils"
 version = "0.1.0"
 
 
@@ -17,9 +17,7 @@ workspace = true
 
 
 [dependencies]
-minipack_error  = { workspace = true }
+minipack_common = { workspace = true }
 
-anyhow    = { workspace = true }
-arcstr    = { workspace = true }
-oxc       = { workspace = true }
-self_cell = { workspace = true }
+anyhow = { workspace = true }
+oxc    = { workspace = true }

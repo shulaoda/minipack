@@ -59,14 +59,16 @@ single_match      = "allow"
 single_match_else = "allow"
 
 [workspace.dependencies]
-minipack            = { version = "0.1.0", path = "./crates/minipack" }
-minipack_common     = { version = "0.1.0", path = "./crates/minipack_common" }
-minipack_ecmascript = { version = "0.1.0", path = "./crates/minipack_ecmascript" }
-minipack_fs         = { version = "0.1.0", path = "./crates/minipack_fs" }
-minipack_plugin     = { version = "0.1.0", path = "./crates/minipack_plugin" }
-minipack_resolver   = { version = "0.1.0", path = "./crates/minipack_resolver" }
-minipack_sourcemap  = { version = "0.1.0", path = "./crates/minipack_sourcemap" }
-minipack_utils      = { version = "0.1.0", path = "./crates/minipack_utils" }
+minipack                  = { version = "0.1.0", path = "./crates/minipack" }
+minipack_common           = { version = "0.1.0", path = "./crates/minipack_common" }
+minipack_ecmascript       = { version = "0.1.0", path = "./crates/minipack_ecmascript" }
+minipack_ecmascript_utils = { version = "0.1.0", path = "./crates/minipack_ecmascript_utils" }
+minipack_error            = { version = "0.1.0", path = "./crates/minipack_error" }
+minipack_fs               = { version = "0.1.0", path = "./crates/minipack_fs" }
+minipack_plugin           = { version = "0.1.0", path = "./crates/minipack_plugin" }
+minipack_resolver         = { version = "0.1.0", path = "./crates/minipack_resolver" }
+minipack_sourcemap        = { version = "0.1.0", path = "./crates/minipack_sourcemap" }
+minipack_utils            = { version = "0.1.0", path = "./crates/minipack_utils" }
 
 anyhow        = { version = "1.0.86" }
 arcstr        = { version = "1.2.0" }
@@ -93,9 +95,10 @@ tokio         = { version = "1.38.0", default-features = false }
 vfs           = { version = "0.12.0" }
 
 # oxc crates share the same version
-oxc          = { version = "0.38.0", features = ["sourcemap_concurrent", "transformer", "minifier", "semantic", "codegen"] }
-oxc_index    = { version = "1.0.0", features = ["rayon"] }
-oxc_resolver = { version = "2.1.1" }
+oxc           = { version = "0.40.1", features = ["transformer", "minifier", "semantic", "codegen"] }
+oxc_index     = { version = "2", features = ["rayon"] }
+oxc_resolver  = { version = "3" }
+oxc_sourcemap = { version = "1" }
 
 [profile.release]
 codegen-units = 1
