@@ -15,7 +15,7 @@ use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 use task_context::TaskContext;
 
-use crate::types::{DynImportUsageMap, IndexEcmaAst, SharedOptions, SharedResolver};
+use crate::types::{BuildResult, DynImportUsageMap, IndexEcmaAst, SharedOptions, SharedResolver};
 
 pub struct IntermediateNormalModules {
   pub modules: IndexVec<ModuleIdx, Option<Module>>,
@@ -68,7 +68,7 @@ impl ModuleLoader {
     fs: OsFileSystem,
     options: SharedOptions,
     resolver: SharedResolver,
-  ) -> anyhow::Result<Self, Vec<anyhow::Error>> {
+  ) -> BuildResult<Self> {
     todo!()
   }
 
@@ -85,7 +85,7 @@ impl ModuleLoader {
   pub async fn fetch_all_modules(
     mut self,
     user_defined_entries: Vec<(Option<ArcStr>, ResolvedId)>,
-  ) -> anyhow::Result<ModuleLoaderOutput, Vec<anyhow::Error>> {
+  ) -> BuildResult<ModuleLoaderOutput> {
     if self.options.input.is_empty() {
       Err(vec![anyhow::anyhow!("You must supply options.input to rolldown")])?;
     }

@@ -8,7 +8,7 @@ use minipack_fs::OsFileSystem;
 use self::resolve_id::resolve_id;
 use crate::{
   module_loader::{ModuleLoader, ModuleLoaderOutput},
-  types::{SharedOptions, SharedResolver},
+  types::{BuildResult, SharedOptions, SharedResolver},
 };
 
 pub type ScanStageOutput = ModuleLoaderOutput;
@@ -25,7 +25,7 @@ impl ScanStage {
     Self { fs, options, resolver }
   }
 
-  pub async fn scan(&mut self) -> anyhow::Result<ScanStageOutput, Vec<anyhow::Error>> {
+  pub async fn scan(&mut self) -> BuildResult<ScanStageOutput> {
     if self.options.input.is_empty() {
       Err(vec![anyhow::anyhow!("You must supply options.input to rolldown")])?;
     }
@@ -40,7 +40,7 @@ impl ScanStage {
 
   async fn resolve_user_defined_entries(
     &mut self,
-  ) -> anyhow::Result<Vec<(Option<ArcStr>, ResolvedId)>, Vec<anyhow::Error>> {
+  ) -> BuildResult<Vec<(Option<ArcStr>, ResolvedId)>> {
     let resolver = &self.resolver;
 
     let resolved_ids = join_all(self.options.input.iter().map(|input_item| async move {

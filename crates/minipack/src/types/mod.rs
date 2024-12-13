@@ -11,6 +11,8 @@ use minipack_resolver::Resolver;
 use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 
+pub type BuildResult<T> = anyhow::Result<T, Vec<anyhow::Error>>;
+
 pub type IndexEcmaAst = IndexVec<EcmaAstIdx, (EcmaAst, ModuleIdx)>;
 pub type DynImportUsageMap = FxHashMap<ModuleIdx, DynamicImportExportsUsage>;
 
