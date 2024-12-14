@@ -93,7 +93,7 @@ serde         = { version = "1.0.203", features = ["derive"] }
 serde_json    = { version = "1.0.117" }
 simdutf8      = { version = "0.1.5" }
 smallvec      = { version = "1.13.2" }
-string_wizard = { version = "0.0.24" }
+string_wizard = { version = "0.0.25" }
 sugar_path    = { version = "1.2.0", features = ["cached_current_dir"] }
 tokio         = { version = "1.38.0", default-features = false }
 vfs           = { version = "0.12.0" }
