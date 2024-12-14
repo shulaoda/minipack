@@ -19,6 +19,7 @@ pub struct NormalizedBundlerOptions {
   pub dir: String,
   pub file: Option<String>,
   pub format: OutputFormat,
+  pub inline_dynamic_imports: bool,
 }
 
 impl NormalizedBundlerOptions {

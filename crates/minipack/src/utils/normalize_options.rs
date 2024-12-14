@@ -32,6 +32,7 @@ pub fn normalize_options(mut raw_options: crate::BundlerOptions) -> NormalizeOpt
     dir: raw_options.dir.unwrap_or_else(|| "dist".to_string()),
     file: raw_options.file,
     format,
+    inline_dynamic_imports: raw_options.inline_dynamic_imports.unwrap_or_default(),
   };
 
   NormalizeOptionsReturn { options: normalized, resolve_options: raw_resolve }

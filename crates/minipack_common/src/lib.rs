@@ -45,7 +45,7 @@ pub use crate::{
   types::{
     ast_scopes::AstScopes,
     chunk_idx::ChunkIdx,
-    entry_point::EntryPoint,
+    entry_point::{EntryPoint, EntryPointKind},
     exports_kind::ExportsKind,
     external_module_idx::ExternalModuleIdx,
     import_kind::ImportKind,

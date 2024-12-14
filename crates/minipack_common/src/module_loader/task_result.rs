@@ -12,7 +12,7 @@ pub struct NormalModuleTaskResult {
   pub module_idx: ModuleIdx,
   pub resolved_deps: IndexVec<ImportRecordIdx, ResolvedId>,
   pub raw_import_records: IndexVec<ImportRecordIdx, RawImportRecord>,
-  // pub warnings: Vec<BuildDiagnostic>,
+  pub warnings: Vec<anyhow::Error>,
 }
 
 pub struct EcmaRelated {

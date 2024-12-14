@@ -25,6 +25,7 @@ pub struct BundlerOptions {
   pub dir: Option<String>,
   pub file: Option<String>,
   pub format: Option<OutputFormat>,
+  pub inline_dynamic_imports: Option<bool>,
 
   // --- Resolve
   pub resolve: Option<ResolveOptions>,
