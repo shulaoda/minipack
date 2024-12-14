@@ -9,6 +9,7 @@ use minipack_common::{
   EntryPoint, ImporterRecord, Module, ModuleIdx, ModuleLoaderMsg, ModuleTable, ModuleType,
   ResolvedId, RuntimeModuleBrief, SymbolRefDb, RUNTIME_MODULE_ID,
 };
+use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 use module_task::ModuleTaskOwner;
 use oxc_index::IndexVec;
@@ -17,7 +18,7 @@ use rustc_hash::FxHashMap;
 use task_context::TaskContext;
 use tokio::sync::mpsc::{Receiver, Sender};
 
-use crate::types::{BuildResult, DynImportUsageMap, IndexEcmaAst, SharedOptions, SharedResolver};
+use crate::types::{DynImportUsageMap, IndexEcmaAst, SharedOptions, SharedResolver};
 
 pub struct IntermediateNormalModules {
   pub modules: IndexVec<ModuleIdx, Option<Module>>,

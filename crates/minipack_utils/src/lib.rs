@@ -1,5 +1,6 @@
 pub mod concat_string;
 pub mod ecmascript;
+pub mod global_reference;
 pub mod indexmap;
 pub mod option_ext;
 pub mod path_ext;

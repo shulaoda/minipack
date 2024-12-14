@@ -21,6 +21,7 @@ pub use crate::{
     css_view::{CssAssetNameReplacer, CssRenderer, CssView},
   },
   ecmascript::{
+    comment_annotation::{get_leading_comment, ROLLDOWN_IGNORE},
     dynamic_import_usage,
     ecma_ast_idx::EcmaAstIdx,
     ecma_view::{
@@ -51,6 +52,7 @@ pub use crate::{
     import_record::{ImportRecordIdx, ImportRecordMeta, RawImportRecord, ResolvedImportRecord},
     importer_record::ImporterRecord,
     interop::Interop,
+    member_expr_ref::MemberExprRef,
     module_def_format::ModuleDefFormat,
     module_id::ModuleId,
     module_info::ModuleInfo,

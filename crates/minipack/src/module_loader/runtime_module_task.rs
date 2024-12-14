@@ -1,13 +1,16 @@
 use arcstr::ArcStr;
+use minipack_error::BuildResult;
+use oxc::ast::VisitMut;
 use oxc::span::SourceType;
 use tokio::sync::mpsc::Sender;
 
-use minipack_common::ModuleLoaderMsg;
 use minipack_common::{AstScopes, ModuleIdx, SymbolRef};
+use minipack_common::{ModuleDefFormat, ModuleId, ModuleLoaderMsg};
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 
 use crate::ast_scanner::pre_processor::PreProcessor;
-use crate::types::{BuildResult, SharedNormalizedBundlerOptions};
+use crate::ast_scanner::{AstScanResult, AstScanner};
+use crate::types::SharedNormalizedBundlerOptions;
 
 pub struct RuntimeModuleTask {
   module_id: ModuleIdx,
@@ -19,7 +22,7 @@ pub struct RuntimeModuleTask {
 pub struct MakeEcmaAstResult {
   ast: EcmaAst,
   ast_scope: AstScopes,
-  scan_result: ScanResult,
+  scan_result: AstScanResult,
   namespace_object_ref: SymbolRef,
 }
 

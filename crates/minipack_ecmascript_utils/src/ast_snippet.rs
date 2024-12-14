@@ -12,7 +12,7 @@ use oxc::{
   span::{Atom, CompactStr, Span, SPAN},
 };
 
-use crate::take_in::TakeIn;
+use crate::allocator_helpers::take_in::TakeIn;
 
 type PassedStr<'a> = &'a str;
 

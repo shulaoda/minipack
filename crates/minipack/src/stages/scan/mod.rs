@@ -3,12 +3,13 @@ mod resolve_id;
 use arcstr::ArcStr;
 use futures::future::join_all;
 use minipack_common::{ImportKind, ResolvedId};
+use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 
 use self::resolve_id::resolve_id;
 use crate::{
   module_loader::{ModuleLoader, ModuleLoaderOutput},
-  types::{BuildResult, SharedOptions, SharedResolver},
+  types::{SharedOptions, SharedResolver},
 };
 
 pub type ScanStageOutput = ModuleLoaderOutput;
