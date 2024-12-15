@@ -2,6 +2,7 @@ use arcstr::ArcStr;
 use minipack_common::{
   ImportKind, ImportRecordIdx, ModuleIdx, ModuleLoaderMsg, ModuleType, RawImportRecord, ResolvedId,
 };
+use minipack_error::BuildResult;
 use minipack_resolver::ResolveError;
 use minipack_utils::rstr::Rstr;
 use oxc::span::Span;
@@ -56,29 +57,12 @@ impl ModuleTask {
   }
 
   pub async fn run(mut self) {
-    match self.run_inner().await {
-      Ok(()) => {
-        if !self.errors.is_empty() {
-          self
-            .ctx
-            .tx
-            .send(ModuleLoaderMsg::BuildErrors(self.errors))
-            .await
-            .expect("Send should not fail");
-        }
-      }
-      Err(errs) => {
-        self
-          .ctx
-          .tx
-          .send(ModuleLoaderMsg::BuildErrors(vec![errs.into()]))
-          .await
-          .expect("Send should not fail");
-      }
+    if let Err(errs) = self.run_inner().await {
+      self.ctx.tx.send(ModuleLoaderMsg::BuildErrors(errs)).await.expect("Send should not fail");
     }
   }
 
-  async fn run_inner(&mut self) -> anyhow::Result<()> {
+  async fn run_inner(&mut self) -> BuildResult<()> {
     todo!()
   }
 
@@ -98,7 +82,7 @@ impl ModuleTask {
     source: ArcStr,
     warnings: &mut Vec<anyhow::Error>,
     module_type: &ModuleType,
-  ) -> anyhow::Result<anyhow::Result<IndexVec<ImportRecordIdx, ResolvedId>>> {
+  ) -> BuildResult<IndexVec<ImportRecordIdx, ResolvedId>> {
     todo!()
   }
 }

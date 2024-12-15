@@ -164,7 +164,7 @@ impl ModuleLoader {
             .map(|item| std::mem::take(&mut item.dynamic_import_rec_exports_usage))
             .unwrap_or_default();
 
-          let import_records: IndexVec<ImportRecordIdx, ResolvedImportRecord> = raw_import_records
+          let import_records = raw_import_records
             .into_iter_enumerated()
             .zip(resolved_deps)
             .map(|((rec_idx, raw_rec), info)| {
@@ -253,7 +253,7 @@ impl ModuleLoader {
     }
 
     if !errors.is_empty() {
-      return Err(errors.into());
+      Err(errors)?;
     }
 
     let dyn_import_usage_map = dynamic_import_exports_usage_pairs.into_iter().fold(

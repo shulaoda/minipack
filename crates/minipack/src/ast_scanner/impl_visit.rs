@@ -88,14 +88,9 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
 
   fn visit_for_of_statement(&mut self, it: &ast::ForOfStatement<'ast>) {
     if it.r#await && self.is_top_level() && !self.options.format.keep_esm_import_export_syntax() {
-      self.result.errors.push(BuildDiagnostic::unsupported_feature(
-        self.id.resource_id().clone(),
-        self.source.clone(),
-        it.span(),
-        format!(
-          "Top-level await is currently not supported with the '{format}' output format",
-          format = self.options.format
-        ),
+      self.result.errors.push(anyhow::anyhow!(
+        "Top-level await is currently not supported with the '{format}' output format",
+        format = self.options.format
       ));
     }
 
@@ -104,14 +99,9 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
 
   fn visit_await_expression(&mut self, it: &ast::AwaitExpression<'ast>) {
     if !self.options.format.keep_esm_import_export_syntax() && self.is_top_level() {
-      self.result.errors.push(BuildDiagnostic::unsupported_feature(
-        self.id.resource_id().clone(),
-        self.source.clone(),
-        it.span(),
-        format!(
-          "Top-level await is currently not supported with the '{format}' output format",
-          format = self.options.format
-        ),
+      self.result.errors.push(anyhow::anyhow!(
+        "Top-level await is currently not supported with the '{format}' output format",
+        format = self.options.format
       ));
     }
     walk::walk_await_expression(self, it);
@@ -179,13 +169,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
       _ => {}
     }
     walk::walk_assignment_expression(self, node);
-  }
-
-  fn visit_new_expression(&mut self, it: &ast::NewExpression<'ast>) {
-    if self.options.experimental.is_resolve_new_url_to_asset_enabled() {
-      self.handle_new_url_with_string_literal_and_import_meta_url(it);
-    }
-    walk::walk_new_expression(self, it);
   }
 
   fn visit_this_expression(&mut self, it: &ast::ThisExpression) {
@@ -313,8 +296,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
             // improve treeshaking performance. https://github.com/evanw/esbuild/blob/360d47230813e67d0312ad754cad2b6ee09b151b/internal/js_ast/js_ast.go#L1288-L1291
             self.result.has_eval = true;
             self.result.warnings.push(
-              BuildDiagnostic::eval(self.id.to_string(), self.source.clone(), ident_ref.span)
-                .with_severity_warning(),
+              anyhow::anyhow!("Use of eval in '{}' is strongly discouraged as it poses security risks and may cause issues with minification.", self.id.to_string())
             );
           }
           "require" => {
