@@ -1,6 +1,6 @@
 use arcstr::ArcStr;
 use bitflags::bitflags;
-use minipack_utils::rstr::Rstr;
+use minipack_utils::{indexmap::FxIndexSet, rstr::Rstr};
 use oxc::{semantic::SymbolId, span::Span};
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -107,13 +107,13 @@ pub struct EcmaView {
   pub scope: AstScopes,
   pub default_export_ref: SymbolRef,
   // the ids of all modules that statically import this module
-  pub importers: Vec<ModuleId>,
+  pub importers: FxIndexSet<ModuleId>,
   // the ids of all modules that import this module via dynamic import()
-  pub dynamic_importers: Vec<ModuleId>,
+  pub dynamic_importers: FxIndexSet<ModuleId>,
   // the module ids statically imported by this module
-  pub imported_ids: Vec<ModuleId>,
+  pub imported_ids: FxIndexSet<ModuleId>,
   // the module ids imported by this module via dynamic import()
-  pub dynamically_imported_ids: Vec<ModuleId>,
+  pub dynamically_imported_ids: FxIndexSet<ModuleId>,
   pub side_effects: DeterminedSideEffects,
   pub ast_usage: EcmaModuleAstUsage,
   pub self_referenced_class_decl_symbol_ids: FxHashSet<SymbolId>,

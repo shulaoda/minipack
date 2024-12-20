@@ -88,13 +88,11 @@ impl ModuleLoader {
     let runtime_id = inm.alloc_ecma_module_idx();
     let symbol_ref_db = SymbolRefDb::default();
 
-    let task = RuntimeModuleTask::new(runtime_id, tx.clone(), options.clone());
     let visited = FxHashMap::from_iter([(RUNTIME_MODULE_ID.into(), runtime_id)]);
 
-    // task is sync, but execution time is too short at the moment
-    // so we are using spawn instead of spawn_blocking here to avoid an additional blocking thread creation within tokio
-    let handle = tokio::runtime::Handle::current();
-    handle.spawn(async { task.run() });
+    let task = RuntimeModuleTask::new(runtime_id, tx.clone(), options.clone());
+
+    tokio::spawn(async { task.run() });
 
     Ok(Self {
       tx,
