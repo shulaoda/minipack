@@ -19,15 +19,15 @@ pub struct ExternalModule {
 impl ExternalModule {
   pub fn new(
     idx: ModuleIdx,
-    module_id: ArcStr,
+    name: ArcStr,
     side_effects: DeterminedSideEffects,
     namespace_ref: SymbolRef,
   ) -> Self {
     Self {
       idx,
+      name,
       exec_order: u32::MAX,
       namespace_ref,
-      name: module_id,
       import_records: IndexVec::default(),
       side_effects,
     }

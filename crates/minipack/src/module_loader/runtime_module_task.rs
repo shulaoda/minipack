@@ -145,7 +145,7 @@ impl RuntimeModuleTask {
       })
       .collect();
 
-    self.tx.try_send(ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
+    let _ = self.tx.try_send(ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
       ast,
       module,
       runtime,

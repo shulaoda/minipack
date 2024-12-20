@@ -287,9 +287,9 @@ impl ModuleLoader {
           let importers = std::mem::take(&mut self.inm.importers[id]);
           for importer in &importers {
             if importer.kind.is_static() {
-              module.importers.push(importer.importer_path.clone());
+              module.importers.insert(importer.importer_path.clone());
             } else {
-              module.dynamic_importers.push(importer.importer_path.clone());
+              module.dynamic_importers.insert(importer.importer_path.clone());
             }
           }
         }
@@ -369,10 +369,10 @@ impl ModuleLoader {
           self.remaining += 1;
 
           let task = ModuleTask::new(
-            Arc::clone(&self.shared_context),
+            self.shared_context.clone(),
             idx,
-            resolved_id,
             owner,
+            resolved_id,
             is_user_defined_entry,
             assert_module_type,
           );

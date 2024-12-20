@@ -34,3 +34,6 @@ impl Bundler {
     Ok(())
   }
 }
+
+#[test]
+fn test_rust_syntax_errors() {}

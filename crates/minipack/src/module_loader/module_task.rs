@@ -27,10 +27,9 @@ impl ModuleTaskOwner {
 
 pub struct ModuleTask {
   ctx: Arc<TaskContext>,
-  module_idx: ModuleIdx,
-  resolved_id: ResolvedId,
+  idx: ModuleIdx,
   owner: Option<ModuleTaskOwner>,
-  errors: Vec<anyhow::Error>,
+  resolved_id: ResolvedId,
   is_user_defined_entry: bool,
   /// The module is asserted to be this specific module type.
   asserted_module_type: Option<ModuleType>,
@@ -40,17 +39,16 @@ impl ModuleTask {
   pub fn new(
     ctx: Arc<TaskContext>,
     idx: ModuleIdx,
-    resolved_id: ResolvedId,
     owner: Option<ModuleTaskOwner>,
+    resolved_id: ResolvedId,
     is_user_defined_entry: bool,
     assert_module_type: Option<ModuleType>,
   ) -> Self {
     Self {
       ctx,
-      module_idx: idx,
-      resolved_id,
+      idx,
       owner,
-      errors: vec![],
+      resolved_id,
       is_user_defined_entry,
       asserted_module_type: assert_module_type,
     }
