@@ -65,7 +65,7 @@ pub struct ModuleLoaderOutput {
   pub symbol_ref_db: SymbolRefDb,
   // Entries that user defined + dynamic import entries
   pub entry_points: Vec<EntryPoint>,
-  pub runtime: RuntimeModuleBrief,
+  pub runtime_brief: RuntimeModuleBrief,
   pub warnings: Vec<anyhow::Error>,
   pub dyn_import_usage_map: DynImportUsageMap,
 }
@@ -236,13 +236,16 @@ impl ModuleLoader {
               raw_rec.into_resolved(id)
             })
             .collect::<IndexVec<ImportRecordIdx, _>>();
+
           let ast_idx = self.inm.index_ecma_ast.push((ast, module.idx));
+
+          runtime_brief = Some(runtime);
           module.ecma_ast_idx = Some(ast_idx);
           module.import_records = import_records;
-          self.inm.modules[self.runtime_id] = Some(module.into());
 
+          self.inm.modules[self.runtime_id] = Some(module.into());
           self.symbol_ref_db.store_local_db(self.runtime_id, local_symbol_ref_db);
-          runtime_brief = Some(runtime);
+
           self.remaining -= 1;
         }
         ModuleLoaderMsg::BuildErrors(e) => {
@@ -275,11 +278,12 @@ impl ModuleLoader {
       .inm
       .modules
       .into_iter()
-      .flatten()
       .enumerate()
-      .map(|(id, mut module)| {
-        let id = ModuleIdx::from(id);
+      .map(|(id, module)| {
+        let mut module = module.expect("Module tasks did't complete as expected");
+
         if let Some(module) = module.as_normal_mut() {
+          let id = ModuleIdx::from(id);
           // Note: (Compat to rollup)
           // The `dynamic_importers/importers` should be added after `module_parsed` hook.
           let importers = std::mem::take(&mut self.inm.importers[id]);
@@ -307,12 +311,15 @@ impl ModuleLoader {
       }));
     }
 
+    let runtime_brief =
+      runtime_brief.expect("Failed to find runtime module. This should not happen");
+
     Ok(ModuleLoaderOutput {
       module_table: ModuleTable { modules },
       symbol_ref_db: self.symbol_ref_db,
       index_ecma_ast: self.inm.index_ecma_ast,
       entry_points,
-      runtime: runtime_brief.expect("Failed to find runtime module. This should not happen"),
+      runtime_brief,
       warnings,
       dyn_import_usage_map,
     })
