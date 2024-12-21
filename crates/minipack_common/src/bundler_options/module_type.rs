@@ -30,7 +30,7 @@ impl ModuleType {
       "dataurl" => Ok(Self::Dataurl),
       "binary" => Ok(Self::Binary),
       "empty" => Ok(Self::Empty),
-      _ => Err(anyhow::format_err!("Unknown module type: {s}")),
+      _ => Err(anyhow::anyhow!("Unknown module type: {s}")),
     }
   }
 

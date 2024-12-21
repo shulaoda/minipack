@@ -16,7 +16,7 @@ impl StrOrBytes {
   pub fn try_into_inner_string(self) -> anyhow::Result<String> {
     match self {
       Self::Str(s) => Ok(s),
-      Self::Bytes(_) => Err(anyhow::format_err!("Expected Str, found Bytes")),
+      Self::Bytes(_) => Err(anyhow::anyhow!("Expected Str, found Bytes")),
     }
   }
 
@@ -44,7 +44,7 @@ impl StrOrBytes {
   pub fn try_as_inner_str(&self) -> anyhow::Result<&str> {
     match self {
       Self::Str(s) => Ok(s.as_str()),
-      Self::Bytes(_) => Err(anyhow::format_err!("Expected Str, found Bytes")),
+      Self::Bytes(_) => Err(anyhow::anyhow!("Expected Str, found Bytes")),
     }
   }
 }

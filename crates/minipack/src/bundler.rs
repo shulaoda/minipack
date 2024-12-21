@@ -6,7 +6,6 @@ use crate::{
   utils::normalize_options::{normalize_options, NormalizeOptionsReturn},
 };
 
-use anyhow::Ok;
 use minipack_common::BundlerOptions;
 use minipack_fs::OsFileSystem;
 use minipack_resolver::Resolver;

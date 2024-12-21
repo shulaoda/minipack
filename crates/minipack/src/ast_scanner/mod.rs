@@ -243,11 +243,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
           )])?;
         }
       }
-      // if !scanned_top_level_symbols.is_empty() {
-      //   return Err(anyhow::format_err!(
-      //     "Some top-level symbols are scanned by the scanner but not declared in the top-level scope: {scanned_top_level_symbols:?}",
-      //   ));
-      // }
     }
     self.result.ast_usage = self.ast_usage;
     Ok(self.result)
