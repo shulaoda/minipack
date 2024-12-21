@@ -99,7 +99,7 @@ tokio         = { version = "1.38.0", default-features = false }
 vfs           = { version = "0.12.0" }
 
 # oxc crates share the same version
-oxc           = { version = "0.40.1", features = ["transformer", "minifier", "semantic", "codegen"] }
+oxc           = { version = "0.43.0", features = ["transformer", "minifier", "semantic", "codegen"] }
 oxc_index     = { version = "2", features = ["rayon"] }
 oxc_resolver  = { version = "3" }
 oxc_sourcemap = { version = "1" }
