@@ -76,17 +76,17 @@ impl EcmaCompiler {
       .build(ast.program())
   }
 
-  pub fn minify(source_text: &str) -> anyhow::Result<String> {
+  pub fn minify(source_text: &str) -> String {
     let allocator = Allocator::default();
     let program = Parser::new(&allocator, source_text, SourceType::default()).parse().program;
     let program = allocator.alloc(program);
-    let options = MinifierOptions { mangle: true, ..MinifierOptions::default() };
+    let options = MinifierOptions::default();
     let ret = Minifier::new(options).build(&allocator, program);
     let ret = Codegen::new()
       .with_options(CodegenOptions { minify: true, ..CodegenOptions::default() })
       .with_mangler(ret.mangler)
       .build(program);
-    Ok(ret.code)
+    ret.code
   }
 }
 

@@ -4,6 +4,8 @@ mod import_assign_analyzer;
 pub mod pre_processor;
 mod side_effect_detector;
 
+use std::borrow::Cow;
+
 use arcstr::ArcStr;
 use minipack_common::{
   dynamic_import_usage::{DynamicImportExportsUsage, DynamicImportUsageInfo},
@@ -88,7 +90,7 @@ pub struct AstScanner<'me, 'ast> {
   /// `cjs_exports_ident` and `cjs_module_ident` only only recorded when they are appear in
   /// lhs of AssignmentExpression
   ast_usage: EcmaModuleAstUsage,
-  cur_class_decl_and_symbol_referenced_ids: Option<(SymbolId, &'me Vec<ReferenceId>)>,
+  cur_class_decl: Option<SymbolId>,
   visit_path: Vec<AstKind<'ast>>,
   scope_stack: Vec<Option<ScopeId>>,
   options: &'me SharedOptions,
@@ -117,13 +119,13 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     // This is used for converting "export default foo;" => "var default_symbol = foo;"
     let legitimized_repr_name = legitimize_identifier_name(repr_name);
     let default_export_ref = symbol_ref_db
-      .create_facade_root_symbol_ref(concat_string!(legitimized_repr_name, "_default").into());
+      .create_facade_root_symbol_ref(&concat_string!(legitimized_repr_name, "_default"));
     // This is used for converting "export default foo;" => "var [default_export_ref] = foo;"
     // And we consider [default_export_ref] never get reassigned.
     default_export_ref.flags_mut(&mut symbol_ref_db).insert(SymbolRefFlags::IS_NOT_REASSIGNED);
 
     let name = concat_string!(legitimized_repr_name, "_exports");
-    let namespace_object_ref = symbol_ref_db.create_facade_root_symbol_ref(name.into());
+    let namespace_object_ref = symbol_ref_db.create_facade_root_symbol_ref(&name);
 
     let result = AstScanResult {
       named_imports: FxHashMap::default(),
@@ -166,7 +168,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       id: file_path,
       comments,
       ast_usage: EcmaModuleAstUsage::empty(),
-      cur_class_decl_and_symbol_referenced_ids: None,
+      cur_class_decl: None,
       visit_path: vec![],
       ignore_comment: ROLLDOWN_IGNORE,
       options,
@@ -274,14 +276,12 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     // If 'foo' in `import ... from 'foo'` is finally a commonjs module, we will convert the import statement
     // to `var import_foo = __toESM(require_foo())`, so we create a symbol for `import_foo` here. Notice that we
     // just create the symbol. If the symbol is finally used would be determined in the linking stage.
-    let namespace_ref: SymbolRef = self.result.symbol_ref_db.create_facade_root_symbol_ref(
-      concat_string!(
+    let namespace_ref: SymbolRef =
+      self.result.symbol_ref_db.create_facade_root_symbol_ref(&concat_string!(
         "#LOCAL_NAMESPACE_IN_",
         itoa::Buffer::new().format(self.current_stmt_info.stmt_idx.unwrap_or_default()),
         "#"
-      )
-      .into(),
-    );
+      ));
     let rec = RawImportRecord::new(Rstr::from(module_request), kind, namespace_ref, span, None)
       .with_meta(init_meta);
 
@@ -326,7 +326,10 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     let is_const = self.result.symbol_ref_db.get_flags(local).is_const_variable();
 
     // If there is any write reference to the local variable, it is reassigned.
-    let is_reassigned = self.scopes.get_resolved_references(local).any(Reference::is_write);
+    let is_reassigned = self
+      .scopes
+      .get_resolved_references(local, &self.result.symbol_ref_db)
+      .any(Reference::is_write);
 
     let ref_flags = symbol_ref.flags_mut(&mut self.result.symbol_ref_db);
     if is_const {
@@ -381,16 +384,17 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     span_imported: Span,
   ) {
     // We will pretend `export { [imported] as [export_name] }` to be `import `
+    let ident = if export_name == "default" {
+      let importee_repr =
+        self.result.import_records[record_id].module_request.as_path().representative_file_name();
+      let importee_repr = legitimize_identifier_name(&importee_repr);
+      Cow::Owned(concat_string!(importee_repr, "_default"))
+    } else {
+      // the export_name could be a string literal
+      legitimize_identifier_name(export_name)
+    };
     let generated_imported_as_ref =
-      self.result.symbol_ref_db.create_facade_root_symbol_ref(if export_name == "default" {
-        let importee_repr =
-          self.result.import_records[record_id].module_request.as_path().representative_file_name();
-        let importee_repr = legitimize_identifier_name(&importee_repr);
-        concat_string!(importee_repr, "_default").into()
-      } else {
-        // the export_name could be a string literal
-        legitimize_identifier_name(export_name).into()
-      });
+      self.result.symbol_ref_db.create_facade_root_symbol_ref(ident.as_ref());
 
     self.current_stmt_info.declared_symbols.push(generated_imported_as_ref);
     let name_import = NamedImport {
@@ -418,7 +422,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     let generated_imported_as_ref = self
       .result
       .symbol_ref_db
-      .create_facade_root_symbol_ref(legitimize_identifier_name(export_name).into());
+      .create_facade_root_symbol_ref(&legitimize_identifier_name(export_name));
     self.current_stmt_info.declared_symbols.push(generated_imported_as_ref);
     let name_import = NamedImport {
       imported: Specifier::Star,
@@ -524,7 +528,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         self.current_stmt_info.debug_label.as_deref().unwrap_or("<None>")
       )
     });
-    self.scopes.symbol_id_for(ref_id)
+    self.scopes.symbol_id_for(ref_id, &self.result.symbol_ref_db)
   }
   fn scan_export_default_decl(&mut self, decl: &ExportDefaultDeclaration) {
     use oxc::ast::ast::ExportDefaultDeclarationKind;
@@ -638,7 +642,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
 
   fn try_diagnostic_forbid_const_assign(&mut self, id_ref: &IdentifierReference) -> Option<()> {
     let ref_id = id_ref.reference_id.get()?;
-    let reference = &self.scopes.references[ref_id];
+    let reference = &self.result.symbol_ref_db.references[ref_id];
     if reference.is_write() {
       let symbol_id = reference.symbol_id()?;
       if self.result.symbol_ref_db.get_flags(symbol_id).is_const_variable() {

@@ -40,9 +40,14 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   fn visit_program(&mut self, program: &ast::Program<'ast>) {
     for (idx, stmt) in program.body.iter().enumerate() {
       self.current_stmt_info.stmt_idx = Some(idx);
-      self.current_stmt_info.side_effect =
-        SideEffectDetector::new(self.scopes, self.source, self.comments, true)
-          .detect_side_effect_of_stmt(stmt);
+      self.current_stmt_info.side_effect = SideEffectDetector::new(
+        self.scopes,
+        self.source,
+        self.comments,
+        true,
+        &self.result.symbol_ref_db,
+      )
+      .detect_side_effect_of_stmt(stmt);
 
       if cfg!(debug_assertions) {
         self.current_stmt_info.debug_label = Some(stmt.to_source_string());
@@ -179,10 +184,10 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   }
 
   fn visit_class(&mut self, it: &ast::Class<'ast>) {
-    let previous_reference_id = self.cur_class_decl_and_symbol_referenced_ids.take();
-    self.cur_class_decl_and_symbol_referenced_ids = self.get_class_id_and_references_id(it);
+    let previous_class_decl_id = self.cur_class_decl.take();
+    self.cur_class_decl = self.get_class_id(it);
     walk::walk_class(self, it);
-    self.cur_class_decl_and_symbol_referenced_ids = previous_reference_id;
+    self.cur_class_decl = previous_class_decl_id;
   }
 
   fn visit_class_element(&mut self, it: &ast::ClassElement<'ast>) {
@@ -233,13 +238,10 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
 
 impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   /// visit `Class` of declaration
-  pub fn get_class_id_and_references_id(
-    &mut self,
-    class: &ast::Class<'ast>,
-  ) -> Option<(SymbolId, &'me Vec<ReferenceId>)> {
+  pub fn get_class_id(&mut self, class: &ast::Class<'ast>) -> Option<SymbolId> {
     let id = class.id.as_ref()?;
     let symbol_id = *id.symbol_id.get().unpack_ref();
-    Some((symbol_id, &self.scopes.resolved_references[symbol_id]))
+    Some(symbol_id)
   }
 
   fn process_identifier_ref_by_scope(&mut self, ident_ref: &IdentifierReference) {
@@ -273,10 +275,11 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
 
         self.check_import_assign(ident_ref, root_symbol_id.symbol);
 
-        if let Some((symbol_id, ids)) = self.cur_class_decl_and_symbol_referenced_ids {
-          if ids.contains(&ident_ref.reference_id()) {
-            self.result.self_referenced_class_decl_symbol_ids.insert(symbol_id);
+        match (self.cur_class_decl, self.resolve_symbol_from_reference(ident_ref)) {
+          (Some(cur_class_decl), Some(referenced_to)) if cur_class_decl == referenced_to => {
+            self.result.self_referenced_class_decl_symbol_ids.insert(cur_class_decl);
           }
+          _ => {}
         }
       }
       super::IdentifierReferenceKind::Other => {}

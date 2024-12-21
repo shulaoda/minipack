@@ -353,7 +353,7 @@ impl ModuleLoader {
           );
           let symbol_ref = self.symbol_ref_db.create_facade_root_symbol_ref(
             idx,
-            legitimize_identifier_name(resolved_id.id.as_str()).into(),
+            &legitimize_identifier_name(resolved_id.id.as_str()),
           );
           let ext = ExternalModule::new(
             idx,

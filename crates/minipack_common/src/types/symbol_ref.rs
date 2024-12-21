@@ -1,5 +1,5 @@
 use minipack_utils::option_ext::OptionExt;
-use oxc::{semantic::SymbolId, span::CompactStr};
+use oxc::semantic::SymbolId;
 
 use crate::{IndexModules, Module, ModuleIdx, SymbolRefDb, SymbolRefFlags};
 
@@ -24,7 +24,7 @@ impl SymbolRef {
   }
 
   pub fn set_name(&self, db: &mut SymbolRefDb, name: &str) {
-    db.inner[self.owner].unpack_ref_mut().set_name(self.symbol, CompactStr::new(name));
+    db.inner[self.owner].unpack_ref_mut().set_name(self.symbol, name);
   }
 
   /// Not all symbols have flags info, we only care about part of them.
