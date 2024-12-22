@@ -10,7 +10,7 @@ use oxc::{
     visit::walk,
     AstKind, Visit,
   },
-  semantic::{ReferenceId, SymbolId},
+  semantic::SymbolId,
   span::{GetSpan, Span},
 };
 
@@ -144,35 +144,31 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   }
 
   fn visit_assignment_expression(&mut self, node: &ast::AssignmentExpression<'ast>) {
-    match &node.left {
-      // Detect `module.exports` and `exports.ANY`
-      ast::AssignmentTarget::StaticMemberExpression(member_expr) => match member_expr.object {
-        Expression::Identifier(ref id) => {
+    if let ast::AssignmentTarget::StaticMemberExpression(member_expr) = &node.left { match member_expr.object {
+      Expression::Identifier(ref id) => {
+        if id.name == "module"
+          && self.is_global_identifier_reference(id)
+          && member_expr.property.name == "exports"
+        {
+          self.cjs_module_ident.get_or_insert(Span::new(id.span.start, id.span.start + 6));
+        }
+        if id.name == "exports" && self.is_global_identifier_reference(id) {
+          self.cjs_exports_ident.get_or_insert(Span::new(id.span.start, id.span.start + 7));
+        }
+      }
+      // `module.exports.test` is also considered as commonjs keyword
+      Expression::StaticMemberExpression(ref member_expr) => {
+        if let Expression::Identifier(ref id) = member_expr.object {
           if id.name == "module"
             && self.is_global_identifier_reference(id)
             && member_expr.property.name == "exports"
           {
             self.cjs_module_ident.get_or_insert(Span::new(id.span.start, id.span.start + 6));
           }
-          if id.name == "exports" && self.is_global_identifier_reference(id) {
-            self.cjs_exports_ident.get_or_insert(Span::new(id.span.start, id.span.start + 7));
-          }
         }
-        // `module.exports.test` is also considered as commonjs keyword
-        Expression::StaticMemberExpression(ref member_expr) => {
-          if let Expression::Identifier(ref id) = member_expr.object {
-            if id.name == "module"
-              && self.is_global_identifier_reference(id)
-              && member_expr.property.name == "exports"
-            {
-              self.cjs_module_ident.get_or_insert(Span::new(id.span.start, id.span.start + 6));
-            }
-          }
-        }
-        _ => {}
-      },
+      }
       _ => {}
-    }
+    } }
     walk::walk_assignment_expression(self, node);
   }
 
@@ -206,23 +202,20 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
 
   fn visit_declaration(&mut self, it: &ast::Declaration<'ast>) {
     match it {
-      ast::Declaration::VariableDeclaration(decl) => match decl.declarations.as_slice() {
-        [decl] => {
-          if let (BindingPatternKind::BindingIdentifier(_), Some(init)) =
-            (&decl.id.kind, &decl.init)
-          {
-            match init {
-              ast::Expression::ClassExpression(_) => {
-                self.current_stmt_info.meta.insert(StmtInfoMeta::ClassExpr);
-              }
-              ast::Expression::FunctionExpression(_) => {
-                self.current_stmt_info.meta.insert(StmtInfoMeta::FnExpr);
-              }
-              _ => {}
+      ast::Declaration::VariableDeclaration(decl) => if let [decl] = decl.declarations.as_slice() {
+        if let (BindingPatternKind::BindingIdentifier(_), Some(init)) =
+          (&decl.id.kind, &decl.init)
+        {
+          match init {
+            ast::Expression::ClassExpression(_) => {
+              self.current_stmt_info.meta.insert(StmtInfoMeta::ClassExpr);
             }
+            ast::Expression::FunctionExpression(_) => {
+              self.current_stmt_info.meta.insert(StmtInfoMeta::FnExpr);
+            }
+            _ => {}
           }
         }
-        _ => {}
       },
       ast::Declaration::FunctionDeclaration(_) => {
         self.current_stmt_info.meta.insert(StmtInfoMeta::FnDecl);
@@ -291,24 +284,21 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     ident_ref: &IdentifierReference,
   ) -> Option<()> {
     let parent = self.visit_path.last()?;
-    match parent {
-      AstKind::CallExpression(call_expr) => {
-        match ident_ref.name.as_str() {
-          "eval" => {
-            // TODO: esbuild track has_eval for each scope, this could reduce bailout range, and may
-            // improve treeshaking performance. https://github.com/evanw/esbuild/blob/360d47230813e67d0312ad754cad2b6ee09b151b/internal/js_ast/js_ast.go#L1288-L1291
-            self.result.has_eval = true;
-            self.result.warnings.push(
-              anyhow::anyhow!("Use of eval in '{}' is strongly discouraged as it poses security risks and may cause issues with minification.", self.id.to_string())
-            );
-          }
-          "require" => {
-            self.process_global_require_call(call_expr);
-          }
-          _ => {}
+    if let AstKind::CallExpression(call_expr) = parent {
+      match ident_ref.name.as_str() {
+        "eval" => {
+          // TODO: esbuild track has_eval for each scope, this could reduce bailout range, and may
+          // improve treeshaking performance. https://github.com/evanw/esbuild/blob/360d47230813e67d0312ad754cad2b6ee09b151b/internal/js_ast/js_ast.go#L1288-L1291
+          self.result.has_eval = true;
+          self.result.warnings.push(
+            anyhow::anyhow!("Use of eval in '{}' is strongly discouraged as it poses security risks and may cause issues with minification.", self.id.to_string())
+          );
         }
+        "require" => {
+          self.process_global_require_call(call_expr);
+        }
+        _ => {}
       }
-      _ => {}
     }
     None
   }

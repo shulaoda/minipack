@@ -27,7 +27,7 @@ use oxc::{
     },
     AstKind, Comment, Visit,
   },
-  semantic::{Reference, ReferenceId, ScopeFlags, ScopeId, SymbolId, SymbolTable},
+  semantic::{Reference, ScopeFlags, ScopeId, SymbolId, SymbolTable},
   span::{CompactStr, GetSpan, Span, SPAN},
 };
 use oxc_index::IndexVec;
@@ -603,12 +603,9 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       ast::ModuleDeclaration::ExportDefaultDeclaration(decl) => {
         self.set_esm_export_keyword(Span::new(decl.span.start, decl.span.start + 6));
         self.scan_export_default_decl(decl);
-        match &decl.declaration {
-          ast::ExportDefaultDeclarationKind::ClassDeclaration(class) => {
-            self.visit_class(class);
-            // walk::walk_declaration(self, &ast::Declaration::ClassDeclaration(func));
-          }
-          _ => {}
+        if let ast::ExportDefaultDeclarationKind::ClassDeclaration(class) = &decl.declaration {
+          self.visit_class(class);
+          // walk::walk_declaration(self, &ast::Declaration::ClassDeclaration(func));
         }
       }
       _ => {}

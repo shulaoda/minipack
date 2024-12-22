@@ -8,7 +8,7 @@ use arcstr::ArcStr;
 use minipack_common::{
   side_effects::{DeterminedSideEffects, HookSideEffects},
   EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind, ImportRecordIdx,
-  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleInfo, ModuleLoaderMsg, ModuleTable,
+  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleTable,
   ModuleType, NormalModuleTaskResult, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief,
   RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule, RUNTIME_MODULE_ID,
 };
