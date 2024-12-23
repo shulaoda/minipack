@@ -9,10 +9,7 @@ use oxc::span::Span;
 use oxc_index::IndexVec;
 use std::sync::Arc;
 
-use crate::{
-  types::{SharedOptions, SharedResolver},
-  utils::resolve_id::resolve_id,
-};
+use crate::{types::SharedResolver, utils::resolve_id::resolve_id};
 
 use super::task_context::TaskContext;
 
@@ -67,7 +64,7 @@ impl ModuleTask {
     todo!()
   }
 
-  pub(crate) async fn resolve_id(
+  pub(crate) fn resolve_id(
     resolver: &SharedResolver,
     importer: &str,
     specifier: &str,
@@ -92,10 +89,12 @@ impl ModuleTask {
   pub async fn resolve_dependencies(
     &mut self,
     dependencies: &IndexVec<ImportRecordIdx, RawImportRecord>,
-    source: ArcStr,
-    warnings: &mut Vec<anyhow::Error>,
-    module_type: &ModuleType,
   ) -> BuildResult<IndexVec<ImportRecordIdx, ResolvedId>> {
-    todo!()
+    dependencies
+      .iter()
+      .map(|item| {
+        Self::resolve_id(&self.ctx.resolver, &self.resolved_id.id, &item.module_request, item.kind)
+      })
+      .collect()
   }
 }
