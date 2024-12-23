@@ -68,7 +68,6 @@ impl ModuleTask {
   }
 
   pub(crate) async fn resolve_id(
-    bundle_options: &SharedOptions,
     resolver: &SharedResolver,
     importer: &str,
     specifier: &str,
