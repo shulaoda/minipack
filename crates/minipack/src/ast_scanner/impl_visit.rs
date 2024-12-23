@@ -144,31 +144,33 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   }
 
   fn visit_assignment_expression(&mut self, node: &ast::AssignmentExpression<'ast>) {
-    if let ast::AssignmentTarget::StaticMemberExpression(member_expr) = &node.left { match member_expr.object {
-      Expression::Identifier(ref id) => {
-        if id.name == "module"
-          && self.is_global_identifier_reference(id)
-          && member_expr.property.name == "exports"
-        {
-          self.cjs_module_ident.get_or_insert(Span::new(id.span.start, id.span.start + 6));
-        }
-        if id.name == "exports" && self.is_global_identifier_reference(id) {
-          self.cjs_exports_ident.get_or_insert(Span::new(id.span.start, id.span.start + 7));
-        }
-      }
-      // `module.exports.test` is also considered as commonjs keyword
-      Expression::StaticMemberExpression(ref member_expr) => {
-        if let Expression::Identifier(ref id) = member_expr.object {
+    if let ast::AssignmentTarget::StaticMemberExpression(member_expr) = &node.left {
+      match member_expr.object {
+        Expression::Identifier(ref id) => {
           if id.name == "module"
             && self.is_global_identifier_reference(id)
             && member_expr.property.name == "exports"
           {
             self.cjs_module_ident.get_or_insert(Span::new(id.span.start, id.span.start + 6));
           }
+          if id.name == "exports" && self.is_global_identifier_reference(id) {
+            self.cjs_exports_ident.get_or_insert(Span::new(id.span.start, id.span.start + 7));
+          }
         }
+        // `module.exports.test` is also considered as commonjs keyword
+        Expression::StaticMemberExpression(ref member_expr) => {
+          if let Expression::Identifier(ref id) = member_expr.object {
+            if id.name == "module"
+              && self.is_global_identifier_reference(id)
+              && member_expr.property.name == "exports"
+            {
+              self.cjs_module_ident.get_or_insert(Span::new(id.span.start, id.span.start + 6));
+            }
+          }
+        }
+        _ => {}
       }
-      _ => {}
-    } }
+    }
     walk::walk_assignment_expression(self, node);
   }
 
@@ -202,21 +204,23 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
 
   fn visit_declaration(&mut self, it: &ast::Declaration<'ast>) {
     match it {
-      ast::Declaration::VariableDeclaration(decl) => if let [decl] = decl.declarations.as_slice() {
-        if let (BindingPatternKind::BindingIdentifier(_), Some(init)) =
-          (&decl.id.kind, &decl.init)
-        {
-          match init {
-            ast::Expression::ClassExpression(_) => {
-              self.current_stmt_info.meta.insert(StmtInfoMeta::ClassExpr);
+      ast::Declaration::VariableDeclaration(decl) => {
+        if let [decl] = decl.declarations.as_slice() {
+          if let (BindingPatternKind::BindingIdentifier(_), Some(init)) =
+            (&decl.id.kind, &decl.init)
+          {
+            match init {
+              ast::Expression::ClassExpression(_) => {
+                self.current_stmt_info.meta.insert(StmtInfoMeta::ClassExpr);
+              }
+              ast::Expression::FunctionExpression(_) => {
+                self.current_stmt_info.meta.insert(StmtInfoMeta::FnExpr);
+              }
+              _ => {}
             }
-            ast::Expression::FunctionExpression(_) => {
-              self.current_stmt_info.meta.insert(StmtInfoMeta::FnExpr);
-            }
-            _ => {}
           }
         }
-      },
+      }
       ast::Declaration::FunctionDeclaration(_) => {
         self.current_stmt_info.meta.insert(StmtInfoMeta::FnDecl);
       }

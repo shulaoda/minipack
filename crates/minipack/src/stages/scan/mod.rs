@@ -1,15 +1,13 @@
-mod resolve_id;
-
 use arcstr::ArcStr;
 use futures::future::join_all;
 use minipack_common::{ImportKind, ResolvedId};
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 
-use self::resolve_id::resolve_id;
 use crate::{
   module_loader::{ModuleLoader, ModuleLoaderOutput},
   types::{SharedOptions, SharedResolver},
+  utils::resolve_id::resolve_id,
 };
 
 pub type ScanStageOutput = ModuleLoaderOutput;
@@ -44,12 +42,11 @@ impl ScanStage {
   ) -> BuildResult<Vec<(Option<ArcStr>, ResolvedId)>> {
     let resolver = &self.resolver;
 
-    let resolved_ids = join_all(self.options.input.iter().map(|input_item| async move {
-      let resolved = resolve_id(resolver, &input_item.import, None, ImportKind::Import, true).await;
+    let resolved_ids = self.options.input.iter().map(|input_item| {
+      let resolved = resolve_id(resolver, &input_item.import, None, ImportKind::Import, true);
 
       resolved.map(|info| ((input_item.name.clone().map(ArcStr::from)), info))
-    }))
-    .await;
+    });
 
     let mut ret = Vec::with_capacity(self.options.input.len());
 

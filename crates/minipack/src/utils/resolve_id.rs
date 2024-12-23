@@ -4,23 +4,23 @@ use minipack_common::{is_existing_node_builtin_modules, ImportKind, ModuleDefFor
 use minipack_error::BuildResult;
 use minipack_resolver::{ResolveError, Resolver};
 
-pub async fn resolve_id(
+#[inline]
+fn is_http_url(s: &str) -> bool {
+  s.starts_with("http://") || s.starts_with("https://") || s.starts_with("//")
+}
+
+#[inline]
+fn is_data_url(s: &str) -> bool {
+  s.trim_start().starts_with("data:")
+}
+
+pub fn resolve_id(
   resolver: &Resolver,
   request: &str,
   importer: Option<&str>,
   import_kind: ImportKind,
   is_user_defined_entry: bool,
 ) -> BuildResult<ResolvedId> {
-  #[inline]
-  fn is_http_url(s: &str) -> bool {
-    s.starts_with("http://") || s.starts_with("https://") || s.starts_with("//")
-  }
-
-  #[inline]
-  fn is_data_url(s: &str) -> bool {
-    s.trim_start().starts_with("data:")
-  }
-
   // Auto external http url or data url
   if is_http_url(request) || is_data_url(request) {
     return Ok(ResolvedId {

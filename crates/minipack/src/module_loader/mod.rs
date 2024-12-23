@@ -8,8 +8,8 @@ use arcstr::ArcStr;
 use minipack_common::{
   side_effects::{DeterminedSideEffects, HookSideEffects},
   EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind, ImportRecordIdx,
-  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleTable,
-  ModuleType, NormalModuleTaskResult, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief,
+  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleTable, ModuleType,
+  NormalModuleTaskResult, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief,
   RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule, RUNTIME_MODULE_ID,
 };
 use minipack_error::BuildResult;

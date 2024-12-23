@@ -1,15 +1,18 @@
 use arcstr::ArcStr;
 use minipack_common::{
-  ImportKind, ImportRecordIdx, ModuleIdx, ModuleLoaderMsg, ModuleType, RawImportRecord, ResolvedId,
+  ImportKind, ImportRecordIdx, ModuleDefFormat, ModuleIdx, ModuleLoaderMsg, ModuleType,
+  RawImportRecord, ResolvedId, RUNTIME_MODULE_ID,
 };
 use minipack_error::BuildResult;
-use minipack_resolver::ResolveError;
 use minipack_utils::rstr::Rstr;
 use oxc::span::Span;
 use oxc_index::IndexVec;
 use std::sync::Arc;
 
-use crate::types::{SharedOptions, SharedResolver};
+use crate::{
+  types::{SharedOptions, SharedResolver},
+  utils::resolve_id::resolve_id,
+};
 
 use super::task_context::TaskContext;
 
@@ -70,8 +73,21 @@ impl ModuleTask {
     importer: &str,
     specifier: &str,
     kind: ImportKind,
-  ) -> anyhow::Result<anyhow::Result<ResolvedId, ResolveError>> {
-    todo!()
+  ) -> BuildResult<ResolvedId> {
+    // Check runtime module
+    if specifier == RUNTIME_MODULE_ID {
+      return Ok(ResolvedId {
+        id: specifier.to_string().into(),
+        ignored: false,
+        module_def_format: ModuleDefFormat::EsmMjs,
+        is_external: false,
+        package_json: None,
+        side_effects: None,
+        is_external_without_side_effects: false,
+      });
+    }
+
+    resolve_id(resolver, specifier, Some(importer), kind, false)
   }
 
   pub async fn resolve_dependencies(
