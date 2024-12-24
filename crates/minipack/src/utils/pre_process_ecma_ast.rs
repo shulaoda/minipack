@@ -26,8 +26,6 @@ pub struct PreProcessEcmaAst {
 }
 
 impl PreProcessEcmaAst {
-  // #[allow(clippy::match_same_arms)]: `OxcParseType::Tsx` will have special logic to deal with ts compared to `OxcParseType::Jsx`
-  #[allow(clippy::match_same_arms)]
   pub fn build(
     &mut self,
     mut ast: EcmaAst,

@@ -43,9 +43,7 @@ impl Generator for EcmaGenerator {
           .as_normal()
           .map(|m| (m, codegen_ret.expect("should have codegen_ret")))
       })
-      .map(|(m, codegen_ret)| {
-        (m.idx, m.id.clone(), render_ecma_module(m, ctx.options, codegen_ret))
-      })
+      .map(|(m, codegen_ret)| (m.idx, m.id.clone(), render_ecma_module(m, codegen_ret)))
       .collect::<Vec<_>>();
 
     rendered_module_sources.iter().for_each(|(_, module_id, sources)| {

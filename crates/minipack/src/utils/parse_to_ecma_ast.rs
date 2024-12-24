@@ -56,7 +56,6 @@ pub struct ParseToEcmaAstResult {
   pub warning: Vec<anyhow::Error>,
 }
 
-#[allow(clippy::too_many_arguments)]
 pub fn parse_to_ecma_ast(
   path: &Path,
   stable_id: &str,

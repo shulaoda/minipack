@@ -1,12 +1,11 @@
 use std::sync::Arc;
 
-use minipack_common::{ModuleRenderOutput, NormalModule, NormalizedBundlerOptions};
+use minipack_common::{ModuleRenderOutput, NormalModule};
 use minipack_sourcemap::Source;
 use minipack_utils::concat_string;
 
 pub fn render_ecma_module(
   module: &NormalModule,
-  options: &NormalizedBundlerOptions,
   render_output: ModuleRenderOutput,
 ) -> Option<Arc<[Box<dyn Source + Send + Sync>]>> {
   if render_output.code.is_empty() {

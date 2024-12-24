@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use minipack_common::{ModuleType, ResolvedId, StrOrBytes};
 use minipack_fs::FileSystem;
 use rustc_hash::FxHashMap;
@@ -63,26 +61,4 @@ fn get_module_loader_from_file_extension<S: AsRef<str>>(id: S) -> Option<ModuleT
   };
 
   None
-}
-
-fn read_file_by_module_type(
-  path: impl AsRef<Path>,
-  ty: &ModuleType,
-  fs: &dyn FileSystem,
-) -> anyhow::Result<StrOrBytes> {
-  let path = path.as_ref();
-  match ty {
-    ModuleType::Js
-    | ModuleType::Jsx
-    | ModuleType::Ts
-    | ModuleType::Tsx
-    | ModuleType::Json
-    | ModuleType::Css
-    | ModuleType::Empty
-    | ModuleType::Custom(_)
-    | ModuleType::Text => Ok(StrOrBytes::Str(fs.read_to_string(path)?)),
-    ModuleType::Base64 | ModuleType::Binary | ModuleType::Dataurl | ModuleType::Asset => {
-      Ok(StrOrBytes::Bytes(fs.read(path)?))
-    }
-  }
 }

@@ -17,7 +17,6 @@ impl<'a> VisitMut<'a> for EnsureSpanUniqueness {
     walk_mut::walk_program(self, it);
   }
 
-  // TODO: it's better use `visit_span`, but it's not implemented yet by oxc. https://github.com/oxc-project/oxc/issues/4799
   fn visit_module_declaration(&mut self, it: &mut oxc::ast::ast::ModuleDeclaration<'a>) {
     self.ensure_uniqueness(it.span_mut());
     walk_mut::walk_module_declaration(self, it);
