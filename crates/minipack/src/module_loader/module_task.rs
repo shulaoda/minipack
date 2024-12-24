@@ -146,7 +146,10 @@ impl ModuleTask {
       raw_import_records = ecma_raw_import_records;
     }
 
-    let resolved_deps = self.resolve_dependencies(&raw_import_records)?;
+    let resolved_deps = raw_import_records
+      .iter()
+      .map(|item| self.resolve_id(&item.module_request, item.kind))
+      .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
 
     if !matches!(module_type, ModuleType::Css) {
       for (record, info) in raw_import_records.iter().zip(&resolved_deps) {
@@ -194,12 +197,7 @@ impl ModuleTask {
     Ok(())
   }
 
-  pub(crate) fn resolve_id(
-    resolver: &SharedResolver,
-    importer: &str,
-    specifier: &str,
-    kind: ImportKind,
-  ) -> BuildResult<ResolvedId> {
+  fn resolve_id(&self, specifier: &str, kind: ImportKind) -> BuildResult<ResolvedId> {
     // Check runtime module
     if specifier == RUNTIME_MODULE_ID {
       return Ok(ResolvedId {
@@ -213,18 +211,9 @@ impl ModuleTask {
       });
     }
 
-    resolve_id(resolver, specifier, Some(importer), kind, false)
-  }
+    let importer = &self.resolved_id.id;
+    let resolver = &self.ctx.resolver;
 
-  pub fn resolve_dependencies(
-    &mut self,
-    dependencies: &IndexVec<ImportRecordIdx, RawImportRecord>,
-  ) -> BuildResult<IndexVec<ImportRecordIdx, ResolvedId>> {
-    dependencies
-      .iter()
-      .map(|item| {
-        Self::resolve_id(&self.ctx.resolver, &self.resolved_id.id, &item.module_request, item.kind)
-      })
-      .collect()
+    resolve_id(resolver, specifier, Some(importer), kind, false)
   }
 }
