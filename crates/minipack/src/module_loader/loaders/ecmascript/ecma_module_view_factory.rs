@@ -151,6 +151,7 @@ pub async fn create_ecma_view<'a>(
         DeterminedSideEffects::Analyzed(analyzed_side_effects)
       })
   };
+
   let side_effects = match args.hook_side_effects {
     Some(side_effects) => match side_effects {
       HookSideEffects::True => lazy_check_side_effects(),

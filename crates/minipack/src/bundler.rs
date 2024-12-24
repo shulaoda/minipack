@@ -1,4 +1,4 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use crate::{
   stages::scan::{ScanStage, ScanStageOutput},
@@ -6,12 +6,10 @@ use crate::{
   utils::normalize_options::{normalize_options, NormalizeOptionsReturn},
 };
 
-use futures::executor::block_on;
 use minipack_common::BundlerOptions;
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 use minipack_resolver::Resolver;
-use sugar_path::SugarPath;
 
 pub struct Bundler {
   pub closed: bool,

@@ -36,7 +36,7 @@ pub fn resolve_id(
 
   let resolved = resolver
     .resolve(importer.map(Path::new), request, import_kind, is_user_defined_entry)
-    .map_err(|err| vec![anyhow::anyhow!(err)])?;
+    .map_err(|err| anyhow::anyhow!(err))?;
 
   if let Err(err) = resolved {
     match err {

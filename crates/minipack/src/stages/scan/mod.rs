@@ -24,7 +24,7 @@ impl ScanStage {
 
   pub async fn scan(&mut self) -> BuildResult<ScanStageOutput> {
     if self.options.input.is_empty() {
-      Err(vec![anyhow::anyhow!("You must supply options.input to rolldown")])?;
+      return Err(anyhow::anyhow!("You must supply options.input to rolldown"))?;
     }
 
     let user_entries = self.resolve_user_defined_entries().await?;
@@ -67,7 +67,7 @@ impl ScanStage {
     }
 
     if !errors.is_empty() {
-      Err(errors)?;
+      return Err(errors)?;
     }
 
     Ok(ret)

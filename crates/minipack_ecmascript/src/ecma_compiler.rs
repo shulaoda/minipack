@@ -28,7 +28,7 @@ impl EcmaCompiler {
           });
         let ret = parser.parse();
         if ret.panicked || !ret.errors.is_empty() {
-          Err(vec![anyhow::anyhow!("{:?}", ret.errors)])
+          Err(anyhow::anyhow!("{:?}", ret.errors))
         } else {
           Ok(ProgramCellDependent { program: ret.program })
         }
