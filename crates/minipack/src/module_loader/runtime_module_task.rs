@@ -43,7 +43,7 @@ impl RuntimeModuleTask {
 
   pub fn run(mut self) {
     if let Err(errs) = self.run_inner() {
-      self.tx.try_send(ModuleLoaderMsg::BuildErrors(errs)).expect("Send should not fail");
+      self.tx.try_send(ModuleLoaderMsg::BuildErrors(errs.0)).expect("Send should not fail");
     }
   }
 
@@ -145,14 +145,16 @@ impl RuntimeModuleTask {
       })
       .collect();
 
-    let _ = self.tx.try_send(ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
+    let result = ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
       ast,
       module,
       runtime,
       resolved_deps,
       raw_import_records,
       local_symbol_ref_db: symbol_ref_db,
-    }));
+    });
+
+    let _ = self.tx.try_send(result);
 
     Ok(())
   }

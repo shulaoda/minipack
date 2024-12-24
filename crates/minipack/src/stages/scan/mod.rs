@@ -69,7 +69,7 @@ impl ScanStage {
     }
 
     if !errors.is_empty() {
-      return Err(errors);
+      Err(errors)?;
     }
 
     Ok(ret)

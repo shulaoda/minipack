@@ -29,9 +29,16 @@ pub fn normalize_options(mut raw_options: crate::BundlerOptions) -> NormalizeOpt
     asset_filenames: raw_options
       .asset_filenames
       .unwrap_or_else(|| "assets/[name]-[hash][extname]".to_string()),
+    css_entry_filenames: raw_options
+      .css_entry_filenames
+      .unwrap_or_else(|| "[name].css".to_string().into()),
+    css_chunk_filenames: raw_options
+      .css_chunk_filenames
+      .unwrap_or_else(|| "[name]-[hash].css".to_string().into()),
     dir: raw_options.dir.unwrap_or_else(|| "dist".to_string()),
     file: raw_options.file,
     format,
+    target: raw_options.target.unwrap_or_default(),
     inline_dynamic_imports: raw_options.inline_dynamic_imports.unwrap_or_default(),
   };
 

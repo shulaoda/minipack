@@ -65,7 +65,7 @@ pub fn resolve_id(
         side_effects: None,
         is_external_without_side_effects: false,
       }),
-      _ => Err(vec![anyhow::anyhow!("{:?}", err)]),
+      _ => Err(anyhow::anyhow!("{:?}", err))?,
     }
   } else {
     let resolved = resolved.ok().unwrap();

@@ -1,5 +1,6 @@
 mod asset;
 mod bundler_options;
+mod chunk;
 mod css;
 mod ecmascript;
 mod module;
@@ -7,14 +8,28 @@ mod module_loader;
 mod types;
 
 pub use bundler_options::{
-  input_item::InputItem, module_type::ModuleType,
-  normalized_bundler_options::NormalizedBundlerOptions, output_format::OutputFormat,
-  platform::Platform, resolve_options::ResolveOptions, BundlerOptions,
+  es_target::ESTarget,
+  filename_template::{FileNameRenderOptions, FilenameTemplate},
+  input_item::InputItem,
+  jsx::Jsx,
+  module_type::ModuleType,
+  normalized_bundler_options::NormalizedBundlerOptions,
+  output_format::OutputFormat,
+  platform::Platform,
+  resolve_options::ResolveOptions,
+  BundlerOptions,
 };
 
 // We don't want internal position adjustment of files affect users, so all items are exported in the root.
 pub use crate::{
   asset::asset_view::AssetView,
+  chunk::{
+    chunk_table::ChunkTable,
+    types::{
+      cross_chunk_import_item::CrossChunkImportItem, preliminary_filename::PreliminaryFilename,
+    },
+    Chunk,
+  },
   css::{
     css_module::CssModule,
     css_module_idx::CssModuleIdx,
@@ -23,6 +38,7 @@ pub use crate::{
   ecmascript::{
     comment_annotation::{get_leading_comment, ROLLDOWN_IGNORE},
     dynamic_import_usage,
+    ecma_asset_meta::EcmaAssetMeta,
     ecma_ast_idx::EcmaAstIdx,
     ecma_view::{
       generate_replace_this_expr_map, EcmaModuleAstUsage, EcmaView, EcmaViewMeta,
@@ -43,14 +59,18 @@ pub use crate::{
     ModuleLoaderMsg,
   },
   types::{
+    asset::Asset,
+    asset_meta::InstantiationKind,
     ast_scopes::AstScopes,
     chunk_idx::ChunkIdx,
+    chunk_kind::ChunkKind,
     entry_point::{EntryPoint, EntryPointKind},
     exports_kind::ExportsKind,
     external_module_idx::ExternalModuleIdx,
     import_kind::ImportKind,
     import_record::{ImportRecordIdx, ImportRecordMeta, RawImportRecord, ResolvedImportRecord},
     importer_record::ImporterRecord,
+    instantiated_chunk::InstantiatedChunk,
     interop::Interop,
     member_expr_ref::MemberExprRef,
     module_def_format::ModuleDefFormat,
@@ -65,13 +85,18 @@ pub use crate::{
     output_chunk::OutputChunk,
     package_json::PackageJson,
     rendered_module::RenderedModule,
+    resolved_export::ResolvedExport,
     resolved_request_info::ResolvedId,
+    rollup_pre_rendered_chunk::RollupPreRenderedChunk,
+    rollup_rendered_chunk::RollupRenderedChunk,
     side_effects,
     source_mutation::SourceMutation,
     stmt_info::{DebugStmtInfoForTreeShaking, StmtInfo, StmtInfoIdx, StmtInfoMeta, StmtInfos},
     str_or_bytes::StrOrBytes,
+    symbol_name_ref_token::SymbolNameRefToken,
     symbol_or_member_expr_ref::SymbolOrMemberExprRef,
     symbol_ref::SymbolRef,
     symbol_ref_db::{GetLocalDb, SymbolRefDb, SymbolRefDbForModule, SymbolRefFlags},
+    wrap_kind::WrapKind,
   },
 };

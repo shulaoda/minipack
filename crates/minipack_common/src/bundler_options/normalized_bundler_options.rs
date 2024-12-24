@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{InputItem, OutputFormat, Platform};
+use crate::{ESTarget, InputItem, OutputFormat, Platform};
 
 #[allow(clippy::struct_excessive_bools)] // Using raw booleans is more clear in this case
 #[derive(Debug)]
@@ -16,10 +16,15 @@ pub struct NormalizedBundlerOptions {
   pub entry_filenames: String,
   pub chunk_filenames: String,
   pub asset_filenames: String,
+  pub css_entry_filenames: String,
+  pub css_chunk_filenames: String,
   pub dir: String,
   pub file: Option<String>,
   pub format: OutputFormat,
   pub inline_dynamic_imports: bool,
+
+  // --- Resolve
+  pub target: ESTarget,
 }
 
 impl NormalizedBundlerOptions {

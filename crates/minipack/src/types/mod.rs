@@ -1,4 +1,8 @@
 pub mod bundle_output;
+pub mod generator;
+pub mod linking_metadata;
+pub mod module_factory;
+pub mod oxc_parse_type;
 
 use std::sync::Arc;
 
