@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::{ESTarget, InputItem, OutputFormat, Platform};
+use crate::{ESTarget, EsModuleFlag, InputItem, OutputExports, OutputFormat, Platform};
 
 #[allow(clippy::struct_excessive_bools)] // Using raw booleans is more clear in this case
 #[derive(Debug)]
@@ -21,10 +21,12 @@ pub struct NormalizedBundlerOptions {
   pub dir: String,
   pub file: Option<String>,
   pub format: OutputFormat,
-  pub inline_dynamic_imports: bool,
+  pub exports: OutputExports,
+  pub es_module: EsModuleFlag,
 
   // --- Resolve
   pub target: ESTarget,
+  pub inline_dynamic_imports: bool,
 }
 
 impl NormalizedBundlerOptions {

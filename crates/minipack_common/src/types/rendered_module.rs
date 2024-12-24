@@ -26,7 +26,7 @@ impl RenderedModule {
         joiner.append_source(source);
       }
 
-      joiner.join().0
+      joiner.join()
     })
   }
 }

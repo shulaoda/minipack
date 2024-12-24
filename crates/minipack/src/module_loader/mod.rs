@@ -2,7 +2,7 @@ mod module_task;
 mod runtime_module_task;
 pub mod task_context;
 
-use std::{ops::Deref, sync::Arc};
+use std::sync::Arc;
 
 use arcstr::ArcStr;
 use minipack_common::{

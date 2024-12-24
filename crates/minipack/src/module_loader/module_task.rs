@@ -1,8 +1,7 @@
 use arcstr::ArcStr;
 use minipack_common::{
   EcmaRelated, ImportKind, ImportRecordIdx, ModuleDefFormat, ModuleId, ModuleIdx, ModuleLoaderMsg,
-  ModuleType, NormalModule, NormalModuleTaskResult, RawImportRecord, ResolvedId, StrOrBytes,
-  RUNTIME_MODULE_ID,
+  ModuleType, NormalModule, NormalModuleTaskResult, ResolvedId, StrOrBytes, RUNTIME_MODULE_ID,
 };
 use minipack_error::BuildResult;
 use minipack_utils::{ecmascript::legitimize_identifier_name, path_ext::PathExt, rstr::Rstr};
@@ -17,10 +16,7 @@ use crate::{
     css::create_css_view,
     ecmascript::ecma_module_view_factory::{create_ecma_view, CreateEcmaViewReturn},
   },
-  types::{
-    module_factory::{CreateModuleContext, CreateModuleViewArgs},
-    SharedResolver,
-  },
+  types::module_factory::{CreateModuleContext, CreateModuleViewArgs},
   utils::{load_source::load_source, resolve_id::resolve_id},
 };
 

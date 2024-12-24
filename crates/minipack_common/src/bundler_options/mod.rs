@@ -1,16 +1,20 @@
+pub mod es_module_flag;
 pub mod es_target;
 pub mod filename_template;
 pub mod input_item;
 pub mod jsx;
 pub mod module_type;
 pub mod normalized_bundler_options;
+pub mod output_exports;
 pub mod output_format;
 pub mod platform;
 pub mod resolve_options;
 
 use std::path::PathBuf;
 
-use crate::{ESTarget, InputItem, OutputFormat, Platform, ResolveOptions};
+use crate::{
+  ESTarget, EsModuleFlag, InputItem, OutputExports, OutputFormat, Platform, ResolveOptions,
+};
 
 #[derive(Default, Debug, Clone)]
 pub struct BundlerOptions {
@@ -30,9 +34,11 @@ pub struct BundlerOptions {
   pub dir: Option<String>,
   pub file: Option<String>,
   pub format: Option<OutputFormat>,
-  pub inline_dynamic_imports: Option<bool>,
+  pub exports: Option<OutputExports>,
+  pub es_module: Option<EsModuleFlag>,
 
   // --- Resolve
   pub target: Option<ESTarget>,
   pub resolve: Option<ResolveOptions>,
+  pub inline_dynamic_imports: Option<bool>,
 }

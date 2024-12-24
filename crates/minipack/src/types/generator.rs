@@ -14,7 +14,7 @@ pub struct GenerateContext<'a> {
   pub options: &'a NormalizedBundlerOptions,
   pub link_output: &'a LinkStageOutput,
   pub graph: &'a Graph,
-  pub warnings: Vec<BuildError>,
+  pub warnings: Vec<anyhow::Error>,
   pub module_id_to_codegen_ret: Vec<Option<ModuleRenderOutput>>,
 }
 
@@ -89,7 +89,7 @@ impl GenerateContext<'_> {
 
 pub struct GenerateOutput {
   pub chunks: Vec<InstantiatedChunk>,
-  pub warnings: Vec<BuildError>,
+  pub warnings: Vec<anyhow::Error>,
 }
 
 pub trait Generator {

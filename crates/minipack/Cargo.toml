@@ -10,6 +10,7 @@ minipack_ecmascript_utils = { workspace = true }
 minipack_error            = { workspace = true }
 minipack_fs               = { workspace = true, features = ["os"] }
 minipack_resolver         = { workspace = true }
+minipack_sourcemap        = { workspace = true }
 minipack_utils            = { workspace = true }
 
 anyhow           = { workspace = true }

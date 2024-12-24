@@ -1,11 +1,8 @@
 use std::fmt::Debug;
 
-use oxc_sourcemap::SourceMap;
-
 use crate::lines_count;
 
 pub trait Source {
-  fn sourcemap(&self) -> Option<&SourceMap>;
   fn content(&self) -> &str;
   fn lines_count(&self) -> u32 {
     lines_count(self.content())
@@ -13,20 +10,12 @@ pub trait Source {
 }
 
 impl Source for &str {
-  fn sourcemap(&self) -> Option<&SourceMap> {
-    None
-  }
-
   fn content(&self) -> &str {
     self
   }
 }
 
 impl Source for String {
-  fn sourcemap(&self) -> Option<&SourceMap> {
-    None
-  }
-
   fn content(&self) -> &str {
     self
   }
@@ -35,13 +24,12 @@ impl Source for String {
 #[derive(Debug)]
 pub struct SourceMapSource {
   content: String,
-  sourcemap: SourceMap,
   pre_computed_lines_count: Option<u32>,
 }
 
 impl SourceMapSource {
-  pub fn new(content: String, sourcemap: SourceMap) -> Self {
-    Self { content, sourcemap, pre_computed_lines_count: None }
+  pub fn new(content: String) -> Self {
+    Self { content, pre_computed_lines_count: None }
   }
 
   #[must_use]
@@ -54,10 +42,6 @@ impl SourceMapSource {
 }
 
 impl Source for SourceMapSource {
-  fn sourcemap(&self) -> Option<&SourceMap> {
-    Some(&self.sourcemap)
-  }
-
   fn content(&self) -> &str {
     &self.content
   }
@@ -68,10 +52,6 @@ impl Source for SourceMapSource {
 }
 
 impl Source for &Box<dyn Source + Send + Sync> {
-  fn sourcemap(&self) -> Option<&SourceMap> {
-    self.as_ref().sourcemap()
-  }
-
   fn content(&self) -> &str {
     self.as_ref().content()
   }
