@@ -58,6 +58,7 @@ pub struct ModuleLoader {
   visited: FxHashMap<ArcStr, ModuleIdx>,
 }
 
+#[derive(Debug)]
 pub struct ModuleLoaderOutput {
   // Stored all modules
   pub module_table: ModuleTable,

@@ -1,14 +1,17 @@
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use crate::{
-  stages::scan::ScanStage,
+  stages::scan::{ScanStage, ScanStageOutput},
   types::{SharedOptions, SharedResolver},
   utils::normalize_options::{normalize_options, NormalizeOptionsReturn},
 };
 
+use futures::executor::block_on;
 use minipack_common::BundlerOptions;
+use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 use minipack_resolver::Resolver;
+use sugar_path::SugarPath;
 
 pub struct Bundler {
   pub closed: bool,
@@ -27,10 +30,16 @@ impl Bundler {
     Bundler { closed: false, fs: OsFileSystem, options: Arc::new(options), resolver }
   }
 
-  pub async fn build(&mut self, is_write: bool) -> anyhow::Result<()> {
+  pub async fn build(&mut self, is_write: bool) -> BuildResult<()> {
     let scan_stage = ScanStage::new(self.fs, self.options.clone(), self.resolver.clone());
 
     Ok(())
+  }
+
+  pub async fn scan(&self) -> BuildResult<ScanStageOutput> {
+    let mut scan_stage = ScanStage::new(self.fs, self.options.clone(), self.resolver.clone());
+
+    scan_stage.scan().await
   }
 }
 

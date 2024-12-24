@@ -1,5 +1,4 @@
 use arcstr::ArcStr;
-use futures::future::join_all;
 use minipack_common::{ImportKind, ResolvedId};
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
@@ -16,7 +15,6 @@ pub struct ScanStage {
   fs: OsFileSystem,
   options: SharedOptions,
   resolver: SharedResolver,
-  // plugin_driver: SharedPluginDriver,
 }
 
 impl ScanStage {
