@@ -1,6 +1,9 @@
+pub mod ast_scanner;
+pub mod loaders;
+pub mod task_context;
+
 mod module_task;
 mod runtime_module_task;
-pub mod task_context;
 
 use std::sync::Arc;
 

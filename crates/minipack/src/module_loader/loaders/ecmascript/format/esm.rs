@@ -5,8 +5,8 @@ use minipack_sourcemap::SourceJoiner;
 use minipack_utils::{concat_string, ecmascript::is_validate_identifier_name};
 
 use crate::{
-  loaders::ecmascript::ecma_generator::RenderedModuleSources, types::generator::GenerateContext,
-  utils::chunk::render_chunk_exports::render_chunk_exports,
+  module_loader::loaders::ecmascript::ecma_generator::RenderedModuleSources,
+  types::generator::GenerateContext, utils::chunk::render_chunk_exports::render_chunk_exports,
 };
 
 pub fn render_esm<'code>(

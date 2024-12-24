@@ -1,7 +1,5 @@
-mod ast_scanner;
 mod bundler;
 mod graph;
-mod loaders;
 mod module_loader;
 mod stages;
 mod utils;

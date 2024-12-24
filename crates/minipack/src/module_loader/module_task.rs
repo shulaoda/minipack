@@ -11,7 +11,7 @@ use std::sync::Arc;
 use sugar_path::SugarPath;
 
 use crate::{
-  loaders::{
+  module_loader::loaders::{
     asset::create_asset_view,
     css::create_css_view,
     ecmascript::ecma_module_view_factory::{create_ecma_view, CreateEcmaViewReturn},

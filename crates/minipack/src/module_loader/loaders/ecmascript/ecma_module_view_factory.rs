@@ -17,7 +17,7 @@ use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 
 use crate::{
-  ast_scanner::{AstScanResult, AstScanner},
+  module_loader::ast_scanner::{AstScanResult, AstScanner},
   types::{
     module_factory::{CreateModuleContext, CreateModuleViewArgs},
     SharedOptions,

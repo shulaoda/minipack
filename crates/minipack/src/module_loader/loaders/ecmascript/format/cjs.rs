@@ -4,7 +4,7 @@ use minipack_sourcemap::SourceJoiner;
 use minipack_utils::concat_string;
 
 use crate::{
-  loaders::ecmascript::ecma_generator::RenderedModuleSources,
+  module_loader::loaders::ecmascript::ecma_generator::RenderedModuleSources,
   types::generator::GenerateContext,
   utils::chunk::{
     determine_export_mode::determine_export_mode,

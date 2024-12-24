@@ -1,4 +1,4 @@
-use crate::ast_scanner::side_effect_detector::utils::{
+use crate::module_loader::ast_scanner::side_effect_detector::utils::{
   extract_member_expr_chain, is_primitive_literal,
 };
 use minipack_common::AstScopes;
