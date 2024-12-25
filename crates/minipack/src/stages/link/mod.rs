@@ -102,7 +102,19 @@ impl<'a> LinkStage<'a> {
   pub fn link(mut self) -> LinkStageOutput {
     self.sort_modules();
 
-    todo!()
+    LinkStageOutput {
+      module_table: self.module_table,
+      entry_points: self.entry_points,
+      // sorted_modules: self.sorted_modules,
+      metadata: self.metadata,
+      symbol_ref_db: self.symbol_ref_db,
+      runtime_brief: self.runtime_brief,
+      warnings: self.warnings,
+      errors: self.errors,
+      index_ecma_ast: self.index_ecma_ast,
+      used_symbol_refs: self.used_symbol_refs,
+      dyn_import_usage_map: self.dyn_import_usage_map,
+    }
   }
 
   fn determine_module_exports_kind(&mut self) {

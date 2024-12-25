@@ -1,8 +1,12 @@
 use std::sync::Arc;
 
 use crate::{
-  stages::scan::{ScanStage, ScanStageOutput},
-  types::{SharedOptions, SharedResolver},
+  stages::{
+    generate::GenerateStage,
+    link::LinkStage,
+    scan::{ScanStage, ScanStageOutput},
+  },
+  types::{bundle_output::BundleOutput, SharedOptions, SharedResolver},
   utils::normalize_options::{normalize_options, NormalizeOptionsReturn},
 };
 
@@ -28,16 +32,21 @@ impl Bundler {
     Bundler { closed: false, fs: OsFileSystem, options: Arc::new(options), resolver }
   }
 
-  pub async fn build(&mut self, is_write: bool) -> BuildResult<()> {
+  pub async fn build(&mut self, is_write: bool) -> BuildResult<BundleOutput> {
     if self.closed {
       return Err(anyhow::anyhow!(
         "Bundle is already closed, no more calls to 'generate' or 'write' are allowed."
       ))?;
     }
 
-    let scan_stage_output = self.scan().await;
+    let scan_stage_output = self.scan().await?;
 
-    Ok(())
+    let mut link_stage_output = LinkStage::new(scan_stage_output, &self.options).link();
+
+    let bundle_output =
+      GenerateStage::new(&mut link_stage_output, &self.options).generate().await?;
+
+    Ok(bundle_output)
   }
 
   pub async fn scan(&self) -> BuildResult<ScanStageOutput> {
