@@ -7,7 +7,6 @@ use super::runtime_module_brief::RuntimeModuleBrief;
 
 pub struct RuntimeModuleTaskResult {
   pub ast: EcmaAst,
-  // pub warnings: Vec<BuildError>,
   pub module: NormalModule,
   pub local_symbol_ref_db: SymbolRefDbForModule,
   pub runtime: RuntimeModuleBrief,
