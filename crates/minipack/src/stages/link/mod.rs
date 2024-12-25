@@ -1,3 +1,5 @@
+mod sort_modules;
+
 use minipack_common::{
   dynamic_import_usage::DynamicImportExportsUsage, EntryPoint, ImportKind, ModuleIdx, ModuleTable,
   RuntimeModuleBrief, SymbolRef, SymbolRefDb,
@@ -98,6 +100,8 @@ impl<'a> LinkStage<'a> {
   }
 
   pub fn link(mut self) -> LinkStageOutput {
+    self.sort_modules();
+
     todo!()
   }
 
