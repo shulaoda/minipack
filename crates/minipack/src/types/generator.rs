@@ -26,7 +26,7 @@ impl GenerateContext<'_> {
     cur_chunk_idx: ChunkIdx,
     canonical_names: &FxHashMap<SymbolRef, Rstr>,
   ) -> String {
-    let symbol_db = &self.link_output.symbol_db;
+    let symbol_db = &self.link_output.symbol_ref_db;
     // let belong_to_chunk_idx =
     // if !symbol_ref.is_declared_in_root_scope(self.ctx.symbol_db) {
     //   // No fancy things on none root scope symbols
@@ -78,7 +78,7 @@ impl GenerateContext<'_> {
       if !module.is_included() {
         return None;
       }
-      let ast = &self.link_output.ast_table[module.ecma_ast_idx.unpack()].0;
+      let ast = &self.link_output.index_ecma_ast[module.ecma_ast_idx.unpack()].0;
       if ast.is_body_empty() {
         return None;
       }

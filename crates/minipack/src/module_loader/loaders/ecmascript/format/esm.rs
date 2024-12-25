@@ -42,7 +42,7 @@ pub fn render_esm<'code>(
   });
 
   if let Some(entry_id) = ctx.chunk.entry_module_idx() {
-    let entry_meta = &ctx.link_output.metas[entry_id];
+    let entry_meta = &ctx.link_output.metadata[entry_id];
     match entry_meta.wrap_kind {
       WrapKind::Esm => {
         // init_xxx()
@@ -90,7 +90,7 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
     let mut specifiers = items
       .iter()
       .filter_map(|item| {
-        let canonical_ref = ctx.link_output.symbol_db.canonical_ref_for(item.import_ref);
+        let canonical_ref = ctx.link_output.symbol_ref_db.canonical_ref_for(item.import_ref);
         let imported = &ctx.chunk.canonical_names[&canonical_ref];
         let Specifier::Literal(alias) = item.export_alias.as_ref().unwrap() else {
           panic!("should not be star import from other chunks")
@@ -125,7 +125,7 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
     let specifiers = named_imports
       .iter()
       .filter_map(|item| {
-        let canonical_ref = &ctx.link_output.symbol_db.canonical_ref_for(item.imported_as);
+        let canonical_ref = &ctx.link_output.symbol_ref_db.canonical_ref_for(item.imported_as);
         if !ctx.link_output.used_symbol_refs.contains(canonical_ref) {
           return None;
         };

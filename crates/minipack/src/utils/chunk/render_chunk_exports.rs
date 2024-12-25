@@ -30,8 +30,8 @@ pub fn render_chunk_exports(
       let rendered_items = export_items
         .into_iter()
         .map(|(exported_name, export_ref)| {
-          let canonical_ref = link_output.symbol_db.canonical_ref_for(export_ref);
-          let symbol = link_output.symbol_db.get(canonical_ref);
+          let canonical_ref = link_output.symbol_ref_db.canonical_ref_for(export_ref);
+          let symbol = link_output.symbol_ref_db.get(canonical_ref);
           let canonical_name = &chunk.canonical_names[&canonical_ref];
           if let Some(ns_alias) = &symbol.namespace_alias {
             let canonical_ns_name = &chunk.canonical_names[&ns_alias.namespace_ref];
@@ -69,8 +69,8 @@ pub fn render_chunk_exports(
             let rendered_items = export_items
               .into_iter()
               .map(|(exported_name, export_ref)| {
-                let canonical_ref = link_output.symbol_db.canonical_ref_for(export_ref);
-                let symbol = link_output.symbol_db.get(canonical_ref);
+                let canonical_ref = link_output.symbol_ref_db.canonical_ref_for(export_ref);
+                let symbol = link_output.symbol_ref_db.get(canonical_ref);
                 let mut canonical_name = Cow::Borrowed(&chunk.canonical_names[&canonical_ref]);
                 let exported_value = if let Some(ns_alias) = &symbol.namespace_alias {
                   let canonical_ns_name = &chunk.canonical_names[&ns_alias.namespace_ref];
@@ -82,7 +82,7 @@ pub fn render_chunk_exports(
                 } else {
                   let cur_chunk_idx = ctx.chunk_idx;
                   let canonical_ref_owner_chunk_idx =
-                    link_output.symbol_db.get(canonical_ref).chunk_id.unwrap();
+                    link_output.symbol_ref_db.get(canonical_ref).chunk_id.unwrap();
                   let is_this_symbol_point_to_other_chunk =
                     cur_chunk_idx != canonical_ref_owner_chunk_idx;
                   if is_this_symbol_point_to_other_chunk {
@@ -99,7 +99,7 @@ pub fn render_chunk_exports(
 
                 match export_mode {
                   Some(OutputExports::Named) => {
-                    if must_keep_live_binding(export_ref, &link_output.symbol_db) {
+                    if must_keep_live_binding(export_ref, &link_output.symbol_ref_db) {
                       render_object_define_property(&exported_name, &exported_value)
                     } else {
                       concat_string!(
@@ -124,7 +124,7 @@ pub fn render_chunk_exports(
             s.push_str(&rendered_items.join("\n"));
           }
 
-          let meta = &ctx.link_output.metas[module.idx];
+          let meta = &ctx.link_output.metadata[module.idx];
           let external_modules = meta
             .star_exports_from_external_modules
             .iter()
@@ -148,8 +148,8 @@ pub fn render_chunk_exports(
         }
         ChunkKind::Common => {
           export_items.into_iter().for_each(|(exported_name, export_ref)| {
-            let canonical_ref = link_output.symbol_db.canonical_ref_for(export_ref);
-            let symbol = link_output.symbol_db.get(canonical_ref);
+            let canonical_ref = link_output.symbol_ref_db.canonical_ref_for(export_ref);
+            let symbol = link_output.symbol_ref_db.get(canonical_ref);
             let canonical_name = &chunk.canonical_names[&canonical_ref];
 
             if let Some(ns_alias) = &symbol.namespace_alias {
@@ -193,12 +193,12 @@ pub fn render_object_define_property(key: &str, value: &str) -> String {
 pub fn get_export_items(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<(Rstr, SymbolRef)> {
   match chunk.kind {
     ChunkKind::EntryPoint { module, is_user_defined, .. } => {
-      let meta = &graph.metas[module];
+      let meta = &graph.metadata[module];
       meta
         .referenced_canonical_exports_symbols(
           module,
           if is_user_defined { EntryPointKind::UserDefined } else { EntryPointKind::DynamicImport },
-          &graph.dynamic_import_exports_usage_map,
+          &graph.dyn_import_usage_map,
         )
         .map(|(name, export)| (name.clone(), export.symbol_ref))
         .collect::<Vec<_>>()
@@ -219,7 +219,7 @@ pub fn get_export_items(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<(Rstr, Sy
 
 pub fn get_chunk_export_names(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<Rstr> {
   if let ChunkKind::EntryPoint { module: entry_id, .. } = &chunk.kind {
-    let entry_meta = &graph.metas[*entry_id];
+    let entry_meta = &graph.metadata[*entry_id];
     if matches!(entry_meta.wrap_kind, WrapKind::Cjs) {
       return vec![Rstr::new("default")];
     }

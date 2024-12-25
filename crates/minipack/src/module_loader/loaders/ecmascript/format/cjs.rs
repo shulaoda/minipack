@@ -22,7 +22,7 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
 ) {
   let mut module_sources_peekable = module_sources.iter().peekable();
   match module_sources_peekable.peek() {
-    Some((id, _, _)) if *id == ctx.link_output.runtime.id() => {
+    Some((id, _, _)) if *id == ctx.link_output.runtime_brief.id() => {
       if let (_, _module_id, Some(emitted_sources)) =
         module_sources_peekable.next().expect("Must have module")
       {
@@ -96,7 +96,7 @@ pub fn render_cjs<'code>(
   );
 
   if let Some(entry_id) = ctx.chunk.entry_module_idx() {
-    let entry_meta = &ctx.link_output.metas[entry_id];
+    let entry_meta = &ctx.link_output.metadata[entry_id];
     match entry_meta.wrap_kind {
       WrapKind::Esm => {
         let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
@@ -161,7 +161,7 @@ fn render_cjs_chunk_imports(ctx: &GenerateContext<'_>) -> String {
 
     if ctx.link_output.used_symbol_refs.contains(&importee.namespace_ref) {
       let to_esm_fn_name = ctx.finalized_string_pattern_for_symbol_ref(
-        ctx.link_output.runtime.resolve_symbol("__toESM"),
+        ctx.link_output.runtime_brief.resolve_symbol("__toESM"),
         ctx.chunk_idx,
         &ctx.chunk.canonical_names,
       );

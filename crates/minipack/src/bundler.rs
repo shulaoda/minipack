@@ -29,15 +29,19 @@ impl Bundler {
   }
 
   pub async fn build(&mut self, is_write: bool) -> BuildResult<()> {
-    let scan_stage = ScanStage::new(self.fs, self.options.clone(), self.resolver.clone());
+    if self.closed {
+      return Err(anyhow::anyhow!(
+        "Bundle is already closed, no more calls to 'generate' or 'write' are allowed."
+      ))?;
+    }
+
+    let scan_stage_output = self.scan().await;
 
     Ok(())
   }
 
   pub async fn scan(&self) -> BuildResult<ScanStageOutput> {
-    let mut scan_stage = ScanStage::new(self.fs, self.options.clone(), self.resolver.clone());
-
-    scan_stage.scan().await
+    ScanStage::new(self.fs, self.options.clone(), self.resolver.clone()).scan().await
   }
 }
 
