@@ -35,9 +35,11 @@ impl PreProcessEcmaAst {
     has_lazy_export: bool,
   ) -> BuildResult<ParseToEcmaAstResult> {
     let mut warning = vec![];
+
     // Build initial semantic data and check for semantic errors.
     let semantic_ret =
       ast.program.with_mut(|WithMutFields { program, .. }| SemanticBuilder::new().build(program));
+
     if !semantic_ret.errors.is_empty() {
       warning.extend(
         semantic_ret
