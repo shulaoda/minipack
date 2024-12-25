@@ -337,9 +337,9 @@ impl ModuleLoader {
     match self.visited.entry(resolved_id.id.clone()) {
       std::collections::hash_map::Entry::Occupied(visited) => *visited.get(),
       std::collections::hash_map::Entry::Vacant(not_visited) => {
+        let idx = self.inm.alloc_ecma_module_idx();
+
         if resolved_id.is_external {
-          let idx = self.inm.alloc_ecma_module_idx();
-          not_visited.insert(idx);
           let external_module_side_effects =
             if let Some(hook_side_effects) = resolved_id.side_effects {
               match hook_side_effects {
@@ -355,21 +355,19 @@ impl ModuleLoader {
             idx,
             SymbolRefDbForModule::new(SymbolTable::default(), idx, ScopeId::new(0)),
           );
+
           let symbol_ref = self.symbol_ref_db.create_facade_root_symbol_ref(
             idx,
             &legitimize_identifier_name(resolved_id.id.as_str()),
           );
-          let ext = ExternalModule::new(
+
+          self.inm.modules[idx] = Some(Module::external(ExternalModule::new(
             idx,
-            ArcStr::clone(&resolved_id.id),
+            resolved_id.id,
             external_module_side_effects,
             symbol_ref,
-          );
-          self.inm.modules[idx] = Some(ext.into());
-          idx
+          )));
         } else {
-          let idx = self.inm.alloc_ecma_module_idx();
-          not_visited.insert(idx);
           self.remaining += 1;
 
           let task = ModuleTask::new(
@@ -380,9 +378,11 @@ impl ModuleLoader {
             is_user_defined_entry,
             assert_module_type,
           );
+
           tokio::spawn(task.run());
-          idx
         }
+
+        *not_visited.insert(idx)
       }
     }
   }
