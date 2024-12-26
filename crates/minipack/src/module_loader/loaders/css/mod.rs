@@ -8,12 +8,9 @@ use minipack_common::{
 use oxc::{semantic::SymbolId, span::Span};
 use oxc_index::{Idx, IndexVec};
 
-pub fn create_css_view(
-  _id: &str,
-  source: &ArcStr,
-) -> (CssView, IndexVec<ImportRecordIdx, RawImportRecord>) {
+pub fn create_css_view(source: ArcStr) -> (CssView, IndexVec<ImportRecordIdx, RawImportRecord>) {
   let (lexed_deps, _warnings) =
-    css_module_lexer::collect_dependencies(source, css_module_lexer::Mode::Css);
+    css_module_lexer::collect_dependencies(&source, css_module_lexer::Mode::Css);
 
   let mut dependencies: IndexVec<ImportRecordIdx, RawImportRecord> = IndexVec::default();
   let mut record_idx_to_span: IndexVec<ImportRecordIdx, Span> = IndexVec::default();
@@ -30,7 +27,9 @@ pub fn create_css_view(
           Span::new(range.start, range.end),
           None,
         ));
+
         record_idx_to_span.push(Span::new(range.start, range.end));
+
         let mut range_end = range.end as usize;
         if source.is_char_boundary(range_end) {
           if source[range_end..].starts_with("\r\n") {
@@ -40,6 +39,7 @@ pub fn create_css_view(
             range_end += 1;
           }
         }
+
         css_renderer.at_import_ranges.push((range.start as usize, range_end));
       }
       css_module_lexer::Dependency::Url { request, range, kind } => {
@@ -51,6 +51,7 @@ pub fn create_css_view(
         } else {
           Span::new(range.start + 4 /*length of `url(`*/, range.end - 1)
         };
+
         dependencies.push(RawImportRecord::new(
           request.into(),
           ImportKind::UrlImport,
@@ -66,7 +67,7 @@ pub fn create_css_view(
 
   (
     CssView {
-      source: source.clone(),
+      source,
       import_records: IndexVec::default(),
       mutations: vec![Box::new(css_renderer)],
       record_idx_to_span,

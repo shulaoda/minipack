@@ -107,7 +107,7 @@ impl ModuleTask {
     let css_view = if matches!(module_type, ModuleType::Css) {
       let css_source: ArcStr = source.try_into_string()?.into();
       // FIXME: This makes creating `EcmaView` rely on creating `CssView` first, while they should be done in parallel.
-      let (css_view, import_records) = create_css_view(&stable_id, &css_source);
+      let (css_view, import_records) = create_css_view(css_source);
       source = StrOrBytes::Str(String::new());
       raw_import_records = import_records;
       Some(css_view)
