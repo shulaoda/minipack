@@ -208,7 +208,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     } else if self.ast_usage.intersects(EcmaModuleAstUsage::ModuleOrExports) {
       exports_kind = ExportsKind::CommonJs;
     } else {
-      // TODO(hyf0): Should add warnings if the module type doesn't satisfy the exports kind.
       match self.module_type {
         ModuleDefFormat::CJS | ModuleDefFormat::CjsPackageJson | ModuleDefFormat::Cts => {
           exports_kind = ExportsKind::CommonJs;

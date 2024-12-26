@@ -163,7 +163,7 @@ impl ModuleLoader {
 
           let mut dynamic_import_rec_exports_usage = ecma_related
             .as_mut()
-            .map(|item| std::mem::take(&mut item.dynamic_import_rec_exports_usage))
+            .map(|item| std::mem::take(&mut item.dynamic_import_exports_usage))
             .unwrap_or_default();
 
           let import_records = raw_import_records
@@ -203,10 +203,10 @@ impl ModuleLoader {
 
           module.set_import_records(import_records);
 
-          if let Some(EcmaRelated { ast, symbols, .. }) = ecma_related {
+          if let Some(EcmaRelated { ast, symbol_ref_db, .. }) = ecma_related {
             let ast_idx = self.inm.index_ecma_ast.push((ast, module.idx()));
             module.set_ecma_ast_idx(ast_idx);
-            self.symbol_ref_db.store_local_db(module_idx, symbols);
+            self.symbol_ref_db.store_local_db(module_idx, symbol_ref_db);
           }
           self.inm.modules[module_idx] = Some(module);
           self.remaining -= 1;

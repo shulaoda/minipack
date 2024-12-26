@@ -133,9 +133,9 @@ impl ModuleTask {
     let CreateEcmaViewReturn {
       view: mut ecma_view,
       ast,
-      symbols,
+      symbol_ref_db,
       raw_import_records: ecma_raw_import_records,
-      dynamic_import_rec_exports_usage,
+      dynamic_import_exports_usage,
     } = ret;
 
     if !matches!(module_type, ModuleType::Css) {
@@ -183,7 +183,7 @@ impl ModuleTask {
       resolved_deps,
       module_idx: self.idx,
       warnings,
-      ecma_related: Some(EcmaRelated { ast, symbols, dynamic_import_rec_exports_usage }),
+      ecma_related: Some(EcmaRelated { ast, symbol_ref_db, dynamic_import_exports_usage }),
       module: module.into(),
       raw_import_records,
     });

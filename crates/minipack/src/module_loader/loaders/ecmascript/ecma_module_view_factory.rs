@@ -51,6 +51,7 @@ fn scan_ast(
     ast.comments(),
     options,
   );
+
   let namespace_object_ref = scanner.namespace_object_ref;
   let scan_result = scanner.scan(ast.program())?;
 
@@ -60,8 +61,8 @@ pub struct CreateEcmaViewReturn {
   pub view: EcmaView,
   pub raw_import_records: IndexVec<ImportRecordIdx, RawImportRecord>,
   pub ast: EcmaAst,
-  pub symbols: SymbolRefDbForModule,
-  pub dynamic_import_rec_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
+  pub symbol_ref_db: SymbolRefDbForModule,
+  pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
 }
 
 #[allow(clippy::too_many_lines)]
@@ -69,7 +70,7 @@ pub async fn create_ecma_view<'a>(
   ctx: &mut CreateModuleContext<'a>,
   args: CreateModuleViewArgs,
 ) -> BuildResult<CreateEcmaViewReturn> {
-  let id = ModuleId::new(ArcStr::clone(&ctx.resolved_id.id));
+  let id = ModuleId::new(&ctx.resolved_id.id);
   let stable_id = id.stabilize(&ctx.options.cwd);
 
   let parse_result = parse_to_ecma_ast(
@@ -198,7 +199,7 @@ pub async fn create_ecma_view<'a>(
     view,
     raw_import_records: import_records,
     ast,
-    symbols: symbol_ref_db,
-    dynamic_import_rec_exports_usage: dynamic_import_exports_usage,
+    symbol_ref_db,
+    dynamic_import_exports_usage,
   })
 }
