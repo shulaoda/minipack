@@ -19,7 +19,7 @@ pub struct LinkStageOutput {
   pub module_table: ModuleTable,
   pub entry_points: Vec<EntryPoint>,
   pub index_ecma_ast: IndexEcmaAst,
-  // pub sorted_modules: Vec<NormalModuleId>,
+  pub sorted_modules: Vec<ModuleIdx>,
   pub metadata: LinkingMetadataVec,
   pub symbol_ref_db: SymbolRefDb,
   pub runtime_brief: RuntimeModuleBrief,
@@ -105,7 +105,7 @@ impl<'a> LinkStage<'a> {
     LinkStageOutput {
       module_table: self.module_table,
       entry_points: self.entry_points,
-      // sorted_modules: self.sorted_modules,
+      sorted_modules: self.sorted_modules,
       metadata: self.metadata,
       symbol_ref_db: self.symbol_ref_db,
       runtime_brief: self.runtime_brief,
