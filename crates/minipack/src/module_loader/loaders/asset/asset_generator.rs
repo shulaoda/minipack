@@ -1,6 +1,5 @@
 use crate::types::generator::{GenerateContext, GenerateOutput, Generator};
 
-use anyhow::Result;
 use minipack_common::{InstantiatedChunk, InstantiationKind, StrOrBytes};
 use minipack_error::BuildResult;
 use minipack_utils::option_ext::OptionExt;
@@ -8,10 +7,7 @@ use minipack_utils::option_ext::OptionExt;
 pub struct AssetGenerator;
 
 impl Generator for AssetGenerator {
-  #[allow(clippy::too_many_lines)]
-  async fn instantiate_chunk<'a>(
-    ctx: &mut GenerateContext<'a>,
-  ) -> Result<BuildResult<GenerateOutput>> {
+  async fn instantiate_chunk<'a>(ctx: &mut GenerateContext<'a>) -> BuildResult<GenerateOutput> {
     let asset_modules = ctx
       .chunk
       .modules
@@ -29,6 +25,7 @@ impl Generator for AssetGenerator {
       let file_path =
         ctx.options.cwd.as_path().join(&ctx.options.dir).join(preliminary_filename.as_str());
       let file_dir = file_path.parent().expect("chunk file name should have a parent");
+
       instantiated_chunks.push(InstantiatedChunk {
         origin_chunk: ctx.chunk_idx,
         content: StrOrBytes::Bytes(asset_view.source.to_vec()),
@@ -39,9 +36,6 @@ impl Generator for AssetGenerator {
       });
     }
 
-    Ok(Ok(GenerateOutput {
-      chunks: instantiated_chunks,
-      warnings: std::mem::take(&mut ctx.warnings),
-    }))
+    Ok(GenerateOutput { chunks: instantiated_chunks, warnings: std::mem::take(&mut ctx.warnings) })
   }
 }

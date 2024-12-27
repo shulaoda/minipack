@@ -149,9 +149,9 @@ impl RuntimeModuleTask {
       ast,
       module,
       runtime,
+      symbol_ref_db,
       resolved_deps,
       raw_import_records,
-      local_symbol_ref_db: symbol_ref_db,
     });
 
     let _ = self.tx.try_send(result);

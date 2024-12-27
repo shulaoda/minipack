@@ -7,8 +7,6 @@ use crate::{
   },
 };
 
-use anyhow::Result;
-
 use minipack_common::{
   EcmaAssetMeta, InstantiatedChunk, InstantiationKind, ModuleId, ModuleIdx, OutputFormat,
   RenderedModule,
@@ -26,10 +24,7 @@ pub type RenderedModuleSources =
 pub struct EcmaGenerator;
 
 impl Generator for EcmaGenerator {
-  #[allow(clippy::too_many_lines)]
-  async fn instantiate_chunk<'a>(
-    ctx: &mut GenerateContext<'a>,
-  ) -> Result<BuildResult<GenerateOutput>> {
+  async fn instantiate_chunk<'a>(ctx: &mut GenerateContext<'a>) -> BuildResult<GenerateOutput> {
     let mut rendered_modules = FxHashMap::default();
     let module_id_to_codegen_ret = std::mem::take(&mut ctx.module_id_to_codegen_ret);
     let rendered_module_sources = ctx
@@ -61,10 +56,7 @@ impl Generator for EcmaGenerator {
 
     let source_joiner = match ctx.options.format {
       OutputFormat::Esm => render_esm(ctx, &rendered_module_sources),
-      OutputFormat::Cjs => match render_cjs(ctx, &rendered_module_sources, &mut warnings) {
-        Ok(source_joiner) => source_joiner,
-        Err(errors) => return Ok(Err(errors)),
-      },
+      OutputFormat::Cjs => render_cjs(ctx, &rendered_module_sources, &mut warnings)?,
     };
 
     ctx.warnings.extend(warnings);
@@ -83,20 +75,22 @@ impl Generator for EcmaGenerator {
     );
     let file_dir = file_path.parent().expect("chunk file name should have a parent");
 
-    Ok(Ok(GenerateOutput {
-      chunks: vec![InstantiatedChunk {
-        origin_chunk: ctx.chunk_idx,
-        content: content.into(),
-        kind: InstantiationKind::from(EcmaAssetMeta { rendered_chunk }),
-        augment_chunk_hash: None,
-        file_dir: file_dir.to_path_buf(),
-        preliminary_filename: ctx
-          .chunk
-          .preliminary_filename
-          .clone()
-          .expect("should have preliminary filename"),
-      }],
+    let instantiated_chunk = InstantiatedChunk {
+      origin_chunk: ctx.chunk_idx,
+      content: content.into(),
+      kind: InstantiationKind::from(EcmaAssetMeta { rendered_chunk }),
+      augment_chunk_hash: None,
+      file_dir: file_dir.to_path_buf(),
+      preliminary_filename: ctx
+        .chunk
+        .preliminary_filename
+        .clone()
+        .expect("should have preliminary filename"),
+    };
+
+    Ok(GenerateOutput {
+      chunks: vec![instantiated_chunk],
       warnings: std::mem::take(&mut ctx.warnings),
-    }))
+    })
   }
 }

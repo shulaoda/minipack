@@ -213,7 +213,7 @@ impl ModuleLoader {
         }
         ModuleLoaderMsg::RuntimeModuleDone(task_result) => {
           let RuntimeModuleTaskResult {
-            local_symbol_ref_db,
+            symbol_ref_db,
             mut module,
             runtime,
             ast,
@@ -246,7 +246,7 @@ impl ModuleLoader {
           module.import_records = import_records;
 
           self.inm.modules[self.runtime_id] = Some(module.into());
-          self.symbol_ref_db.store_local_db(self.runtime_id, local_symbol_ref_db);
+          self.symbol_ref_db.store_local_db(self.runtime_id, symbol_ref_db);
 
           self.remaining -= 1;
         }

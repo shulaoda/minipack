@@ -1,16 +1,12 @@
 use crate::types::generator::{GenerateContext, GenerateOutput, Generator};
 
-use anyhow::Result;
 use minipack_common::{InstantiatedChunk, InstantiationKind};
 use minipack_error::BuildResult;
 
 pub struct CssGenerator;
 
 impl Generator for CssGenerator {
-  #[allow(clippy::too_many_lines)]
-  async fn instantiate_chunk<'a>(
-    ctx: &mut GenerateContext<'a>,
-  ) -> Result<BuildResult<GenerateOutput>> {
+  async fn instantiate_chunk<'a>(ctx: &mut GenerateContext<'a>) -> BuildResult<GenerateOutput> {
     let mut ordered_css_modules = ctx
       .chunk
       .modules
@@ -20,10 +16,7 @@ impl Generator for CssGenerator {
       .collect::<Vec<_>>();
 
     if ordered_css_modules.is_empty() {
-      return Ok(Ok(GenerateOutput {
-        chunks: vec![],
-        warnings: std::mem::take(&mut ctx.warnings),
-      }));
+      return Ok(GenerateOutput { chunks: vec![], warnings: std::mem::take(&mut ctx.warnings) });
     }
 
     ordered_css_modules.sort_by_key(|m| m.exec_order);
@@ -52,7 +45,7 @@ impl Generator for CssGenerator {
     );
     let file_dir = file_path.parent().expect("chunk file name should have a parent");
 
-    Ok(Ok(GenerateOutput {
+    Ok(GenerateOutput {
       chunks: vec![InstantiatedChunk {
         origin_chunk: ctx.chunk_idx,
         content: content.into(),
@@ -66,6 +59,6 @@ impl Generator for CssGenerator {
           .expect("should have preliminary filename"),
       }],
       warnings: std::mem::take(&mut ctx.warnings),
-    }))
+    })
   }
 }
