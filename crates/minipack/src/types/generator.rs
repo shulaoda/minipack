@@ -27,11 +27,6 @@ impl GenerateContext<'_> {
     canonical_names: &FxHashMap<SymbolRef, Rstr>,
   ) -> String {
     let symbol_db = &self.link_output.symbol_ref_db;
-    // let belong_to_chunk_idx =
-    // if !symbol_ref.is_declared_in_root_scope(self.ctx.symbol_db) {
-    //   // No fancy things on none root scope symbols
-    //   return self.snippet.id_ref_expr(self.canonical_name_for(symbol_ref), SPAN);
-    // }
     let canonical_ref = symbol_db.canonical_ref_for(symbol_ref);
     let canonical_symbol = symbol_db.get(canonical_ref);
     let namespace_alias = &canonical_symbol.namespace_alias;
@@ -56,7 +51,6 @@ impl GenerateContext<'_> {
           // In cjs output, we need convert the `import { foo } from 'foo'; console.log(foo);`;
           // If `foo` is split into another chunk, we need to convert the code `console.log(foo);` to `console.log(require_xxxx.foo);`
           // instead of keeping `console.log(foo)` as we did in esm output. The reason here is wee need to keep live binding in cjs output.
-
           let exported_name = &self.graph.chunk_table[chunk_idx_of_canonical_symbol]
             .exports_to_other_chunks[&canonical_ref];
 

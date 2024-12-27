@@ -5,7 +5,6 @@ pub struct NormalizeOptionsReturn {
   pub resolve_options: minipack_resolver::ResolveOptions,
 }
 
-#[allow(clippy::too_many_lines)] // This function is long, but it's mostly just mapping values
 pub fn normalize_options(mut raw_options: crate::BundlerOptions) -> NormalizeOptionsReturn {
   let format = raw_options.format.unwrap_or(crate::OutputFormat::Esm);
   let platform = raw_options.platform.unwrap_or(match format {
