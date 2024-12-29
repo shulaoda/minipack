@@ -105,7 +105,7 @@ impl PreProcessEcmaAst {
     })?;
 
     ast.program.with_mut(|fields| {
-      let mut pre_processor = PreProcessor::new(fields.allocator, false);
+      let mut pre_processor = PreProcessor::new(fields.allocator);
       pre_processor.visit_program(fields.program);
       ast.contains_use_strict = pre_processor.contains_use_strict;
     });

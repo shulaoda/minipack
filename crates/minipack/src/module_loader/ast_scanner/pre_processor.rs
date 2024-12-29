@@ -16,17 +16,15 @@ pub struct PreProcessor<'ast> {
   /// For none top level statements, this is used to store split `VarDeclaration`.
   stmt_temp_storage: Vec<Statement<'ast>>,
   need_push_ast: bool,
-  keep_names: bool,
 }
 
 impl<'ast> PreProcessor<'ast> {
-  pub fn new(alloc: &'ast Allocator, keep_names: bool) -> Self {
+  pub fn new(alloc: &'ast Allocator) -> Self {
     Self {
       snippet: AstSnippet::new(alloc),
       contains_use_strict: false,
       stmt_temp_storage: vec![],
       need_push_ast: false,
-      keep_names,
     }
   }
 
@@ -97,31 +95,11 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
     program.body.extend(std::mem::take(&mut self.stmt_temp_storage));
   }
 
-  fn visit_statements(&mut self, it: &mut oxc::allocator::Vec<'ast, Statement<'ast>>) {
-    if self.keep_names {
-      let stmts = it.take_in(self.snippet.alloc());
-      for mut stmt in stmts {
-        walk_mut::walk_statement(self, &mut stmt);
-        if self.stmt_temp_storage.is_empty() {
-          it.push(stmt);
-        } else {
-          it.extend(self.stmt_temp_storage.drain(..));
-        }
-      }
-    } else {
-      walk_mut::walk_statements(self, it);
-    }
-  }
-
   fn visit_declaration(&mut self, it: &mut Declaration<'ast>) {
     match it {
-      Declaration::VariableDeclaration(decl) => {
-        if decl.declarations.len() > 1 && self.keep_names {
-          self.stmt_temp_storage.extend(self.split_var_declaration(decl, None));
-          self.need_push_ast = false;
-        }
-      }
-      Declaration::FunctionDeclaration(_) | Declaration::ClassDeclaration(_) => {}
+      Declaration::VariableDeclaration(_)
+      | Declaration::FunctionDeclaration(_)
+      | Declaration::ClassDeclaration(_) => {}
       Declaration::TSTypeAliasDeclaration(_)
       | Declaration::TSInterfaceDeclaration(_)
       | Declaration::TSEnumDeclaration(_)
