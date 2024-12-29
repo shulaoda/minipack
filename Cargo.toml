@@ -71,6 +71,7 @@ minipack_sourcemap        = { version = "0.1.0", path = "./crates/minipack_sourc
 minipack_utils            = { version = "0.1.0", path = "./crates/minipack_utils" }
 
 anyhow           = { version = "1.0.86" }
+append-only-vec  = { version = "0.1.5" }
 arcstr           = { version = "1.2.0" }
 base64-simd      = { version = "0.8.0" }
 bitflags         = { version = "2.6.0" }
