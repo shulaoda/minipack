@@ -105,7 +105,7 @@ impl<'a> LinkStage<'a> {
     self.sort_modules();
 
     self.determine_module_exports_kind();
-    
+
     self.reference_needed_symbols();
 
     LinkStageOutput {
