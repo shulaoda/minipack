@@ -38,6 +38,7 @@ pub fn normalize_options(mut raw_options: crate::BundlerOptions) -> NormalizeOpt
     format,
     exports: raw_options.exports.unwrap_or(crate::OutputExports::Auto),
     es_module: raw_options.es_module.unwrap_or_default(),
+    minify: raw_options.minify.unwrap_or(false),
     target: raw_options.target.unwrap_or_default(),
     inline_dynamic_imports: raw_options.inline_dynamic_imports.unwrap_or_default(),
   };

@@ -1,6 +1,7 @@
 mod determine_module_exports_kind;
 mod reference_needed_symbols;
 mod sort_modules;
+mod wrap_modules;
 
 use minipack_common::{
   dynamic_import_usage::DynamicImportExportsUsage, EntryPoint, ImportKind, ModuleIdx, ModuleTable,
@@ -105,6 +106,7 @@ impl<'a> LinkStage<'a> {
     self.sort_modules();
 
     self.determine_module_exports_kind();
+    self.wrap_modules();
 
     self.reference_needed_symbols();
 

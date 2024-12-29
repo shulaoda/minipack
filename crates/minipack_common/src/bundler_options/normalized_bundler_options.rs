@@ -23,6 +23,7 @@ pub struct NormalizedBundlerOptions {
   pub format: OutputFormat,
   pub exports: OutputExports,
   pub es_module: EsModuleFlag,
+  pub minify: bool,
 
   // --- Resolve
   pub target: ESTarget,

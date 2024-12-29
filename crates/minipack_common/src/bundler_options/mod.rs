@@ -36,6 +36,7 @@ pub struct BundlerOptions {
   pub format: Option<OutputFormat>,
   pub exports: Option<OutputExports>,
   pub es_module: Option<EsModuleFlag>,
+  pub minify: Option<bool>,
 
   // --- Resolve
   pub target: Option<ESTarget>,
