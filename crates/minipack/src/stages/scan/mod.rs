@@ -1,6 +1,6 @@
 use arcstr::ArcStr;
 use minipack_common::{ImportKind, ResolvedId};
-use minipack_error::BuildResult;
+use minipack_error::{BuildError, BuildResult};
 use minipack_fs::OsFileSystem;
 
 use crate::{
@@ -38,38 +38,26 @@ impl ScanStage {
   async fn resolve_user_defined_entries(
     &mut self,
   ) -> BuildResult<Vec<(Option<ArcStr>, ResolvedId)>> {
-    let resolver = &self.resolver;
-
-    let resolved_ids = self.options.input.iter().map(|input_item| {
-      let resolved = resolve_id(resolver, &input_item.import, None, ImportKind::Import, true);
-
-      resolved.map(|info| ((input_item.name.clone().map(ArcStr::from)), info))
-    });
-
-    let mut ret = Vec::with_capacity(self.options.input.len());
-
-    let mut errors = vec![];
-
-    for resolve_id in resolved_ids {
-      match resolve_id {
-        Ok(item) => {
-          if item.1.is_external {
-            errors.push(anyhow::anyhow!(
-              "Failed to resolve {:?} - entry can't be external",
-              item.1.id.to_string()
-            ));
-            continue;
-          }
-          ret.push(item);
-        }
-        Err(e) => errors.push(anyhow::anyhow!("ResolveError: {:?}", e)),
-      }
-    }
-
-    if !errors.is_empty() {
-      return Err(errors)?;
-    }
-
-    Ok(ret)
+    Ok(
+      self
+        .options
+        .input
+        .iter()
+        .map(|input_item| {
+          resolve_id(&self.resolver, &input_item.import, None, ImportKind::Import, true)
+            .map_err(|e| anyhow::anyhow!("ResolveError: {:?}", e))
+            .and_then(|resolved_id| {
+              if resolved_id.is_external {
+                Err(anyhow::anyhow!(
+                  "Failed to resolve {:?} - entry can't be external",
+                  resolved_id.id.to_string()
+                ))
+              } else {
+                Ok((input_item.name.as_ref().map(ArcStr::from), resolved_id))
+              }
+            })
+        })
+        .collect::<Result<Vec<(Option<ArcStr>, ResolvedId)>, anyhow::Error>>()?,
+    )
   }
 }
