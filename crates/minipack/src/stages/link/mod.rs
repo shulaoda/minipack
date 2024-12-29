@@ -126,12 +126,4 @@ impl<'a> LinkStage<'a> {
       dyn_import_usage_map: self.dyn_import_usage_map,
     }
   }
-
-  fn create_exports_for_ecma_modules(&mut self) {
-    todo!()
-  }
-
-  fn patch_module_dependencies(&mut self) {
-    todo!()
-  }
 }
