@@ -1,3 +1,4 @@
+mod bind_imports_and_exports;
 mod determine_module_exports_kind;
 mod determine_side_effects;
 mod generate_lazy_export;
@@ -111,6 +112,7 @@ impl<'a> LinkStage<'a> {
     self.wrap_modules();
     self.generate_lazy_export();
     self.determine_side_effects();
+    self.bind_imports_and_exports();
 
     self.reference_needed_symbols();
 
