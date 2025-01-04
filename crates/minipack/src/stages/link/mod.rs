@@ -4,6 +4,7 @@ mod determine_module_exports_kind;
 mod determine_side_effects;
 mod generate_lazy_export;
 mod include_statements;
+mod patch_module_dependencies;
 mod reference_needed_symbols;
 mod sort_modules;
 mod wrap_modules;
@@ -118,6 +119,7 @@ impl<'a> LinkStage<'a> {
     self.create_exports_for_ecma_modules();
     self.reference_needed_symbols();
     self.include_statements();
+    self.patch_module_dependencies();
 
     LinkStageOutput {
       module_table: self.module_table,
