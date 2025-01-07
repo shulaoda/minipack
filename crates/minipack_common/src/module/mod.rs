@@ -4,8 +4,7 @@ pub mod normal_module;
 use oxc_index::IndexVec;
 
 use crate::{
-  types::interop, EcmaAstIdx, ExternalModule, ImportRecordIdx, ModuleIdx, NormalModule,
-  ResolvedImportRecord,
+  EcmaAstIdx, ExternalModule, ImportRecordIdx, ModuleIdx, NormalModule, ResolvedImportRecord,
 };
 use minipack_utils::option_ext::OptionExt;
 
@@ -130,13 +129,6 @@ impl Module {
     match self {
       Module::Normal(v) => v.source.len(),
       Module::External(_) => 0,
-    }
-  }
-
-  pub fn interop(&self) -> Option<interop::Interop> {
-    match self {
-      Module::Normal(v) => v.interop(),
-      Module::External(_) => None,
     }
   }
 }

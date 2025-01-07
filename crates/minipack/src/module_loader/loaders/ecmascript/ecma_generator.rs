@@ -49,7 +49,7 @@ impl Generator for EcmaGenerator {
       ctx.chunk,
       rendered_modules,
       ctx.chunk.pre_rendered_chunk.as_ref().expect("Should have pre-rendered chunk"),
-      ctx.graph,
+      ctx.chunk_graph,
     );
 
     let mut warnings = vec![];

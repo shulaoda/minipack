@@ -62,6 +62,7 @@ pub use crate::{
   },
   types::{
     asset::Asset,
+    asset_idx::AssetIdx,
     asset_meta::InstantiationKind,
     ast_scopes::AstScopes,
     chunk_idx::ChunkIdx,
@@ -83,8 +84,8 @@ pub use crate::{
     named_export::LocalExport,
     named_import::{NamedImport, Specifier},
     namespace_alias::NamespaceAlias,
-    output::Output,
-    output_chunk::OutputChunk,
+    output::{Output, OutputAsset},
+    output_chunk::{Modules, OutputChunk},
     package_json::PackageJson,
     rendered_module::RenderedModule,
     resolved_export::ResolvedExport,

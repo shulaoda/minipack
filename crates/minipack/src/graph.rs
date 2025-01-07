@@ -3,7 +3,7 @@ use oxc_index::{index_vec, IndexVec};
 use rustc_hash::FxHashMap;
 
 #[derive(Debug)]
-pub struct Graph {
+pub struct ChunkGraph {
   pub chunk_table: ChunkTable,
   pub sorted_chunk_idx_vec: Vec<ChunkIdx>,
   /// Module to chunk that contains the module
@@ -11,7 +11,7 @@ pub struct Graph {
   pub entry_module_to_entry_chunk: FxHashMap<ModuleIdx, ChunkIdx>,
 }
 
-impl Graph {
+impl ChunkGraph {
   pub fn new(module_table: &ModuleTable) -> Self {
     Self {
       chunk_table: ChunkTable::default(),

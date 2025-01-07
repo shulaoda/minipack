@@ -85,7 +85,7 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
   let mut s = String::new();
 
   ctx.chunk.imports_from_other_chunks.iter().for_each(|(exporter_id, items)| {
-    let importee_chunk = &ctx.graph.chunk_table[*exporter_id];
+    let importee_chunk = &ctx.chunk_graph.chunk_table[*exporter_id];
     let mut default_alias = vec![];
     let mut specifiers = items
       .iter()

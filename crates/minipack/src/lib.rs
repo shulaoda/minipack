@@ -1,5 +1,6 @@
 mod bundler;
 mod graph;
+mod module_finalizers;
 mod module_loader;
 mod stages;
 mod utils;

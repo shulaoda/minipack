@@ -1,15 +1,17 @@
 use minipack_common::{
-  Chunk, ModuleId, RenderedModule, RollupPreRenderedChunk, RollupRenderedChunk,
+  Chunk, ChunkKind, ModuleId, RenderedModule, RollupPreRenderedChunk, RollupRenderedChunk,
 };
 use rustc_hash::FxHashMap;
 
-use crate::graph::Graph;
+use crate::{graph::ChunkGraph, stages::link::LinkStageOutput};
+
+use super::render_chunk_exports::get_chunk_export_names;
 
 pub fn generate_rendered_chunk(
   chunk: &Chunk,
   render_modules: FxHashMap<ModuleId, RenderedModule>,
   pre_rendered_chunk: &RollupPreRenderedChunk,
-  graph: &Graph,
+  graph: &ChunkGraph,
 ) -> RollupRenderedChunk {
   RollupRenderedChunk {
     name: pre_rendered_chunk.name.clone(),
@@ -23,7 +25,7 @@ pub fn generate_rendered_chunk(
       .as_deref()
       .expect("should have preliminary_filename")
       .clone(),
-    modules: render_modules,
+    modules: render_modules.into(),
     imports: chunk
       .cross_chunk_imports
       .iter()
@@ -47,5 +49,28 @@ pub fn generate_rendered_chunk(
       })
       .collect(),
     debug_id: 0,
+  }
+}
+
+pub fn generate_pre_rendered_chunk(
+  chunk: &Chunk,
+  graph: &LinkStageOutput,
+) -> RollupPreRenderedChunk {
+  RollupPreRenderedChunk {
+    name: chunk.name.clone().expect("should have name"),
+    is_entry: matches!(&chunk.kind, ChunkKind::EntryPoint { is_user_defined, .. } if *is_user_defined),
+    is_dynamic_entry: matches!(&chunk.kind, ChunkKind::EntryPoint { is_user_defined, .. } if !*is_user_defined),
+    facade_module_id: match &chunk.kind {
+      ChunkKind::EntryPoint { module, .. } => {
+        Some(graph.module_table.modules[*module].id().to_string().into())
+      }
+      ChunkKind::Common => None,
+    },
+    module_ids: chunk
+      .modules
+      .iter()
+      .map(|id| graph.module_table.modules[*id].id().to_string().into())
+      .collect(),
+    exports: get_chunk_export_names(chunk, graph),
   }
 }

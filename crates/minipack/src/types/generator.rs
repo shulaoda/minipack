@@ -6,14 +6,14 @@ use minipack_error::BuildResult;
 use minipack_utils::{ecmascript::property_access_str, option_ext::OptionExt, rstr::Rstr};
 use rustc_hash::FxHashMap;
 
-use crate::{graph::Graph, stages::link::LinkStageOutput};
+use crate::{graph::ChunkGraph, stages::link::LinkStageOutput};
 
 pub struct GenerateContext<'a> {
   pub chunk_idx: ChunkIdx,
   pub chunk: &'a Chunk,
   pub options: &'a NormalizedBundlerOptions,
   pub link_output: &'a LinkStageOutput,
-  pub graph: &'a Graph,
+  pub chunk_graph: &'a ChunkGraph,
   pub warnings: Vec<anyhow::Error>,
   pub module_id_to_codegen_ret: Vec<Option<ModuleRenderOutput>>,
 }
@@ -51,10 +51,10 @@ impl GenerateContext<'_> {
           // In cjs output, we need convert the `import { foo } from 'foo'; console.log(foo);`;
           // If `foo` is split into another chunk, we need to convert the code `console.log(foo);` to `console.log(require_xxxx.foo);`
           // instead of keeping `console.log(foo)` as we did in esm output. The reason here is wee need to keep live binding in cjs output.
-          let exported_name = &self.graph.chunk_table[chunk_idx_of_canonical_symbol]
+          let exported_name = &self.chunk_graph.chunk_table[chunk_idx_of_canonical_symbol]
             .exports_to_other_chunks[&canonical_ref];
 
-          let require_binding = &self.graph.chunk_table[cur_chunk_idx]
+          let require_binding = &self.chunk_graph.chunk_table[cur_chunk_idx]
             .require_binding_names_for_other_chunks[&chunk_idx_of_canonical_symbol];
           property_access_str(require_binding, exported_name)
         } else {
