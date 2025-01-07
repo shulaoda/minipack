@@ -590,7 +590,6 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     ))
   }
 
-  #[allow(clippy::too_many_lines, clippy::collapsible_else_if)]
   fn try_rewrite_global_require_call(
     &mut self,
     call_expr: &mut ast::CallExpression<'ast>,
@@ -649,7 +648,9 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
                 // `init_xxx`
                 let wrap_ref_expr = self
                   .finalized_expr_for_symbol_ref(importee_linking_info.wrapper_ref.unwrap(), false);
-                if matches!(importee.exports_kind, ExportsKind::CommonJs) {
+                if matches!(importee.exports_kind, ExportsKind::CommonJs)
+                  || rec.meta.contains(ImportRecordMeta::IS_REQUIRE_UNUSED)
+                {
                   // `init_xxx()`
                   Some(ast::Expression::CallExpression(self.snippet.builder.alloc_call_expression(
                     SPAN,
@@ -659,46 +660,33 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
                     false,
                   )))
                 } else {
-                  if rec.meta.contains(ImportRecordMeta::IS_REQUIRE_UNUSED) {
-                    // `init_xxx()`
-                    Some(ast::Expression::CallExpression(
-                      self.snippet.builder.alloc_call_expression(
-                        SPAN,
-                        wrap_ref_expr,
-                        NONE,
-                        self.snippet.builder.vec(),
-                        false,
-                      ),
-                    ))
-                  } else {
-                    // `xxx_exports`
-                    let namespace_object_ref_expr =
-                      self.finalized_expr_for_symbol_ref(importee.namespace_object_ref, false);
-                    // `__toCommonJS`
-                    let to_commonjs_expr = self.finalized_expr_for_runtime_symbol("__toCommonJS");
-                    // `init_xxx()`
-                    let wrap_ref_call_expr =
-                      ast::Expression::CallExpression(self.snippet.builder.alloc_call_expression(
-                        SPAN,
-                        wrap_ref_expr,
-                        NONE,
-                        self.snippet.builder.vec(),
-                        false,
-                      ));
+                  // `xxx_exports`
+                  let namespace_object_ref_expr =
+                    self.finalized_expr_for_symbol_ref(importee.namespace_object_ref, false);
+                  // `__toCommonJS`
+                  let to_commonjs_expr = self.finalized_expr_for_runtime_symbol("__toCommonJS");
+                  // `init_xxx()`
+                  let wrap_ref_call_expr =
+                    ast::Expression::CallExpression(self.snippet.builder.alloc_call_expression(
+                      SPAN,
+                      wrap_ref_expr,
+                      NONE,
+                      self.snippet.builder.vec(),
+                      false,
+                    ));
 
-                    // `__toCommonJS(xxx_exports)`
-                    let to_commonjs_call_expr =
-                      ast::Expression::CallExpression(self.snippet.builder.alloc_call_expression(
-                        SPAN,
-                        to_commonjs_expr,
-                        NONE,
-                        self.snippet.builder.vec1(ast::Argument::from(namespace_object_ref_expr)),
-                        false,
-                      ));
+                  // `__toCommonJS(xxx_exports)`
+                  let to_commonjs_call_expr =
+                    ast::Expression::CallExpression(self.snippet.builder.alloc_call_expression(
+                      SPAN,
+                      to_commonjs_expr,
+                      NONE,
+                      self.snippet.builder.vec1(ast::Argument::from(namespace_object_ref_expr)),
+                      false,
+                    ));
 
-                    // `(init_xxx(), __toCommonJS(xxx_exports))`
-                    Some(self.snippet.seq2_in_paren_expr(wrap_ref_call_expr, to_commonjs_call_expr))
-                  }
+                  // `(init_xxx(), __toCommonJS(xxx_exports))`
+                  Some(self.snippet.seq2_in_paren_expr(wrap_ref_call_expr, to_commonjs_call_expr))
                 }
               }
             }
@@ -834,7 +822,6 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     None
   }
 
-  #[allow(clippy::too_many_lines)]
   fn remove_unused_top_level_stmt(&mut self, program: &mut ast::Program<'ast>) {
     let old_body = self.alloc.take(&mut program.body);
 

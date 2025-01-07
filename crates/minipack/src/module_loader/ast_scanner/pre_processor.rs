@@ -120,8 +120,7 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
     if var_decl
       .declarations
       .iter()
-      // TODO: support nested destructuring tree shake, `export const {a, b} = obj; export const
-      // [a, b] = arr;`
+      // TODO: support nested destructuring tree shake, `export const {a, b} = obj; export const [a, b] = arr;`
       .any(|declarator| matches!(declarator.id.kind, BindingPatternKind::BindingIdentifier(_)))
     {
       let rewritten = self.split_var_declaration(var_decl, Some(named_decl_span));

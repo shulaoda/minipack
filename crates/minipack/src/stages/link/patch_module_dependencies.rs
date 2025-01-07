@@ -17,7 +17,6 @@ impl LinkStage<'_> {
 
       module.stmt_infos.iter().filter(|stmt_info| stmt_info.is_included).for_each(|stmt_info| {
         // We need this step to include the runtime module, if there are symbols of it.
-        // TODO: Maybe we should push runtime module to `LinkingMetadata::dependencies` while pushing the runtime symbols.
         stmt_info.referenced_symbols.iter().for_each(|reference_ref| {
           match reference_ref {
             SymbolOrMemberExprRef::Symbol(sym_ref) => {

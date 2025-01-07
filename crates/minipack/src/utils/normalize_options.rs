@@ -1,14 +1,16 @@
 use std::path::Path;
 
-use minipack_common::{NormalizedBundlerOptions, OutputFormat, Platform};
+use minipack_common::{
+  BundlerOptions, NormalizedBundlerOptions, OutputExports, OutputFormat, Platform,
+};
 
 pub struct NormalizeOptionsReturn {
   pub options: NormalizedBundlerOptions,
   pub resolve_options: minipack_resolver::ResolveOptions,
 }
 
-pub fn normalize_options(mut raw_options: crate::BundlerOptions) -> NormalizeOptionsReturn {
-  let format = raw_options.format.unwrap_or(crate::OutputFormat::Esm);
+pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsReturn {
+  let format = raw_options.format.unwrap_or(OutputFormat::Esm);
   let platform = raw_options.platform.unwrap_or(match format {
     OutputFormat::Cjs => Platform::Node,
     OutputFormat::Esm => Platform::Browser,
@@ -48,7 +50,7 @@ pub fn normalize_options(mut raw_options: crate::BundlerOptions) -> NormalizeOpt
     dir,
     file: raw_options.file,
     format,
-    exports: raw_options.exports.unwrap_or(crate::OutputExports::Auto),
+    exports: raw_options.exports.unwrap_or(OutputExports::Auto),
     es_module: raw_options.es_module.unwrap_or_default(),
     minify: raw_options.minify.unwrap_or(false),
     target: raw_options.target.unwrap_or_default(),

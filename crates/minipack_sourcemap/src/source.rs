@@ -31,14 +31,6 @@ impl SourceMapSource {
   pub fn new(content: String) -> Self {
     Self { content, pre_computed_lines_count: None }
   }
-
-  #[must_use]
-  pub fn with_pre_compute_sourcemap_data(mut self, pre_compute: bool) -> Self {
-    if pre_compute {
-      self.pre_computed_lines_count = Some(lines_count(&self.content));
-    }
-    self
-  }
 }
 
 impl Source for SourceMapSource {

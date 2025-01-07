@@ -748,12 +748,11 @@ impl<'ast> AstSnippet<'ast> {
   // If interop is None, using `require_foo()`
   // If interop is babel, using __toESM(require_foo())
   // If interop is node, using __toESM(require_foo(), 1)
-  #[allow(clippy::needless_pass_by_value)]
   pub fn to_esm_call_with_interop(
     &self,
     to_esm_fn_name: PassedStr,
     call_expr: Expression<'ast>,
-    interop: Option<Interop>,
+    interop: &Option<Interop>,
   ) -> Expression<'ast> {
     match interop {
       None => call_expr,

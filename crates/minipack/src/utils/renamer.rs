@@ -110,27 +110,6 @@ impl<'name> Renamer<'name> {
     conflictless_name.to_string()
   }
 
-  #[allow(dead_code)]
-  pub fn add_symbol_name_ref_token(&mut self, token: &SymbolNameRefToken) {
-    let hint = Rstr::new(token.value());
-    let mut conflictless_name = hint.clone();
-    loop {
-      match self.used_canonical_names.entry(conflictless_name.clone()) {
-        Entry::Occupied(mut occ) => {
-          let next_conflict_index = *occ.get() + 1;
-          *occ.get_mut() = next_conflict_index;
-          conflictless_name =
-            concat_string!(hint, "$", itoa::Buffer::new().format(next_conflict_index)).into();
-        }
-        Entry::Vacant(vac) => {
-          vac.insert(0);
-          break;
-        }
-      }
-    }
-    self.canonical_token_to_name.insert(token.clone(), conflictless_name.clone());
-  }
-
   // non-top-level symbols won't be linked cross-module. So the canonical `SymbolRef` for them are themselves.
   pub fn rename_non_root_symbol(&mut self, modules_in_chunk: &[ModuleIdx], modules: &IndexModules) {
     fn rename_symbols_of_nested_scopes(

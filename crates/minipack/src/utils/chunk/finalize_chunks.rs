@@ -125,7 +125,6 @@ pub fn finalize_assets(
         ecma_meta.rendered_chunk.debug_id = debug_id;
       }
 
-      // TODO: PERF: should check if this asset has dependencies/placeholders to be replaced
       match &mut asset.content {
         StrOrBytes::Str(content) => {
           *content =

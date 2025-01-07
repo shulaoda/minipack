@@ -46,7 +46,6 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
   });
 }
 
-#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
 pub fn render_cjs<'code>(
   ctx: &GenerateContext<'_>,
   module_sources: &'code RenderedModuleSources,

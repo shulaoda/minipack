@@ -56,7 +56,6 @@ pub fn resolve_id(
         side_effects: None,
       }),
       ResolveError::Ignored(p) => Ok(ResolvedId {
-        //(hyf0) TODO: This `p` doesn't seem to contains `query` or `fragment` of the input. We need to make sure this is ok
         id: p.to_str().expect("Should be valid utf8").into(),
         ignored: true,
         is_external: false,

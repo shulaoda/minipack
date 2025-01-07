@@ -7,7 +7,6 @@ use minipack_common::EsModuleFlag;
 pub fn render_namespace_markers(
   es_module_flag: EsModuleFlag,
   has_default_export: bool,
-  // TODO namespace_to_string_tag
   namespace_to_string_tag: bool,
 ) -> Option<&'static str> {
   let es_module = match es_module_flag {

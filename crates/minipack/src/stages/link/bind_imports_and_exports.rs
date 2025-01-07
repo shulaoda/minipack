@@ -343,7 +343,6 @@ impl LinkStage<'_> {
                     return;
                   };
 
-                  // TODO(hyf0): suspicious cjs might just fallback to dynamic lookup?
                   if !self.module_table.modules[export_symbol.symbol_ref.owner]
                     .as_normal()
                     .unwrap()
@@ -409,7 +408,6 @@ struct BindImportsAndExportsContext<'a> {
 }
 
 impl BindImportsAndExportsContext<'_> {
-  #[allow(clippy::too_many_lines)]
   fn match_imports_with_exports(&mut self, module_id: ModuleIdx) {
     let Module::Normal(module) = &self.index_modules[module_id] else {
       return;
@@ -540,7 +538,6 @@ impl BindImportsAndExportsContext<'_> {
     }
   }
 
-  #[allow(clippy::too_many_lines)]
   fn match_import_with_export(
     &mut self,
     index_modules: &IndexModules,

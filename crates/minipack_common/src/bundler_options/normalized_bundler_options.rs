@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use crate::{ESTarget, EsModuleFlag, InputItem, OutputExports, OutputFormat, Platform};
 
-#[allow(clippy::struct_excessive_bools)] // Using raw booleans is more clear in this case
+// Using raw booleans is more clear in this case
 #[derive(Debug)]
 pub struct NormalizedBundlerOptions {
   // --- Input

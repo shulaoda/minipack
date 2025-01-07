@@ -15,9 +15,7 @@ doctest = false
 workspace = true
 
 [features]
-memory = []
 os     = []
 
 [dependencies]
 oxc_resolver = { workspace = true }
-vfs          = { workspace = true }

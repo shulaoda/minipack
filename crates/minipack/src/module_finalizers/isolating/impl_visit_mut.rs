@@ -139,7 +139,6 @@ impl<'ast> IsolatingModuleFinalizer<'_, 'ast> {
     &mut self,
     export_default_decl: &mut ast::ExportDefaultDeclaration<'ast>,
   ) -> Statement<'ast> {
-    // TODO deconflict default_export_ref
     let default_export_ref = self.ctx.module.default_export_ref.name(self.ctx.symbol_db);
 
     match &mut export_default_decl.declaration {
@@ -181,7 +180,6 @@ impl<'ast> IsolatingModuleFinalizer<'_, 'ast> {
     }
   }
 
-  #[allow(clippy::too_many_lines)]
   pub fn transform_named_declaration(
     &mut self,
     export_named_decl: &mut ast::ExportNamedDeclaration<'ast>,
@@ -356,21 +354,15 @@ impl<'ast> IsolatingModuleFinalizer<'_, 'ast> {
 
     self.generated_imports.push(self.snippet.variable_declarator_require_call_stmt(
       namespace_object_ref,
-      self.snippet.to_esm_call_with_interop("__toESM", require_call, interop),
+      self.snippet.to_esm_call_with_interop("__toESM", require_call, &interop),
       span,
     ));
   }
 
   fn create_namespace_object_ref_for_module(&self, module: &Module) -> CompactStr {
     match module {
-      Module::Normal(importee) => {
-        // TODO deconflict namespace_ref
-        importee.namespace_object_ref.name(self.ctx.symbol_db).into()
-      }
-      Module::External(external_module) => {
-        // TODO need to generate one symbol and deconflict it
-        legitimize_identifier_name(&external_module.name).into()
-      }
+      Module::Normal(importee) => importee.namespace_object_ref.name(self.ctx.symbol_db).into(),
+      Module::External(external_module) => legitimize_identifier_name(&external_module.name).into(),
     }
   }
 

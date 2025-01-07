@@ -9,7 +9,6 @@ impl LinkStage<'_> {
   pub(crate) fn determine_module_exports_kind(&mut self) {
     let entry_ids_set = self.entry_points.iter().map(|e| e.id).collect::<FxHashSet<_>>();
     self.module_table.modules.iter().filter_map(Module::as_normal).for_each(|importer| {
-      // TODO(hyf0): should check if importer is a js module
       importer.import_records.iter().for_each(|rec| {
         let importee_id = rec.resolved_module;
         let Module::Normal(importee) = &self.module_table.modules[importee_id] else {

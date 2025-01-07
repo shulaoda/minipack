@@ -16,7 +16,6 @@ pub enum EntryPointKind {
 }
 
 impl EntryPointKind {
-  #[allow(clippy::trivially_copy_pass_by_ref)]
   pub fn is_user_defined(&self) -> bool {
     matches!(self, EntryPointKind::UserDefined)
   }

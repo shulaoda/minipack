@@ -2,7 +2,6 @@ use minipack_common::{
   IndexModules, ModuleIdx, NormalModule, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
 };
 use minipack_utils::rstr::Rstr;
-use oxc::semantic::SymbolId;
 use rustc_hash::FxHashMap;
 
 use crate::{
@@ -25,5 +24,5 @@ pub struct ScopeHoistingFinalizerContext<'me> {
   pub chunk_graph: &'me ChunkGraph,
   pub options: &'me SharedOptions,
   pub cur_stmt_index: usize,
-  pub keep_name_statement_to_insert: Vec<(usize, SymbolId, Rstr, Rstr)>,
+  pub keep_name_statement_to_insert: Vec<(usize, Rstr, Rstr)>,
 }

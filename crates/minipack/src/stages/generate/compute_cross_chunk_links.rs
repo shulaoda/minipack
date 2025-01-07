@@ -29,7 +29,6 @@ type IndexImportsFromOtherChunks =
   IndexVec<ChunkIdx, FxHashMap<ChunkIdx, Vec<CrossChunkImportItem>>>;
 
 impl GenerateStage<'_> {
-  #[allow(clippy::too_many_lines)]
   pub fn compute_cross_chunk_links(&mut self, chunk_graph: &mut ChunkGraph) {
     let mut index_chunk_depended_symbols: IndexChunkDependedSymbols =
       index_vec![FxHashSet::<SymbolRef>::default(); chunk_graph.chunk_table.len()];
@@ -134,7 +133,6 @@ impl GenerateStage<'_> {
 
   /// - Assign each symbol to the chunk it belongs to
   /// - Collect all referenced symbols and consider them potential imports
-  #[allow(clippy::too_many_lines)]
   fn collect_depended_symbols(
     &mut self,
     chunk_graph: &mut ChunkGraph,

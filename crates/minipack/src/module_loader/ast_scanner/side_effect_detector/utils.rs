@@ -92,7 +92,6 @@ fn merged_known_primitive_types(
   PrimitiveType::Mixed
 }
 
-#[allow(clippy::too_many_lines)]
 pub(crate) fn known_primitive_type(
   scope: &AstScopes,
   expr: &Expression,

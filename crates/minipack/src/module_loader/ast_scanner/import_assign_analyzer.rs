@@ -30,7 +30,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         self.result.errors.push(anyhow::anyhow!("Cannot assign to import '{}'", ident.name));
       }
     }
-    // TODO: namespace
   }
 
   pub fn get_span_if_namespace_specifier_updated(&mut self) -> Option<(Span, &'ast str)> {

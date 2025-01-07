@@ -14,7 +14,6 @@ use oxc::{
 use super::ScopeHoistingFinalizer;
 
 impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
-  #[allow(clippy::too_many_lines)]
   fn visit_program(&mut self, program: &mut ast::Program<'ast>) {
     // Drop the hashbang since we already store them in ast_scan phase and
     // we don't want oxc to generate hashbang statement in module level since we already handle
@@ -201,12 +200,11 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       self.visit_statement(stmt);
     }
 
-    // TODO: perf it
-    for (stmt_index, _symbol_id, original_name, new_name) in
-      self.ctx.keep_name_statement_to_insert.iter().rev()
+    for (stmt_index, original_name, new_name) in self.ctx.keep_name_statement_to_insert.iter().rev()
     {
       it.insert(*stmt_index, self.snippet.keep_name_call_expr_stmt(original_name, new_name));
     }
+
     self.ctx.cur_stmt_index = previous_stmt_index;
     self.ctx.keep_name_statement_to_insert = previous_keep_name_statement;
   }

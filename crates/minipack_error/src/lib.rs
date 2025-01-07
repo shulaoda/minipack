@@ -1,6 +1,5 @@
 use std::ops::{Deref, DerefMut};
 
-#[allow(dead_code)]
 #[derive(Debug)]
 pub struct BuildError(pub Vec<anyhow::Error>);
 

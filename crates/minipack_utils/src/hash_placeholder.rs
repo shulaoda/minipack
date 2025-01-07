@@ -53,7 +53,6 @@ impl HashPlaceholderGenerator {
     let allow_middle_len = len - HASH_PLACEHOLDER_OVERHEAD;
     let seed_base64 = to_base64(self.seed);
 
-    // TODO(hyf0): improve this
     assert!(seed_base64.len() <= allow_middle_len, "seed is too large");
 
     let mut placeholder =

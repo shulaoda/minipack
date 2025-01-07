@@ -19,16 +19,6 @@ use super::pre_process_ecma_ast::PreProcessEcmaAst;
 
 use crate::types::oxc_parse_type::OxcParseType;
 
-fn pure_esm_js_oxc_source_type() -> OxcSourceType {
-  let pure_esm_js = OxcSourceType::default().with_module(true);
-  debug_assert!(pure_esm_js.is_javascript());
-  debug_assert!(!pure_esm_js.is_jsx());
-  debug_assert!(pure_esm_js.is_module());
-  debug_assert!(pure_esm_js.is_strict());
-
-  pure_esm_js
-}
-
 fn binary_to_esm(base64: &str, platform: Platform, runtime_module_id: &str) -> String {
   let to_binary = match platform {
     Platform::Node => "__toBinaryNode",
@@ -68,7 +58,7 @@ pub fn parse_to_ecma_ast(
     pre_process_source(module_type, source, is_user_defined_entry, path, options)?;
 
   let oxc_source_type = {
-    let default = pure_esm_js_oxc_source_type();
+    let default = OxcSourceType::default().with_module(true);
     match parsed_type {
       OxcParseType::Js | OxcParseType::Jsx => default,
       OxcParseType::Ts | OxcParseType::Tsx => default.with_typescript(true),
@@ -143,8 +133,6 @@ fn pre_process_source(
     }
     ModuleType::Empty => (String::new(), OxcParseType::Js),
     ModuleType::Custom(custom_type) => {
-      // TODO: should provide friendly error message to say that this type is not supported by rolldown.
-      // Users should handle this type in load/transform hooks
       return Err(anyhow::format_err!("Unknown module type: {custom_type}"))?;
     }
   };

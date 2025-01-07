@@ -43,7 +43,6 @@ impl Display for ImportKind {
       Self::Import => write!(f, "import-statement"),
       Self::DynamicImport => write!(f, "dynamic-import"),
       Self::Require => write!(f, "require-call"),
-      // TODO(hyf0): check if this literal is the same as esbuild's
       Self::AtImport => write!(f, "import-rule"),
       ImportKind::UrlImport => write!(f, "url-import"),
       ImportKind::NewUrl => write!(f, "new-url"),

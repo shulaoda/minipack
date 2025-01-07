@@ -13,7 +13,6 @@ use minipack_utils::{
 
 use crate::{stages::link::LinkStageOutput, types::generator::GenerateContext};
 
-#[allow(clippy::too_many_lines)]
 pub fn render_chunk_exports(
   ctx: &GenerateContext<'_>,
   export_mode: Option<&OutputExports>,

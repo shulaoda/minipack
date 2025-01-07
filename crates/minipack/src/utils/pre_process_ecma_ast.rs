@@ -65,22 +65,25 @@ impl PreProcessEcmaAst {
           .build_with_symbols_and_scopes(symbols, scopes, fields.program)
       });
 
-      // TODO: emit diagnostic, aiming to pass more tests,
-      // we ignore warning for now
       let errors = ret
         .errors
-        .into_iter()
+        .iter()
         .filter(|item| matches!(item.severity, OxcSeverity::Error))
+        .map(|error| anyhow::anyhow!("Parse failed, got: {:?}", error.message))
         .collect_vec();
 
       if !errors.is_empty() {
-        return Err(
-          errors
-            .iter()
-            .map(|error| anyhow::anyhow!("Parse failed, got: {:?}", error.message))
-            .collect::<Vec<anyhow::Error>>(),
-        )?;
+        Err(errors)?;
       }
+
+      warning.extend(
+        ret
+          .errors
+          .into_iter()
+          .filter(|item| matches!(item.severity, OxcSeverity::Warning))
+          .map(|error| anyhow::anyhow!("Parse failed, got: {:?}", error.message))
+          .collect_vec(),
+      );
 
       scopes = ret.scopes;
       symbols = ret.symbols;

@@ -65,7 +65,6 @@ pub struct CreateEcmaViewReturn {
   pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
 }
 
-#[allow(clippy::too_many_lines)]
 pub async fn create_ecma_view<'a>(
   ctx: &mut CreateModuleContext<'a>,
   args: CreateModuleViewArgs,
@@ -160,7 +159,6 @@ pub async fn create_ecma_view<'a>(
     None => DeterminedSideEffects::NoTreeshake,
   };
 
-  // TODO: Should we check if there are `check_side_effects_for` returns false but there are side effects in the module?
   let view = EcmaView {
     source: ast.source().clone(),
     ecma_ast_idx: None,

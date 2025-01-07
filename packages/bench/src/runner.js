@@ -14,6 +14,7 @@ export async function runRollup(suite) {
     suite.rollupOptions ?? {}
   const build = await rollup.rollup({
     input: suite.inputs,
+    onwarn() { },
     plugins: [
       nodeResolve({
         exportConditions: ['import'],

@@ -99,5 +99,4 @@ fn basic_test() {
 
 pub struct PrintOptions {
   pub filename: String,
-  // pub sourcemap: bool,
 }

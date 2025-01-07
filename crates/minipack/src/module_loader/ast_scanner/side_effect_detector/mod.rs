@@ -159,7 +159,6 @@ impl<'a> SideEffectDetector<'a> {
     }
   }
 
-  #[allow(clippy::too_many_lines)]
   fn detect_side_effect_of_expr(&mut self, expr: &Expression) -> bool {
     match expr {
       Expression::BooleanLiteral(_)
@@ -453,7 +452,6 @@ impl<'a> SideEffectDetector<'a> {
     self.is_unresolved_reference(ident_ref) && !is_global_ident_ref(&ident_ref.name)
   }
 
-  #[allow(clippy::too_many_lines)]
   pub fn detect_side_effect_of_stmt(&mut self, stmt: &ast::Statement) -> bool {
     use oxc::ast::ast::Statement;
     match stmt {
