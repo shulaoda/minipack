@@ -12,7 +12,7 @@ use minipack_common::{
   AstScopes, EcmaModuleAstUsage, ExportsKind, ImportKind, ImportRecordIdx, ImportRecordMeta,
   LocalExport, MemberExprRef, ModuleDefFormat, ModuleId, ModuleIdx, NamedImport, RawImportRecord,
   Specifier, StmtInfo, StmtInfos, SymbolRef, SymbolRefDbForModule, SymbolRefFlags,
-  ThisExprReplaceKind, ROLLDOWN_IGNORE,
+  ThisExprReplaceKind,
 };
 use minipack_ecmascript_utils::{BindingIdentifierExt, BindingPatternExt};
 use minipack_error::BuildResult;
@@ -95,7 +95,6 @@ pub struct AstScanner<'me, 'ast> {
   scope_stack: Vec<Option<ScopeId>>,
   options: &'me SharedOptions,
   dynamic_import_usage_info: DynamicImportUsageInfo,
-  ignore_comment: &'static str,
   /// "top level" `this` AstNode range in source code
   top_level_this_expr_set: FxHashSet<Span>,
   /// A flag to resolve `this` appear with propertyKey in class
@@ -170,7 +169,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       ast_usage: EcmaModuleAstUsage::empty(),
       cur_class_decl: None,
       visit_path: vec![],
-      ignore_comment: ROLLDOWN_IGNORE,
       options,
       scope_stack: vec![],
       dynamic_import_usage_info: DynamicImportUsageInfo::default(),

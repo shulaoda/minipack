@@ -9,27 +9,25 @@ pub fn load_source(
 ) -> anyhow::Result<(StrOrBytes, ModuleType)> {
   if resolved_id.ignored {
     Ok((String::new().into(), ModuleType::Empty))
-  } else {
-    if let Some(guessed) = get_module_loader_from_file_extension(&resolved_id.id) {
-      match &guessed {
-        ModuleType::Base64 | ModuleType::Binary | ModuleType::Dataurl | ModuleType::Asset => {
-          Ok((StrOrBytes::Bytes(fs.read(resolved_id.id.as_path())?), guessed))
-        }
-        ModuleType::Js
-        | ModuleType::Jsx
-        | ModuleType::Ts
-        | ModuleType::Tsx
-        | ModuleType::Json
-        | ModuleType::Text
-        | ModuleType::Empty
-        | ModuleType::Css
-        | ModuleType::Custom(_) => {
-          Ok((StrOrBytes::Str(fs.read_to_string(resolved_id.id.as_path())?), guessed))
-        }
+  } else if let Some(guessed) = get_module_loader_from_file_extension(&resolved_id.id) {
+    match &guessed {
+      ModuleType::Base64 | ModuleType::Binary | ModuleType::Dataurl | ModuleType::Asset => {
+        Ok((StrOrBytes::Bytes(fs.read(resolved_id.id.as_path())?), guessed))
       }
-    } else {
-      Ok((StrOrBytes::Str(fs.read_to_string(resolved_id.id.as_path())?), ModuleType::Js))
+      ModuleType::Js
+      | ModuleType::Jsx
+      | ModuleType::Ts
+      | ModuleType::Tsx
+      | ModuleType::Json
+      | ModuleType::Text
+      | ModuleType::Empty
+      | ModuleType::Css
+      | ModuleType::Custom(_) => {
+        Ok((StrOrBytes::Str(fs.read_to_string(resolved_id.id.as_path())?), guessed))
+      }
     }
+  } else {
+    Ok((StrOrBytes::Str(fs.read_to_string(resolved_id.id.as_path())?), ModuleType::Js))
   }
 }
 

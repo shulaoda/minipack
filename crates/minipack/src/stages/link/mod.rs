@@ -28,7 +28,6 @@ pub struct LinkStageOutput {
   pub module_table: ModuleTable,
   pub entry_points: Vec<EntryPoint>,
   pub index_ecma_ast: IndexEcmaAst,
-  pub sorted_modules: Vec<ModuleIdx>,
   pub metadata: LinkingMetadataVec,
   pub symbol_ref_db: SymbolRefDb,
   pub runtime_brief: RuntimeModuleBrief,
@@ -73,10 +72,10 @@ impl<'a> LinkStage<'a> {
         let dependencies = module
           .import_records()
           .iter()
-          .filter_map(|rec| {
-            (!matches!(rec.kind, ImportKind::DynamicImport) || options.inline_dynamic_imports)
-              .then(|| rec.resolved_module)
+          .filter(|&rec| {
+            !matches!(rec.kind, ImportKind::DynamicImport) || options.inline_dynamic_imports
           })
+          .map(|rec| rec.resolved_module)
           .collect();
 
         let star_exports_from_external_modules =
@@ -124,7 +123,6 @@ impl<'a> LinkStage<'a> {
     LinkStageOutput {
       module_table: self.module_table,
       entry_points: self.entry_points,
-      sorted_modules: self.sorted_modules,
       metadata: self.metadata,
       symbol_ref_db: self.symbol_ref_db,
       runtime_brief: self.runtime_brief,

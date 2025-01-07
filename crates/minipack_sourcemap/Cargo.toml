@@ -13,9 +13,5 @@ repository.workspace = true
 workspace = true
 
 [dependencies]
-minipack_utils = { workspace = true }
-
 memchr        = { workspace = true }
-oxc           = { workspace = true }
 oxc_sourcemap = { workspace = true, features = ["rayon"] }
-rustc-hash    = { workspace = true }

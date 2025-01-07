@@ -32,7 +32,7 @@ pub fn init_entry_point_stmt_info(
   meta.referenced_symbols_by_entry_point_chunk.extend(referenced_symbols);
 }
 
-impl<'a> LinkStage<'a> {
+impl LinkStage<'_> {
   pub(crate) fn create_exports_for_ecma_modules(&mut self) {
     self.module_table.modules.iter_mut().filter_map(|m| m.as_normal_mut()).for_each(
       |ecma_module| {

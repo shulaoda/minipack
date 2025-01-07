@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use minipack_common::{NormalizedBundlerOptions, OutputFormat, Platform};
 
 pub struct NormalizeOptionsReturn {
@@ -14,6 +16,16 @@ pub fn normalize_options(mut raw_options: crate::BundlerOptions) -> NormalizeOpt
 
   let raw_resolve = std::mem::take(&mut raw_options.resolve).unwrap_or_default();
 
+  let dir = raw_options.file.as_ref().map_or(
+    raw_options.dir.unwrap_or_else(|| "dist".to_string()),
+    |file| {
+      Path::new(file.as_str())
+        .parent()
+        .map(|parent| parent.to_string_lossy().to_string())
+        .unwrap_or_default()
+    },
+  );
+
   let normalized = NormalizedBundlerOptions {
     input: raw_options.input.unwrap_or_default(),
     cwd: raw_options
@@ -29,11 +41,11 @@ pub fn normalize_options(mut raw_options: crate::BundlerOptions) -> NormalizeOpt
       .unwrap_or_else(|| "assets/[name]-[hash][extname]".to_string()),
     css_entry_filenames: raw_options
       .css_entry_filenames
-      .unwrap_or_else(|| "[name].css".to_string().into()),
+      .unwrap_or_else(|| "[name].css".to_string()),
     css_chunk_filenames: raw_options
       .css_chunk_filenames
-      .unwrap_or_else(|| "[name]-[hash].css".to_string().into()),
-    dir: raw_options.dir.unwrap_or_else(|| "dist".to_string()),
+      .unwrap_or_else(|| "[name]-[hash].css".to_string()),
+    dir,
     file: raw_options.file,
     format,
     exports: raw_options.exports.unwrap_or(crate::OutputExports::Auto),

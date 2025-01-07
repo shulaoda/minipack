@@ -19,6 +19,5 @@ workspace = true
 [dependencies]
 minipack_common = { workspace = true }
 
-anyhow   = { workspace = true }
 oxc      = { workspace = true }
 smallvec = { workspace = true }

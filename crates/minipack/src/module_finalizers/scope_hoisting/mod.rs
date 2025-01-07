@@ -13,15 +13,14 @@ use minipack_ecmascript_utils::{
 };
 use minipack_utils::{ecmascript::is_validate_identifier_name, path_ext::PathExt, rstr::Rstr};
 use oxc::{
-  allocator::{self, Allocator, IntoIn},
+  allocator::{Allocator, IntoIn},
   ast::{
     ast::{
-      self, BindingIdentifier, Expression, IdentifierReference, ImportExpression, MemberExpression,
-      Statement, VariableDeclarationKind,
+      self, Expression, IdentifierReference, ImportExpression, MemberExpression, Statement,
+      VariableDeclarationKind,
     },
     Comment, NONE,
   },
-  semantic::SymbolId,
   span::{Atom, GetSpan, SPAN},
 };
 use sugar_path::SugarPath;
@@ -544,14 +543,6 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
       }
       MemberExpression::PrivateFieldExpression(_) => None,
     }
-  }
-
-  fn get_conflicted_info(&self, id: &BindingIdentifier<'ast>) -> Option<(SymbolId, &str, &Rstr)> {
-    let symbol_id = id.symbol_id.get()?;
-    let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
-    let original_name = symbol_ref.name(self.ctx.symbol_db);
-    let canonical_name = self.canonical_name_for(symbol_ref);
-    (original_name != canonical_name.as_str()).then_some((symbol_id, original_name, canonical_name))
   }
 
   /// rewrite toplevel `class ClassName {}` to `var ClassName = class {}`

@@ -59,13 +59,11 @@ single_match      = "allow"
 single_match_else = "allow"
 
 [workspace.dependencies]
-minipack                  = { version = "0.1.0", path = "./crates/minipack" }
 minipack_common           = { version = "0.1.0", path = "./crates/minipack_common" }
 minipack_ecmascript       = { version = "0.1.0", path = "./crates/minipack_ecmascript" }
 minipack_ecmascript_utils = { version = "0.1.0", path = "./crates/minipack_ecmascript_utils" }
 minipack_error            = { version = "0.1.0", path = "./crates/minipack_error" }
 minipack_fs               = { version = "0.1.0", path = "./crates/minipack_fs" }
-minipack_plugin           = { version = "0.1.0", path = "./crates/minipack_plugin" }
 minipack_resolver         = { version = "0.1.0", path = "./crates/minipack_resolver" }
 minipack_sourcemap        = { version = "0.1.0", path = "./crates/minipack_sourcemap" }
 minipack_utils            = { version = "0.1.0", path = "./crates/minipack_utils" }
@@ -79,7 +77,6 @@ bitflags          = { version = "2.6.0" }
 css-module-lexer  = { version = "0.0.15" }
 daachorse         = { version = "1.0.0" }
 dashmap           = { version = "6.0.0" }
-dunce             = { version = "1.0.4" }                                    # Normalize Windows paths to the most compatible format, avoiding UNC where possible
 fast-glob         = { version = "0.4.0" }
 futures           = { version = "0.3.30" }
 indexmap          = { version = "2.2.6" }
@@ -94,9 +91,7 @@ rayon             = { version = "1.10.0" }
 regex             = { version = "1.10.5" }
 rustc-hash        = { version = "2.0.0" }
 sanitize-filename = { version = "0.6.0" }
-schemars          = { version = "0.8.21" }
 self_cell         = { version = "1.0.4" }
-serde             = { version = "1.0.203", features = ["derive"] }
 serde_json        = { version = "1.0.117" }
 simdutf8          = { version = "0.1.5" }
 smallvec          = { version = "1.13.2" }

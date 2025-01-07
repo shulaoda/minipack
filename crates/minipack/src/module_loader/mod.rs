@@ -24,7 +24,7 @@ use oxc_index::IndexVec;
 use runtime_module_task::RuntimeModuleTask;
 use rustc_hash::{FxHashMap, FxHashSet};
 use task_context::TaskContext;
-use tokio::sync::mpsc::{Receiver, Sender};
+use tokio::sync::mpsc::Receiver;
 
 use crate::types::{DynImportUsageMap, IndexEcmaAst, SharedOptions, SharedResolver};
 
@@ -50,7 +50,6 @@ impl IntermediateNormalModules {
 }
 
 pub struct ModuleLoader {
-  tx: Sender<ModuleLoaderMsg>,
   rx: Receiver<ModuleLoaderMsg>,
   remaining: u32,
   options: SharedOptions,
@@ -98,17 +97,7 @@ impl ModuleLoader {
 
     tokio::spawn(async { task.run() });
 
-    Ok(Self {
-      tx,
-      rx,
-      remaining: 1,
-      options,
-      shared_context,
-      runtime_id,
-      symbol_ref_db,
-      inm,
-      visited,
-    })
+    Ok(Self { rx, remaining: 1, options, shared_context, runtime_id, symbol_ref_db, inm, visited })
   }
 
   pub async fn fetch_all_modules(
@@ -171,11 +160,7 @@ impl ModuleLoader {
             .zip(resolved_deps)
             .map(|((rec_idx, raw_rec), info)| {
               let normal_module = module.as_normal().unwrap();
-              let owner = ModuleTaskOwner::new(
-                normal_module.source.clone(),
-                normal_module.stable_id.as_str().into(),
-                raw_rec.span,
-              );
+              let owner = ModuleTaskOwner::new(normal_module.stable_id.as_str().into());
               let id = self.try_spawn_new_task(
                 info,
                 Some(owner),

@@ -17,7 +17,6 @@ use oxc_resolver::{
 #[derive(Debug)]
 pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
   cwd: PathBuf,
-  default_resolver: ResolverGeneric<T>,
   // Resolver for `import '...'` and `import(...)`
   import_resolver: ResolverGeneric<T>,
   // Resolver for `require('...')`
@@ -144,7 +143,6 @@ impl<F: FileSystem + Default> Resolver<F> {
 
     Self {
       cwd,
-      default_resolver,
       import_resolver,
       require_resolver,
       css_resolver,

@@ -133,8 +133,8 @@ impl<'name> Renamer<'name> {
 
   // non-top-level symbols won't be linked cross-module. So the canonical `SymbolRef` for them are themselves.
   pub fn rename_non_root_symbol(&mut self, modules_in_chunk: &[ModuleIdx], modules: &IndexModules) {
-    fn rename_symbols_of_nested_scopes<'name>(
-      module: &'name NormalModule,
+    fn rename_symbols_of_nested_scopes(
+      module: &NormalModule,
       scope_id: ScopeId,
       stack: &mut Vec<Cow<FxHashMap<Rstr, u32>>>,
       canonical_names: &mut FxHashMap<SymbolRef, Rstr>,

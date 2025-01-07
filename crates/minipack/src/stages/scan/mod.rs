@@ -1,6 +1,6 @@
 use arcstr::ArcStr;
 use minipack_common::{ImportKind, ResolvedId};
-use minipack_error::{BuildError, BuildResult};
+use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 
 use crate::{

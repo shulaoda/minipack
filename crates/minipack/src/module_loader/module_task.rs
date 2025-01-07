@@ -5,7 +5,6 @@ use minipack_common::{
 };
 use minipack_error::BuildResult;
 use minipack_utils::{ecmascript::legitimize_identifier_name, path_ext::PathExt, rstr::Rstr};
-use oxc::span::Span;
 use oxc_index::IndexVec;
 use std::sync::Arc;
 use sugar_path::SugarPath;
@@ -23,14 +22,12 @@ use crate::{
 use super::task_context::TaskContext;
 
 pub struct ModuleTaskOwner {
-  source: ArcStr,
   importer_id: Rstr,
-  importee_span: Span,
 }
 
 impl ModuleTaskOwner {
-  pub fn new(source: ArcStr, importer_id: Rstr, importee_span: Span) -> Self {
-    ModuleTaskOwner { source, importer_id, importee_span }
+  pub fn new(importer_id: Rstr) -> Self {
+    ModuleTaskOwner { importer_id }
   }
 }
 

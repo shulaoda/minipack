@@ -44,45 +44,40 @@ impl LinkStage<'_> {
           stmt_info.import_records.iter().for_each(|rec_id| {
             let rec = &importer.import_records[*rec_id];
             let rec_resolved_module = &self.module_table.modules[rec.resolved_module];
-            if !rec_resolved_module.is_normal()
-              || Self::is_external_dynamic_import(&self.module_table, rec, importer_idx)
+            if (!rec_resolved_module.is_normal()
+              || Self::is_external_dynamic_import(&self.module_table, rec, importer_idx))
+              && (matches!(rec.kind, ImportKind::Require)
+                || !self.options.format.keep_esm_import_export_syntax())
+              && self.options.format.should_call_runtime_require()
             {
-              if matches!(rec.kind, ImportKind::Require)
-                || !self.options.format.keep_esm_import_export_syntax()
-              {
-                if self.options.format.should_call_runtime_require() {
-                  stmt_info
-                    .referenced_symbols
-                    .push(self.runtime_brief.resolve_symbol("__require").into());
-                  record_meta_pairs.push((*rec_id, ImportRecordMeta::CALL_RUNTIME_REQUIRE));
-                }
-              }
+              stmt_info
+                .referenced_symbols
+                .push(self.runtime_brief.resolve_symbol("__require").into());
+              record_meta_pairs.push((*rec_id, ImportRecordMeta::CALL_RUNTIME_REQUIRE));
             }
+
             match rec_resolved_module {
               Module::External(importee) => {
                 // Make sure symbols from external modules are included and de_conflicted
-                match rec.kind {
-                  ImportKind::Import => {
-                    let is_reexport_all = rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR);
-                    if is_reexport_all {
-                      // export * from 'external' would be just removed. So it references nothing.
-                      rec.namespace_ref.set_name(
-                        &mut symbols.lock().unwrap(),
-                        &concat_string!("import_", legitimize_identifier_name(&importee.name)),
-                      );
-                    } else {
-                      // import ... from 'external' or export ... from 'external'
-                      if matches!(self.options.format, OutputFormat::Cjs)
-                        && !rec.meta.contains(ImportRecordMeta::IS_PLAIN_IMPORT)
-                      {
-                        stmt_info.side_effect = true;
-                        stmt_info
-                          .referenced_symbols
-                          .push(self.runtime_brief.resolve_symbol("__toESM").into());
-                      }
+                if rec.kind == ImportKind::Import {
+                  let is_reexport_all = rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR);
+                  if is_reexport_all {
+                    // export * from 'external' would be just removed. So it references nothing.
+                    rec.namespace_ref.set_name(
+                      &mut symbols.lock().unwrap(),
+                      &concat_string!("import_", legitimize_identifier_name(&importee.name)),
+                    );
+                  } else {
+                    // import ... from 'external' or export ... from 'external'
+                    if matches!(self.options.format, OutputFormat::Cjs)
+                      && !rec.meta.contains(ImportRecordMeta::IS_PLAIN_IMPORT)
+                    {
+                      stmt_info.side_effect = true;
+                      stmt_info
+                        .referenced_symbols
+                        .push(self.runtime_brief.resolve_symbol("__toESM").into());
                     }
                   }
-                  _ => {}
                 }
               }
               Module::Normal(importee) => {

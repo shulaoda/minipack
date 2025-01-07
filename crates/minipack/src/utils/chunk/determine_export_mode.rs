@@ -16,7 +16,7 @@ pub fn determine_export_mode(
     OutputExports::Named => Ok(OutputExports::Named),
     OutputExports::Default => {
       if export_names.len() != 1 || export_names[0].as_str() != "default" {
-        return Err(anyhow::anyhow!(
+        Err(anyhow::anyhow!(
           r#""{}" was specified for "output.exports", but entry module "{}" has the following exports: {}."#,
           "default",
           module.stable_id.as_str(),
@@ -27,7 +27,7 @@ pub fn determine_export_mode(
     }
     OutputExports::None => {
       if !export_names.is_empty() {
-        return Err(anyhow::anyhow!(
+        Err(anyhow::anyhow!(
           r#""{}" was specified for "output.exports", but entry module "{}" has the following exports: {}."#,
           "none",
           module.stable_id.as_str(),
