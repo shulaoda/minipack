@@ -7,8 +7,8 @@ use minipack_common::{
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 use minipack_error::BuildResult;
 use minipack_utils::{
-  base64::to_standard_base64, dataurl::encode_as_shortest_dataurl, mime::guess_mime,
-  text_to_esm::text_to_string_literal,
+  base64::to_standard_base64, concat_string, mime::guess_mime,
+  percent_encoding::encode_as_percent_escaped, text_to_esm::text_to_string_literal,
 };
 use oxc::{
   semantic::{ScopeTree, SymbolTable},
@@ -117,7 +117,19 @@ fn pre_process_source(
     ModuleType::Dataurl => {
       let data = source.into_bytes();
       let guessed_mime = guess_mime(path, &data)?;
-      let dataurl = encode_as_shortest_dataurl(&guessed_mime, &data);
+
+      let base64 = to_standard_base64(&data);
+      let mime_ext_string = guessed_mime.to_string();
+      let base64_url = concat_string!("data:", mime_ext_string, ";base64,", base64);
+
+      let encoded_data = encode_as_percent_escaped(&data)
+        .map(|encoded| concat_string!("data:", mime_ext_string, ",", encoded));
+
+      let dataurl = match encoded_data {
+        Some(percent_url) if percent_url.len() < base64_url.len() => percent_url,
+        _ => base64_url,
+      };
+
       has_lazy_export = true;
       (text_to_string_literal(&dataurl)?, OxcParseType::Js)
     }

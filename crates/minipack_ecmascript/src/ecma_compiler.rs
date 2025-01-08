@@ -96,7 +96,3 @@ fn basic_test() {
   let code = EcmaCompiler::print(&ast).code;
   assert_eq!(code, "const a = 1;\n");
 }
-
-pub struct PrintOptions {
-  pub filename: String,
-}

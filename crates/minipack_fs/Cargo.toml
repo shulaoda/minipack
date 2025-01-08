@@ -1,12 +1,12 @@
 [package]
+name = "minipack_fs"
+
 edition.workspace    = true
 homepage.workspace   = true
 license.workspace    = true
-name                 = "minipack_fs"
+readme.workspace     = true
 repository.workspace = true
-version              = "0.1.0"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace    = true
 
 [lib]
 doctest = false
@@ -15,7 +15,7 @@ doctest = false
 workspace = true
 
 [features]
-os     = []
+os = []
 
 [dependencies]
 oxc_resolver = { workspace = true }

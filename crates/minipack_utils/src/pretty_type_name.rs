@@ -5,13 +5,14 @@ use std::sync::LazyLock;
 
 static MODULE_MATCHER_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\w+::)").unwrap());
 
+#[inline]
+fn prettify_type_name(name: &str) -> Cow<str> {
+  MODULE_MATCHER_RE.replace_all(name, "")
+}
+
 pub fn pretty_type_name<T: ?Sized>() -> Cow<'static, str> {
   let type_name = std::any::type_name::<T>();
   prettify_type_name(type_name)
-}
-
-fn prettify_type_name(name: &str) -> Cow<str> {
-  MODULE_MATCHER_RE.replace_all(name, "")
 }
 
 #[test]

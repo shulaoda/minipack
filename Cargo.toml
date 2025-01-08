@@ -6,7 +6,9 @@ resolver = "2"
 edition    = "2021"
 homepage   = "https://github.com/shulaoda/minipack"
 license    = "MIT"
+readme     = "README.md"
 repository = "https://github.com/shulaoda/minipack"
+version    = "0.1.0"
 
 [profile.release-debug]
 debug    = true

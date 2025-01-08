@@ -1,6 +1,18 @@
 use std::fmt::Debug;
 
-use crate::lines_count;
+use memchr::memmem;
+
+#[inline]
+fn lines_count(str: &str) -> u32 {
+  u32::try_from(memmem::find_iter(str.as_bytes(), "\n").count()).unwrap()
+}
+
+#[test]
+fn test() {
+  assert_eq!(lines_count("a\nb\nc"), 2);
+  assert_eq!(lines_count("a\nb\nc\n"), 3);
+  assert_eq!(lines_count("a"), 0);
+}
 
 pub trait Source {
   fn content(&self) -> &str;

@@ -1,12 +1,12 @@
 use std::path::Path;
 
 use minipack_common::{
-  BundlerOptions, NormalizedBundlerOptions, OutputExports, OutputFormat, Platform,
+  BundlerOptions, NormalizedBundlerOptions, OutputExports, OutputFormat, Platform, ResolveOptions,
 };
 
 pub struct NormalizeOptionsReturn {
   pub options: NormalizedBundlerOptions,
-  pub resolve_options: minipack_resolver::ResolveOptions,
+  pub resolve_options: ResolveOptions,
 }
 
 pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsReturn {

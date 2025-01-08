@@ -1,13 +1,13 @@
 [package]
 description = "minipack_resolver"
 name        = "minipack_resolver"
-version     = "0.1.0"
 
 edition.workspace    = true
 homepage.workspace   = true
 license.workspace    = true
+readme.workspace     = true
 repository.workspace = true
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace    = true
 
 [lib]
 doctest = false
@@ -19,7 +19,6 @@ workspace = true
 minipack_common = { workspace = true }
 minipack_fs     = { workspace = true, features = ["os"] }
 
-anyhow       = { workspace = true }
 arcstr       = { workspace = true }
 dashmap      = { workspace = true }
 itertools    = { workspace = true }

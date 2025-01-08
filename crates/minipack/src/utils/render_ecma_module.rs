@@ -9,16 +9,14 @@ pub fn render_ecma_module(
   render_output: ModuleRenderOutput,
 ) -> Option<Arc<[Box<dyn Source + Send + Sync>]>> {
   if render_output.code.is_empty() {
-    None
-  } else {
-    let mut sources: Vec<Box<dyn Source + Send + Sync>> = vec![];
-
-    sources.push(Box::new(concat_string!("//#region ", module.debug_id)));
-
-    sources.push(Box::new(render_output.code));
-
-    sources.push(Box::new("//#endregion"));
-
-    Some(Arc::from(sources.into_boxed_slice()))
+    return None;
   }
+
+  let sources: Vec<Box<dyn Source + Send + Sync>> = vec![
+    Box::new(concat_string!("//#region ", module.debug_id)),
+    Box::new(render_output.code),
+    Box::new("//#endregion"),
+  ];
+
+  Some(Arc::from(sources.into_boxed_slice()))
 }

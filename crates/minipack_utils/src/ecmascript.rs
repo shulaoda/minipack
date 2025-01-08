@@ -1,14 +1,10 @@
-use oxc::syntax::{identifier, keyword};
-use std::{borrow::Cow, path::Path};
+use oxc::syntax::identifier;
+use std::borrow::Cow;
 
 use crate::concat_string;
 
 pub fn is_validate_identifier_name(name: &str) -> bool {
   identifier::is_identifier_name(name)
-}
-
-pub fn is_validate_assignee_identifier_name(name: &str) -> bool {
-  identifier::is_identifier_name(name) && !keyword::is_reserved_keyword_or_global_object(name)
 }
 
 pub fn legitimize_identifier_name(name: &str) -> Cow<str> {
@@ -69,17 +65,4 @@ fn test_legitimize_identifier_name() {
   assert_eq!(legitimize_identifier_name("$foo$"), "$foo$");
   assert_eq!(legitimize_identifier_name("react-dom"), "react_dom");
   assert_eq!(legitimize_identifier_name("111a"), "_111a");
-}
-
-pub fn is_relative_specifier(specifier: &str) -> bool {
-  // `Path::is_relative` is not used here because it consider implicit relative path as relative path. such
-  // as `Path::new("foo.txt")` is considered as a relative path.
-  specifier.starts_with("./") || specifier.starts_with("../")
-}
-
-/// Check if the specifier is a path-like specifier. E.g. `./foo`, `../foo`, `/foo`, `C:\foo`, `file:///foo`
-pub fn is_path_like_specifier(specifier: &str) -> bool {
-  is_relative_specifier(specifier)
-    || Path::new(specifier).is_absolute()
-    || specifier.starts_with('/') // Though starting with `/` is not a absolute path in Windows, we still consider it as a path-like specifier.
 }

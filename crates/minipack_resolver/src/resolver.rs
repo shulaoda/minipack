@@ -36,6 +36,7 @@ impl<F: FileSystem + Default> Resolver<F> {
     let mut require_conditions = vec!["require".to_string()];
 
     default_conditions.extend(raw_resolve.condition_names.clone().unwrap_or_default());
+
     match platform {
       Platform::Node => {
         default_conditions.push("node".to_string());
@@ -45,9 +46,12 @@ impl<F: FileSystem + Default> Resolver<F> {
       }
       Platform::Neutral => {}
     }
+
     default_conditions = default_conditions.into_iter().unique().collect();
+
     import_conditions.extend(default_conditions.clone());
     require_conditions.extend(default_conditions.clone());
+
     import_conditions = import_conditions.into_iter().unique().collect();
     require_conditions = require_conditions.into_iter().unique().collect();
 
@@ -113,10 +117,12 @@ impl<F: FileSystem + Default> Resolver<F> {
       symlinks: raw_resolve.symlinks.unwrap_or(true),
       builtin_modules,
     };
+
     let resolve_options_with_import_conditions = OxcResolverOptions {
       condition_names: import_conditions,
       ..resolve_options_with_default_conditions.clone()
     };
+
     let resolve_options_with_require_conditions = OxcResolverOptions {
       condition_names: require_conditions,
       ..resolve_options_with_default_conditions.clone()
@@ -134,6 +140,7 @@ impl<F: FileSystem + Default> Resolver<F> {
 
     let default_resolver =
       ResolverGeneric::new_with_file_system(fs, resolve_options_with_default_conditions);
+
     let import_resolver =
       default_resolver.clone_with_options(resolve_options_with_import_conditions);
     let require_resolver =
@@ -170,12 +177,12 @@ impl<F: FileSystem + Default> Resolver<F> {
     specifier: &str,
     import_kind: ImportKind,
     is_user_defined_entry: bool,
-  ) -> anyhow::Result<Result<ResolveReturn, ResolveError>> {
+  ) -> Result<ResolveReturn, ResolveError> {
     let selected_resolver = match import_kind {
-      ImportKind::Import | ImportKind::DynamicImport => &self.import_resolver,
       ImportKind::NewUrl => &self.new_url_resolver,
       ImportKind::Require => &self.require_resolver,
       ImportKind::AtImport | ImportKind::UrlImport => &self.css_resolver,
+      ImportKind::Import | ImportKind::DynamicImport => &self.import_resolver,
     };
 
     let importer_dir = importer.and_then(|importer| importer.parent()).and_then(|inner| {
@@ -210,18 +217,15 @@ impl<F: FileSystem + Default> Resolver<F> {
       }
     }
 
-    match resolution {
-      Ok(info) => {
-        let package_json = info.package_json().map(|p| self.cached_package_json(p));
-        let module_type = infer_module_def_format(&info);
-        Ok(Ok(build_resolve_ret(
-          info.full_path().to_str().expect("Should be valid utf8").to_string(),
-          module_type,
-          package_json,
-        )))
-      }
-      Err(err) => Ok(Err(err)),
-    }
+    resolution.map(|info| {
+      let package_json = info.package_json().map(|p| self.cached_package_json(p));
+      let module_type = infer_module_def_format(&info);
+      build_resolve_ret(
+        info.full_path().to_str().expect("Should be valid utf8").to_string(),
+        module_type,
+        package_json,
+      )
+    })
   }
 
   fn cached_package_json(&self, oxc_pkg_json: &OxcPackageJson) -> Arc<PackageJson> {

@@ -2,7 +2,6 @@ use minipack_common::{
   dynamic_import_usage::DynamicImportExportsUsage, generate_replace_this_expr_map,
   EcmaModuleAstUsage, ImportKind, ImportRecordMeta, StmtInfoMeta, ThisExprReplaceKind,
 };
-use minipack_ecmascript::ToSourceString;
 use minipack_utils::option_ext::OptionExt;
 use oxc::{
   ast::{
@@ -48,10 +47,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
         &self.result.symbol_ref_db,
       )
       .detect_side_effect_of_stmt(stmt);
-
-      if cfg!(debug_assertions) {
-        self.current_stmt_info.debug_label = Some(stmt.to_source_string());
-      }
 
       self.visit_statement(stmt);
       self.result.stmt_infos.add_stmt_info(std::mem::take(&mut self.current_stmt_info));

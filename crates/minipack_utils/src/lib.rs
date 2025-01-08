@@ -1,7 +1,6 @@
 pub mod base64;
 pub mod bitset;
 pub mod concat_string;
-pub mod dataurl;
 pub mod ecmascript;
 pub mod extract_hash_pattern;
 pub mod global_reference;

@@ -1,7 +1,12 @@
 [package]
-edition = "2021"
-name    = "minipack"
-version = "0.1.0"
+name = "minipack"
+
+edition.workspace       = true
+homepage.workspace      = true
+license.workspace       = true
+readme.workspace        = true
+repository.workspace    = true
+version.workspace       = true
 
 [dependencies]
 minipack_common           = { workspace = true }

@@ -1,13 +1,12 @@
 [package]
-name    = "minipack_ecmascript"
-version = "0.1.0"
-
+name = "minipack_ecmascript"
 
 edition.workspace    = true
 homepage.workspace   = true
 license.workspace    = true
+readme.workspace     = true
 repository.workspace = true
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+version.workspace    = true
 
 [lib]
 doctest = false
@@ -17,7 +16,7 @@ workspace = true
 
 
 [dependencies]
-minipack_error  = { workspace = true }
+minipack_error = { workspace = true }
 
 anyhow    = { workspace = true }
 arcstr    = { workspace = true }

@@ -73,7 +73,7 @@ impl GenerateContext<'_> {
         return None;
       }
       let ast = &self.link_output.index_ecma_ast[module.ecma_ast_idx.unpack()].0;
-      if ast.is_body_empty() {
+      if ast.program().is_empty() {
         return None;
       }
       Some(&**module)
