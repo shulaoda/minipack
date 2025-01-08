@@ -69,9 +69,7 @@ pub fn render_cjs<'code>(
       let export_mode = determine_export_mode(warnings, ctx, entry_module, &export_names)?;
       // Only `named` export can we render the namespace markers.
       if matches!(&export_mode, OutputExports::Named) {
-        if let Some(marker) =
-          render_namespace_markers(ctx.options.es_module, has_default_export, false)
-        {
+        if let Some(marker) = render_namespace_markers(has_default_export, false) {
           source_joiner.append_source(marker.to_string());
         }
       }

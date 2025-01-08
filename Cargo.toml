@@ -61,6 +61,7 @@ single_match      = "allow"
 single_match_else = "allow"
 
 [workspace.dependencies]
+minipack                  = { version = "0.1.0", path = "./crates/minipack" }
 minipack_common           = { version = "0.1.0", path = "./crates/minipack_common" }
 minipack_ecmascript       = { version = "0.1.0", path = "./crates/minipack_ecmascript" }
 minipack_ecmascript_utils = { version = "0.1.0", path = "./crates/minipack_ecmascript_utils" }
@@ -83,7 +84,7 @@ fast-glob         = { version = "0.4.3" }
 futures           = { version = "0.3.30" }
 indexmap          = { version = "2.2.6" }
 infer             = { version = "0.16.0" }
-itertools         = { version = "0.13.0" }
+itertools         = { version = "0.14.0" }
 itoa              = { version = "1.0.11" }
 lightningcss      = { version = "1.0.0-alpha.57" }
 memchr            = { version = "2.7.2" }

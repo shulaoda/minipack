@@ -8,11 +8,9 @@ mod module_loader;
 mod types;
 
 pub use bundler_options::{
-  es_module_flag::EsModuleFlag,
   es_target::ESTarget,
   filename_template::{FileNameRenderOptions, FilenameTemplate},
   input_item::InputItem,
-  jsx::Jsx,
   module_type::ModuleType,
   normalized_bundler_options::NormalizedBundlerOptions,
   output_exports::OutputExports,

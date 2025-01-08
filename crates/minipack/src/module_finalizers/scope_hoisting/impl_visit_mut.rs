@@ -183,8 +183,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
         ident.name = self.snippet.atom(canonical_name);
       }
       ident.symbol_id.get_mut().take();
-    } else {
-      // Some `BindingIdentifier`s constructed by bundler don't have `SymbolId` and we just ignore them.
     }
   }
 

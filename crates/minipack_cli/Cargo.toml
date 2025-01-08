@@ -1,0 +1,21 @@
+[package]
+description = "minipack_cli"
+name        = "minipack_cli"
+
+edition.workspace    = true
+homepage.workspace   = true
+license.workspace    = true
+readme.workspace     = true
+repository.workspace = true
+version.workspace    = true
+
+[[bin]]
+name = "minipack"
+path = "src/main.rs"
+
+[dependencies]
+minipack = { workspace = true }
+
+ansi_term = { version = "0.12.1" }
+clap      = { version = "4.5.24", features = ["derive"] }
+tokio     = { workspace = true, features = ["rt", "macros", "sync", "rt-multi-thread"] }
