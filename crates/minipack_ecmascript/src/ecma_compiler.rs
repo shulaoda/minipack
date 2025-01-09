@@ -13,6 +13,7 @@ use crate::ecma_ast::{
   program_cell::{ProgramCell, ProgramCellDependent, ProgramCellOwner},
   EcmaAst,
 };
+
 pub struct EcmaCompiler;
 
 impl EcmaCompiler {

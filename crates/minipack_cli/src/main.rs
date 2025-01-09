@@ -31,7 +31,7 @@ fn print_output_assets(outputs: Vec<Output>) {
   for output in outputs {
     let asset = match output {
       minipack::Output::Chunk(output) => {
-        let size = format!("{:.2}", output.code.as_bytes().len() as f64 / 1024.0);
+        let size = format!("{:.2}", output.code.len() as f64 / 1024.0);
 
         if size.len() > right {
           right = size.len();
@@ -62,8 +62,6 @@ fn print_output_assets(outputs: Vec<Output>) {
   }
 
   let dim = Colour::White.dimmed();
-
-  println!();
 
   for (filename, color, size, is_chunk) in assets {
     let asset_type = if is_chunk { "chunk" } else { "asset" };

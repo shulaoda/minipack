@@ -9,10 +9,9 @@ use crate::{
 
 use minipack_common::{
   EcmaAssetMeta, InstantiatedChunk, InstantiationKind, ModuleId, ModuleIdx, OutputFormat,
-  RenderedModule,
+  RenderedModule, Source,
 };
 use minipack_error::BuildResult;
-use minipack_sourcemap::Source;
 use minipack_utils::rayon::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
 
@@ -24,7 +23,7 @@ pub type RenderedModuleSources =
 pub struct EcmaGenerator;
 
 impl Generator for EcmaGenerator {
-  async fn instantiate_chunk<'a>(ctx: &mut GenerateContext<'a>) -> BuildResult<GenerateOutput> {
+  async fn instantiate_chunk(ctx: &mut GenerateContext<'_>) -> BuildResult<GenerateOutput> {
     let mut rendered_modules = FxHashMap::default();
     let module_id_to_codegen_ret = std::mem::take(&mut ctx.module_id_to_codegen_ret);
     let rendered_module_sources = ctx

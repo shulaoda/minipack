@@ -7,8 +7,7 @@ use crate::EcmaAst;
 
 impl EcmaAst {
   pub fn make_semantic<'ast>(program: &'_ Program<'ast>) -> Semantic<'ast> {
-    let semantic = SemanticBuilder::new().with_scope_tree_child_ids(true).build(program).semantic;
-    semantic
+    SemanticBuilder::new().with_scope_tree_child_ids(true).build(program).semantic
   }
 
   pub fn make_symbol_table_and_scope_tree(&self) -> (SymbolTable, ScopeTree) {

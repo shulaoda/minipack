@@ -1,4 +1,3 @@
-// cspell:ignore Estarget
 use oxc::transformer::ESTarget as OxcEstarget;
 use std::str::FromStr;
 

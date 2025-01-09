@@ -102,14 +102,6 @@ pub struct StmtInfo {
 }
 
 impl StmtInfo {
-  pub fn to_debug_stmt_info_for_tree_shaking(&self) -> DebugStmtInfoForTreeShaking {
-    DebugStmtInfoForTreeShaking {
-      is_included: self.is_included,
-      side_effect: self.side_effect,
-      source: self.debug_label.clone().unwrap_or_else(|| "<Noop>".into()),
-    }
-  }
-
   #[must_use]
   pub fn with_stmt_idx(mut self, stmt_idx: usize) -> Self {
     self.stmt_idx = Some(stmt_idx);
@@ -127,11 +119,4 @@ impl StmtInfo {
     self.referenced_symbols = referenced_symbols;
     self
   }
-}
-
-#[derive(Debug)]
-pub struct DebugStmtInfoForTreeShaking {
-  pub is_included: bool,
-  pub side_effect: bool,
-  pub source: String,
 }

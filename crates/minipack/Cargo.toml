@@ -1,12 +1,12 @@
 [package]
 name = "minipack"
 
-edition.workspace       = true
-homepage.workspace      = true
-license.workspace       = true
-readme.workspace        = true
-repository.workspace    = true
-version.workspace       = true
+edition.workspace    = true
+homepage.workspace   = true
+license.workspace    = true
+readme.workspace     = true
+repository.workspace = true
+version.workspace    = true
 
 [dependencies]
 minipack_common           = { workspace = true }
@@ -15,7 +15,6 @@ minipack_ecmascript_utils = { workspace = true }
 minipack_error            = { workspace = true }
 minipack_fs               = { workspace = true, features = ["os"] }
 minipack_resolver         = { workspace = true }
-minipack_sourcemap        = { workspace = true }
 minipack_utils            = { workspace = true }
 
 anyhow            = { workspace = true }

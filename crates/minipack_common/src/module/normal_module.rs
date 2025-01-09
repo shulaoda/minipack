@@ -3,10 +3,8 @@ use std::sync::Arc;
 
 use crate::ecmascript::ecma_view::EcmaView;
 use crate::types::interop::Interop;
-use crate::types::module_render_output::ModuleRenderOutput;
 use crate::{
-  AssetView, CssView, DebugStmtInfoForTreeShaking, ExportsKind, ImportRecordIdx, ImportRecordMeta,
-  ModuleId, ModuleIdx, ModuleInfo, StmtInfo,
+  AssetView, CssView, ExportsKind, ImportRecordIdx, ImportRecordMeta, ModuleId, ModuleIdx,
 };
 use crate::{EcmaAstIdx, IndexModules, Module, ModuleType};
 use std::ops::{Deref, DerefMut};
@@ -52,42 +50,8 @@ impl NormalModule {
     self.ecma_view.meta.has_star_export()
   }
 
-  pub fn to_debug_normal_module_for_tree_shaking(&self) -> DebugNormalModuleForTreeShaking {
-    DebugNormalModuleForTreeShaking {
-      id: self.repr_name.to_string(),
-      is_included: self.ecma_view.meta.is_included(),
-      stmt_infos: self
-        .ecma_view
-        .stmt_infos
-        .iter()
-        .map(StmtInfo::to_debug_stmt_info_for_tree_shaking)
-        .collect(),
-    }
-  }
-
-  pub fn to_module_info(&self) -> ModuleInfo {
-    ModuleInfo {
-      code: Some(self.ecma_view.source.clone()),
-      id: self.id.clone(),
-      is_entry: self.is_user_defined_entry,
-      importers: {
-        let mut value = self.ecma_view.importers.clone();
-        value.sort_unstable();
-        value
-      },
-      dynamic_importers: {
-        let mut value = self.ecma_view.dynamic_importers.clone();
-        value.sort_unstable();
-        value
-      },
-      imported_ids: self.ecma_view.imported_ids.clone(),
-      dynamically_imported_ids: self.ecma_view.dynamically_imported_ids.clone(),
-    }
-  }
-
-  // The runtime module and module which path starts with `\0` shouldn't generate sourcemap. Ref see https://github.com/rollup/rollup/blob/master/src/Module.ts#L279.
-  pub fn is_virtual(&self) -> bool {
-    self.id.starts_with('\0') || self.id.starts_with("rolldown:")
+  pub fn is_js_type(&self) -> bool {
+    matches!(self.module_type, ModuleType::Js | ModuleType::Jsx | ModuleType::Ts | ModuleType::Tsx)
   }
 
   // https://tc39.es/ecma262/#sec-getexportednames
@@ -159,7 +123,7 @@ impl NormalModule {
     self.ecma_view.def_format.is_esm()
   }
 
-  pub fn render(&self, args: &ModuleRenderArgs) -> Option<ModuleRenderOutput> {
+  pub fn render(&self, args: &ModuleRenderArgs) -> Option<String> {
     match args {
       ModuleRenderArgs::Ecma { ast } => {
         let render_output = EcmaCompiler::print(ast);
@@ -167,9 +131,9 @@ impl NormalModule {
           let original_code: Arc<str> = render_output.code.into();
           let magic_string = string_wizard::MagicString::new(&*original_code);
           let code = magic_string.to_string();
-          return Some(ModuleRenderOutput { code });
+          return Some(code);
         }
-        Some(ModuleRenderOutput { code: render_output.code })
+        Some(render_output.code)
       }
     }
   }
@@ -177,13 +141,6 @@ impl NormalModule {
   pub fn is_included(&self) -> bool {
     self.ecma_view.meta.is_included()
   }
-}
-
-#[derive(Debug)]
-pub struct DebugNormalModuleForTreeShaking {
-  pub id: String,
-  pub is_included: bool,
-  pub stmt_infos: Vec<DebugStmtInfoForTreeShaking>,
 }
 
 impl Deref for NormalModule {

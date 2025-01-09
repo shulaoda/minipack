@@ -1,6 +1,5 @@
-use minipack_common::{ExportsKind, OutputExports, WrapKind};
+use minipack_common::{ExportsKind, OutputExports, SourceJoiner, WrapKind};
 use minipack_error::BuildResult;
-use minipack_sourcemap::SourceJoiner;
 use minipack_utils::concat_string;
 
 use crate::{

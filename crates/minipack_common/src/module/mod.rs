@@ -1,12 +1,12 @@
 pub mod external_module;
 pub mod normal_module;
 
+use minipack_utils::option_ext::OptionExt;
 use oxc_index::IndexVec;
 
 use crate::{
   EcmaAstIdx, ExternalModule, ImportRecordIdx, ModuleIdx, NormalModule, ResolvedImportRecord,
 };
-use minipack_utils::option_ext::OptionExt;
 
 #[derive(Debug)]
 pub enum Module {

@@ -2,12 +2,12 @@
 description = "minipack_common"
 name        = "minipack_common"
 
-edition.workspace       = true
-homepage.workspace      = true
-license.workspace       = true
-readme.workspace        = true
-repository.workspace    = true
-version.workspace       = true
+edition.workspace    = true
+homepage.workspace   = true
+license.workspace    = true
+readme.workspace     = true
+repository.workspace = true
+version.workspace    = true
 
 [lib]
 doctest = false
@@ -17,7 +17,6 @@ workspace = true
 
 [dependencies]
 minipack_ecmascript = { workspace = true }
-minipack_sourcemap  = { workspace = true }
 minipack_utils      = { workspace = true }
 
 anyhow        = { workspace = true }
@@ -26,6 +25,7 @@ bitflags      = { workspace = true }
 fast-glob     = { workspace = true }
 itertools     = { workspace = true }
 lightningcss  = { workspace = true }
+memchr        = { workspace = true }
 oxc           = { workspace = true }
 oxc_index     = { workspace = true }
 oxc_resolver  = { workspace = true }

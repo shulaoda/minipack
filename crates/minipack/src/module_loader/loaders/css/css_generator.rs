@@ -6,7 +6,7 @@ use minipack_error::BuildResult;
 pub struct CssGenerator;
 
 impl Generator for CssGenerator {
-  async fn instantiate_chunk<'a>(ctx: &mut GenerateContext<'a>) -> BuildResult<GenerateOutput> {
+  async fn instantiate_chunk(ctx: &mut GenerateContext<'_>) -> BuildResult<GenerateOutput> {
     let mut ordered_css_modules = ctx
       .chunk
       .modules

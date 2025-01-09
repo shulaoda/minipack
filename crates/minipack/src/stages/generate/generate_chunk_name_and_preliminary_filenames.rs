@@ -25,7 +25,7 @@ use crate::{
 
 use super::GenerateStage;
 
-impl<'a> GenerateStage<'a> {
+impl GenerateStage<'_> {
   /// Notices:
   /// - Should generate filenames that are stable cross builds and os.
   pub async fn generate_chunk_name_and_preliminary_filenames(

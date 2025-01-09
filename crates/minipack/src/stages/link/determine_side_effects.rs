@@ -11,6 +11,7 @@ impl LinkStage<'_> {
       Visited,
       Cache(DeterminedSideEffects),
     }
+
     type IndexSideEffectsCache = IndexVec<ModuleIdx, SideEffectCache>;
 
     fn determine_side_effects_for_module(

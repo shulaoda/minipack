@@ -1,6 +1,7 @@
 use std::iter;
 
 use minipack_common::{Module, ModuleIdx};
+use minipack_utils::rustc_hash::FxHashSetExt;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::LinkStage;
@@ -12,21 +13,6 @@ enum Status {
 }
 
 impl LinkStage<'_> {
-  /// Some notes about the module execution order:
-  /// - We assume user-defined entries are always executed orderly.
-  /// - Async entries is sorted by `Module#debug_id` of entry module to ensure deterministic output.
-  /// - `require(...)` is treated as implicit static `import`, which required modules are executed before the module that requires them.
-  /// - Since import statements are hoisted, `require(...)` is always placed after static `import` statements.
-  /// - Order of `require(...)` is determined by who shows up first while scanning ast. For such code
-  ///
-  /// ```js
-  /// () => require('b')
-  /// require('c')
-  /// import 'a';
-  /// ```
-  ///
-  /// The execution order is `a -> b -> c`.
-  /// - We only ensure execution order is relative correct, which means imported/required modules are executed before the module that imports/require them.
   pub(crate) fn sort_modules(&mut self) {
     // The runtime module should always be the first module to be executed
     let mut execution_stack = self
@@ -37,13 +23,13 @@ impl LinkStage<'_> {
       .chain(iter::once(Status::ToBeExecuted(self.runtime_brief.id())))
       .collect::<Vec<_>>();
 
+    let mut executed_ids = FxHashSet::with_capacity(self.module_table.modules.len());
     let mut stack_indexes_of_executing_id = FxHashMap::default();
-    let mut executed_ids = FxHashSet::default();
-    executed_ids.shrink_to(self.module_table.modules.len());
 
-    let mut sorted_modules = Vec::with_capacity(self.module_table.modules.len());
     let mut next_exec_order = 0;
     let mut circular_dependencies = FxHashSet::default();
+    let mut sorted_modules = Vec::with_capacity(self.module_table.modules.len());
+
     while let Some(status) = execution_stack.pop() {
       match status {
         Status::ToBeExecuted(id) => {
@@ -62,14 +48,9 @@ impl LinkStage<'_> {
                 .collect::<Box<[_]>>();
               circular_dependencies.insert(cycles);
             }
-            // It's already executed in other import chain, no need to execute again
           } else {
             executed_ids.insert(id);
             execution_stack.push(Status::WaitForExit(id));
-            debug_assert!(
-              !stack_indexes_of_executing_id.contains_key(&id),
-              "A module should not be executing the same module twice"
-            );
             stack_indexes_of_executing_id.insert(id, execution_stack.len() - 1);
 
             execution_stack.extend(
@@ -84,28 +65,23 @@ impl LinkStage<'_> {
           }
         }
         Status::WaitForExit(id) => {
-          executed_ids.insert(id);
           match &mut self.module_table.modules[id] {
             Module::Normal(module) => {
-              debug_assert!(module.exec_order == u32::MAX);
-              module.exec_order = next_exec_order;
               sorted_modules.push(id);
+              module.exec_order = next_exec_order;
             }
             Module::External(module) => {
-              debug_assert!(module.exec_order == u32::MAX);
               module.exec_order = next_exec_order;
             }
           }
           next_exec_order += 1;
-          debug_assert!(stack_indexes_of_executing_id.contains_key(&id));
           stack_indexes_of_executing_id.remove(&id);
         }
       }
     }
 
     if !circular_dependencies.is_empty() {
-      let cycles = circular_dependencies.into_iter().collect::<Vec<_>>();
-      for cycle in cycles {
+      for cycle in circular_dependencies {
         let paths = cycle
           .iter()
           .copied()
@@ -118,10 +94,5 @@ impl LinkStage<'_> {
     }
 
     self.sorted_modules = sorted_modules;
-    debug_assert_eq!(
-      self.sorted_modules.first().copied(),
-      Some(self.runtime_brief.id()),
-      "runtime module should always be the first module in the sorted modules"
-    );
   }
 }

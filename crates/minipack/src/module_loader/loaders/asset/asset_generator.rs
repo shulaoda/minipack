@@ -7,7 +7,7 @@ use minipack_utils::option_ext::OptionExt;
 pub struct AssetGenerator;
 
 impl Generator for AssetGenerator {
-  async fn instantiate_chunk<'a>(ctx: &mut GenerateContext<'a>) -> BuildResult<GenerateOutput> {
+  async fn instantiate_chunk(ctx: &mut GenerateContext<'_>) -> BuildResult<GenerateOutput> {
     let asset_modules = ctx
       .chunk
       .modules

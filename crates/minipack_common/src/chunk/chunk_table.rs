@@ -1,14 +1,18 @@
 use std::ops::{Deref, DerefMut};
 
-use crate::types::type_alias::IndexChunks;
+use oxc_index::IndexVec;
+
+use crate::ChunkIdx;
+
+use super::Chunk;
 
 #[derive(Debug, Default)]
 pub struct ChunkTable {
-  pub chunks: IndexChunks,
+  pub chunks: IndexVec<ChunkIdx, Chunk>,
 }
 
 impl Deref for ChunkTable {
-  type Target = IndexChunks;
+  type Target = IndexVec<ChunkIdx, Chunk>;
 
   fn deref(&self) -> &Self::Target {
     &self.chunks
@@ -22,7 +26,7 @@ impl DerefMut for ChunkTable {
 }
 
 impl ChunkTable {
-  pub fn new(chunks: IndexChunks) -> Self {
+  pub fn new(chunks: IndexVec<ChunkIdx, Chunk>) -> Self {
     Self { chunks }
   }
 }

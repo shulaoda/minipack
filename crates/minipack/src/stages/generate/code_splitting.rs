@@ -18,7 +18,7 @@ pub struct SplittingInfo {
 
 pub type IndexSplittingInfo = IndexVec<ModuleIdx, SplittingInfo>;
 
-impl<'a> GenerateStage<'a> {
+impl GenerateStage<'_> {
   pub async fn generate_chunks(&mut self) -> ChunkGraph {
     let entries_len: u32 =
       self.link_output.entry_points.len().try_into().expect("Too many entries, u32 overflowed.");
@@ -156,6 +156,7 @@ impl<'a> GenerateStage<'a> {
       .for_each(|(i, chunk)| {
         chunk.exec_order = i.try_into().expect("Too many chunks, u32 overflowed.");
       });
+
     // The esbuild using `Chunk#bits` to sorted chunks, but the order of `Chunk#bits` is not stable, eg `BitSet(0) 00000001_00000000` > `BitSet(8) 00000000_00000001`. It couldn't ensure the order of dynamic chunks and common chunks.
     // Consider the compare `Chunk#exec_order` should be faster than `Chunk#bits`, we use `Chunk#exec_order` to sort chunks.
     // Note Here could be make sure the order of chunks.

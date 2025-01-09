@@ -8,6 +8,7 @@ pub enum ImportKind {
   DynamicImport,
   /// `require('foo')`
   Require,
+  /// css @import
   AtImport,
   /// css url import, e.g. `url(foo.png)`
   UrlImport,

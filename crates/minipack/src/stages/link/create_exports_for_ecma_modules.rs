@@ -1,12 +1,13 @@
 use minipack_common::{
   dynamic_import_usage::DynamicImportExportsUsage, EntryPoint, ExportsKind, ModuleIdx,
-  OutputFormat, StmtInfo, StmtInfoMeta, WrapKind,
+  NormalModule, NormalizedBundlerOptions, OutputFormat, RuntimeModuleBrief, StmtInfo, StmtInfoMeta,
+  SymbolRefDb, WrapKind,
 };
 use rustc_hash::FxHashMap;
 
 use crate::types::linking_metadata::LinkingMetadata;
 
-use super::{wrap_modules::create_wrapper, LinkStage};
+use super::LinkStage;
 
 pub fn init_entry_point_stmt_info(
   meta: &mut LinkingMetadata,
@@ -30,6 +31,77 @@ pub fn init_entry_point_stmt_info(
   // Entry chunk need to generate exports, so we need reference to all exports to make sure they are included in tree-shaking.
 
   meta.referenced_symbols_by_entry_point_chunk.extend(referenced_symbols);
+}
+
+fn create_wrapper(
+  module: &mut NormalModule,
+  linking_info: &mut LinkingMetadata,
+  symbols: &mut SymbolRefDb,
+  runtime: &RuntimeModuleBrief,
+  options: &NormalizedBundlerOptions,
+) {
+  match linking_info.wrap_kind {
+    // If this is a CommonJS file, we're going to need to generate a wrapper
+    // for the CommonJS closure. That will end up looking something like this:
+    //
+    //   var require_foo = __commonJS((exports, module) => {
+    //     ...
+    //   });
+    //
+    WrapKind::Cjs => {
+      let wrapper_ref = symbols
+        .create_facade_root_symbol_ref(module.idx, &format!("require_{}", &module.repr_name));
+
+      let stmt_info = StmtInfo {
+        stmt_idx: None,
+        declared_symbols: vec![wrapper_ref],
+        referenced_symbols: vec![if !options.minify {
+          runtime.resolve_symbol("__commonJS").into()
+        } else {
+          runtime.resolve_symbol("__commonJSMin").into()
+        }],
+        side_effect: false,
+        is_included: false,
+        import_records: Vec::new(),
+        debug_label: None,
+        meta: StmtInfoMeta::default(),
+      };
+
+      linking_info.wrapper_stmt_info = Some(module.stmt_infos.add_stmt_info(stmt_info));
+      linking_info.wrapper_ref = Some(wrapper_ref);
+    }
+    // If this is a lazily-initialized ESM file, we're going to need to
+    // generate a wrapper for the ESM closure. That will end up looking
+    // something like this:
+    //
+    //   var init_foo = __esm(() => {
+    //     ...
+    //   });
+    //
+    WrapKind::Esm => {
+      let wrapper_ref =
+        symbols.create_facade_root_symbol_ref(module.idx, &format!("init_{}", &module.repr_name));
+
+      let stmt_info = StmtInfo {
+        stmt_idx: None,
+        declared_symbols: vec![wrapper_ref],
+        referenced_symbols: vec![if !options.minify {
+          runtime.resolve_symbol("__esm").into()
+        } else {
+          runtime.resolve_symbol("__esmMin").into()
+        }],
+        side_effect: false,
+        is_included: false,
+        import_records: Vec::new(),
+        debug_label: None,
+        meta: StmtInfoMeta::default(),
+      };
+
+      linking_info.wrapper_stmt_info = Some(module.stmt_infos.add_stmt_info(stmt_info));
+      linking_info.wrapper_ref = Some(wrapper_ref);
+    }
+    WrapKind::None => {}
+  }
 }
 
 impl LinkStage<'_> {

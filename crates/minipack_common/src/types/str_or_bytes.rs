@@ -11,6 +11,7 @@ impl Default for StrOrBytes {
     Self::Str(String::default())
   }
 }
+
 // Methods contain `inner` word won't do implicit conversion.
 impl StrOrBytes {
   pub fn try_into_inner_string(self) -> anyhow::Result<String> {

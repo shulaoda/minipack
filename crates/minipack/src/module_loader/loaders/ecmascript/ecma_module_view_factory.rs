@@ -65,8 +65,8 @@ pub struct CreateEcmaViewReturn {
   pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
 }
 
-pub async fn create_ecma_view<'a>(
-  ctx: &mut CreateModuleContext<'a>,
+pub async fn create_ecma_view(
+  ctx: &mut CreateModuleContext<'_>,
   args: CreateModuleViewArgs,
 ) -> BuildResult<CreateEcmaViewReturn> {
   let id = ModuleId::new(&ctx.resolved_id.id);

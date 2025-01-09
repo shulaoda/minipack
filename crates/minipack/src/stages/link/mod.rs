@@ -92,7 +92,6 @@ impl<'a> LinkStage<'a> {
       .collect::<IndexVec<ModuleIdx, _>>();
 
     Self {
-      sorted_modules: Vec::new(),
       metadata,
       module_table,
       entry_points,
@@ -100,6 +99,7 @@ impl<'a> LinkStage<'a> {
       runtime_brief,
       warnings,
       errors: vec![],
+      sorted_modules: vec![],
       index_ecma_ast,
       dyn_import_usage_map,
       options,
@@ -109,7 +109,6 @@ impl<'a> LinkStage<'a> {
 
   pub fn link(mut self) -> LinkStageOutput {
     self.sort_modules();
-
     self.determine_module_exports_kind();
     self.wrap_modules();
     self.generate_lazy_export();

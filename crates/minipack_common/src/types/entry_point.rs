@@ -4,8 +4,8 @@ use crate::ModuleIdx;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct EntryPoint {
-  pub name: Option<ArcStr>,
   pub id: ModuleIdx,
+  pub name: Option<ArcStr>,
   pub kind: EntryPointKind,
 }
 

@@ -1,7 +1,6 @@
 use arcstr::ArcStr;
 use itertools::Itertools;
-use minipack_common::{ExportsKind, Specifier, WrapKind};
-use minipack_sourcemap::SourceJoiner;
+use minipack_common::{ExportsKind, SourceJoiner, Specifier, WrapKind};
 use minipack_utils::{concat_string, ecmascript::is_validate_identifier_name};
 
 use crate::{

@@ -218,13 +218,12 @@ impl<F: FileSystem + Default> Resolver<F> {
     }
 
     resolution.map(|info| {
+      let path: ArcStr =
+        info.full_path().to_str().expect("Should be valid utf8").to_string().into();
       let package_json = info.package_json().map(|p| self.cached_package_json(p));
-      let module_type = infer_module_def_format(&info);
-      build_resolve_ret(
-        info.full_path().to_str().expect("Should be valid utf8").to_string(),
-        module_type,
-        package_json,
-      )
+      let module_def_format = infer_module_def_format(&info);
+
+      ResolveReturn { path, package_json, module_def_format }
     })
   }
 
@@ -259,12 +258,4 @@ fn infer_module_def_format(info: &Resolution) -> ModuleDefFormat {
     }
   }
   ModuleDefFormat::Unknown
-}
-
-fn build_resolve_ret(
-  path: String,
-  module_type: ModuleDefFormat,
-  package_json: Option<Arc<PackageJson>>,
-) -> ResolveReturn {
-  ResolveReturn { path: path.into(), module_def_format: module_type, package_json }
 }

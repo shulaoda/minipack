@@ -1,6 +1,8 @@
+mod helpers;
+pub mod program_cell;
+
 use std::fmt::Debug;
 
-use crate::EcmaCompiler;
 use arcstr::ArcStr;
 use oxc::{
   allocator::Allocator,
@@ -9,9 +11,7 @@ use oxc::{
 };
 
 use self::program_cell::ProgramCell;
-
-mod helpers;
-pub mod program_cell;
+use crate::EcmaCompiler;
 
 /// - To access `&mut ast::Program`, use `ast.program.with_mut(|fields| { fields.program; })`.
 pub struct EcmaAst {

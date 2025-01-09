@@ -1,10 +1,7 @@
-use minipack_common::{
-  ExportsKind, IndexModules, Module, ModuleIdx, NormalModule, NormalizedBundlerOptions,
-  RuntimeModuleBrief, StmtInfo, StmtInfoMeta, SymbolRefDb, WrapKind,
-};
+use minipack_common::{ExportsKind, IndexModules, Module, ModuleIdx, WrapKind};
 use oxc_index::IndexVec;
 
-use crate::types::linking_metadata::{LinkingMetadata, LinkingMetadataVec};
+use crate::types::linking_metadata::LinkingMetadataVec;
 
 use super::LinkStage;
 
@@ -15,15 +12,14 @@ struct Context<'a> {
 }
 
 fn wrap_module_recursively(ctx: &mut Context, target: ModuleIdx) {
-  let is_visited = &mut ctx.visited_modules[target];
-  if *is_visited {
-    return;
-  }
-  *is_visited = true;
-
   let Module::Normal(module) = &ctx.modules[target] else {
     return;
   };
+
+  if ctx.visited_modules[target] {
+    return;
+  }
+  ctx.visited_modules[target] = true;
 
   if matches!(ctx.linking_infos[target].wrap_kind, WrapKind::None) {
     ctx.linking_infos[target].wrap_kind = match module.exports_kind {
@@ -48,28 +44,25 @@ fn has_dynamic_exports_due_to_export_star(
   }
   visited_modules[target] = true;
 
-  let has_dynamic_exports = match &modules[target] {
-    Module::Normal(module) => {
-      if matches!(module.exports_kind, ExportsKind::CommonJs) {
-        true
-      } else {
-        module.star_export_module_ids().any(|importee_id| {
-          target != importee_id
-            && has_dynamic_exports_due_to_export_star(
-              importee_id,
-              modules,
-              linking_infos,
-              visited_modules,
-            )
-        })
-      }
-    }
-    Module::External(_) => true,
+  let has_dynamic_exports = if let Some(module) = modules[target].as_normal() {
+    matches!(module.exports_kind, ExportsKind::CommonJs)
+      || module.star_export_module_ids().any(|importee_id| {
+        target != importee_id
+          && has_dynamic_exports_due_to_export_star(
+            importee_id,
+            modules,
+            linking_infos,
+            visited_modules,
+          )
+      })
+  } else {
+    true
   };
 
   if has_dynamic_exports {
     linking_infos[target].has_dynamic_exports = true;
   }
+
   linking_infos[target].has_dynamic_exports
 }
 
@@ -81,38 +74,21 @@ impl LinkStage<'_> {
     let mut visited_modules_for_dynamic_exports =
       oxc_index::index_vec![false; self.module_table.modules.len()];
 
-    for module in self.module_table.modules.iter().filter_map(Module::as_normal) {
-      let module_id = module.idx;
-      let linking_info = &self.metadata[module_id];
+    debug_assert!(!self.sorted_modules.is_empty());
 
-      let need_to_wrap = matches!(linking_info.wrap_kind, WrapKind::Cjs | WrapKind::Esm);
+    let sorted_module_iter =
+      self.sorted_modules.iter().filter_map(|idx| self.module_table.modules[*idx].as_normal());
 
-      if need_to_wrap {
-        wrap_module_recursively(
-          &mut Context {
-            visited_modules: &mut visited_modules_for_wrapping,
-            linking_infos: &mut self.metadata,
-            modules: &self.module_table.modules,
-          },
-          module_id,
-        );
-      }
+    for module in sorted_module_iter {
+      let need_to_wrap =
+        matches!(self.metadata[module.idx].wrap_kind, WrapKind::Cjs | WrapKind::Esm);
 
-      if module.has_star_export() {
-        has_dynamic_exports_due_to_export_star(
-          module_id,
-          &self.module_table.modules,
-          &mut self.metadata,
-          &mut visited_modules_for_dynamic_exports,
-        );
-      }
-
+      visited_modules_for_wrapping[module.idx] = true;
       module.import_records.iter().for_each(|rec| {
-        let importee_id = rec.resolved_module;
-        let Module::Normal(importee) = &self.module_table.modules[importee_id] else {
+        let Module::Normal(importee) = &self.module_table.modules[rec.resolved_module] else {
           return;
         };
-        if matches!(importee.exports_kind, ExportsKind::CommonJs) {
+        if matches!(importee.exports_kind, ExportsKind::CommonJs) || need_to_wrap {
           wrap_module_recursively(
             &mut Context {
               visited_modules: &mut visited_modules_for_wrapping,
@@ -123,77 +99,15 @@ impl LinkStage<'_> {
           );
         }
       });
+
+      if module.has_star_export() {
+        has_dynamic_exports_due_to_export_star(
+          module.idx,
+          &self.module_table.modules,
+          &mut self.metadata,
+          &mut visited_modules_for_dynamic_exports,
+        );
+      }
     }
-  }
-}
-
-pub fn create_wrapper(
-  module: &mut NormalModule,
-  linking_info: &mut LinkingMetadata,
-  symbols: &mut SymbolRefDb,
-  runtime: &RuntimeModuleBrief,
-  options: &NormalizedBundlerOptions,
-) {
-  match linking_info.wrap_kind {
-    // If this is a CommonJS file, we're going to need to generate a wrapper
-    // for the CommonJS closure. That will end up looking something like this:
-    //
-    //   var require_foo = __commonJS((exports, module) => {
-    //     ...
-    //   });
-    //
-    WrapKind::Cjs => {
-      let wrapper_ref = symbols
-        .create_facade_root_symbol_ref(module.idx, &format!("require_{}", &module.repr_name));
-
-      let stmt_info = StmtInfo {
-        stmt_idx: None,
-        declared_symbols: vec![wrapper_ref],
-        referenced_symbols: vec![if !options.minify {
-          runtime.resolve_symbol("__commonJS").into()
-        } else {
-          runtime.resolve_symbol("__commonJSMin").into()
-        }],
-        side_effect: false,
-        is_included: false,
-        import_records: Vec::new(),
-        debug_label: None,
-        meta: StmtInfoMeta::default(),
-      };
-
-      linking_info.wrapper_stmt_info = Some(module.stmt_infos.add_stmt_info(stmt_info));
-      linking_info.wrapper_ref = Some(wrapper_ref);
-    }
-    // If this is a lazily-initialized ESM file, we're going to need to
-    // generate a wrapper for the ESM closure. That will end up looking
-    // something like this:
-    //
-    //   var init_foo = __esm(() => {
-    //     ...
-    //   });
-    //
-    WrapKind::Esm => {
-      let wrapper_ref =
-        symbols.create_facade_root_symbol_ref(module.idx, &format!("init_{}", &module.repr_name));
-
-      let stmt_info = StmtInfo {
-        stmt_idx: None,
-        declared_symbols: vec![wrapper_ref],
-        referenced_symbols: vec![if !options.minify {
-          runtime.resolve_symbol("__esm").into()
-        } else {
-          runtime.resolve_symbol("__esmMin").into()
-        }],
-        side_effect: false,
-        is_included: false,
-        import_records: Vec::new(),
-        debug_label: None,
-        meta: StmtInfoMeta::default(),
-      };
-
-      linking_info.wrapper_stmt_info = Some(module.stmt_infos.add_stmt_info(stmt_info));
-      linking_info.wrapper_ref = Some(wrapper_ref);
-    }
-    WrapKind::None => {}
   }
 }

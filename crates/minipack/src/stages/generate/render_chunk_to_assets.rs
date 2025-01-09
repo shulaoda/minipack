@@ -1,6 +1,6 @@
 use futures::future::try_join_all;
 use minipack_common::{
-  Asset, InstantiationKind, ModuleRenderArgs, ModuleRenderOutput, Output, OutputAsset, OutputChunk,
+  Asset, InstantiationKind, ModuleRenderArgs, Output, OutputAsset, OutputChunk,
 };
 use minipack_ecmascript::EcmaCompiler;
 use minipack_error::BuildResult;
@@ -26,7 +26,7 @@ use crate::{
 
 use super::GenerateStage;
 
-impl<'a> GenerateStage<'a> {
+impl GenerateStage<'_> {
   pub async fn render_chunk_to_assets(
     &mut self,
     chunk_graph: &mut ChunkGraph,
@@ -169,10 +169,7 @@ impl<'a> GenerateStage<'a> {
   ///   [Some(ecma1_codegen), Some(ecma2_codegen), None],
   ///   [Some(ecma3_codegen), None],
   /// ]
-  fn create_chunk_to_codegen_ret_map(
-    &self,
-    chunk_graph: &ChunkGraph,
-  ) -> Vec<Vec<Option<ModuleRenderOutput>>> {
+  fn create_chunk_to_codegen_ret_map(&self, chunk_graph: &ChunkGraph) -> Vec<Vec<Option<String>>> {
     let chunk_to_codegen_ret = chunk_graph
       .chunk_table
       .par_iter()

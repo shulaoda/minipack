@@ -1,10 +1,10 @@
 use std::{fmt::Debug, sync::Arc};
 
-use minipack_sourcemap::{Source, SourceJoiner};
+use super::{source::Source, source_joiner::SourceJoiner};
 
 #[derive(Clone, Default)]
 pub struct RenderedModule {
-  inner_code: Option<Arc<[Box<dyn Source + Send + Sync>]>>,
+  inner: Option<Arc<[Box<dyn Source + Send + Sync>]>>,
 }
 
 impl Debug for RenderedModule {
@@ -15,11 +15,11 @@ impl Debug for RenderedModule {
 
 impl RenderedModule {
   pub fn new(sources: Option<Arc<[Box<dyn Source + Send + Sync>]>>) -> Self {
-    Self { inner_code: sources }
+    Self { inner: sources }
   }
 
   pub fn code(&self) -> Option<String> {
-    self.inner_code.as_ref().map(|sources| {
+    self.inner.as_ref().map(|sources| {
       let mut joiner = SourceJoiner::default();
 
       for source in sources.iter() {

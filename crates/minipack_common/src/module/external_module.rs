@@ -1,7 +1,8 @@
-use crate::side_effects::DeterminedSideEffects;
-use crate::{ImportRecordIdx, ModuleIdx, ResolvedImportRecord, SymbolRef};
 use arcstr::ArcStr;
 use oxc_index::IndexVec;
+
+use crate::side_effects::DeterminedSideEffects;
+use crate::{ImportRecordIdx, ModuleIdx, ResolvedImportRecord, SymbolRef};
 
 #[derive(Debug)]
 pub struct ExternalModule {

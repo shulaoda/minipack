@@ -1,13 +1,8 @@
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum OutputExports {
+  #[default]
   Auto,
   Default,
   Named,
   None,
-}
-
-impl Default for OutputExports {
-  fn default() -> Self {
-    Self::Auto
-  }
 }

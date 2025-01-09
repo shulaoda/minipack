@@ -1,4 +1,4 @@
-use crate::source::Source;
+use super::source::Source;
 
 #[derive(Default)]
 pub struct SourceJoiner<'source> {

@@ -1,6 +1,6 @@
 use minipack_common::{
-  Chunk, ChunkIdx, InstantiatedChunk, Module, ModuleRenderOutput, NormalModule,
-  NormalizedBundlerOptions, OutputFormat, SymbolRef,
+  Chunk, ChunkIdx, InstantiatedChunk, Module, NormalModule, NormalizedBundlerOptions, OutputFormat,
+  SymbolRef,
 };
 use minipack_error::BuildResult;
 use minipack_utils::{ecmascript::property_access_str, option_ext::OptionExt, rstr::Rstr};
@@ -15,7 +15,7 @@ pub struct GenerateContext<'a> {
   pub link_output: &'a LinkStageOutput,
   pub chunk_graph: &'a ChunkGraph,
   pub warnings: Vec<anyhow::Error>,
-  pub module_id_to_codegen_ret: Vec<Option<ModuleRenderOutput>>,
+  pub module_id_to_codegen_ret: Vec<Option<String>>,
 }
 
 impl GenerateContext<'_> {
