@@ -32,7 +32,7 @@ impl GenerateStage<'_> {
     &self,
     chunk_graph: &mut ChunkGraph,
   ) -> BuildResult<FxHashMap<ChunkIdx, ArcStr>> {
-    let modules = &self.link_output.module_table.modules;
+    let modules = &self.link_output.module_table;
 
     let mut index_chunk_id_to_name = FxHashMap::default();
     let mut index_pre_generated_names: IndexVec<ChunkIdx, ArcStr> = chunk_graph

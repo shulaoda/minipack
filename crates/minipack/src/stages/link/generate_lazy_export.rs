@@ -23,7 +23,7 @@ use super::LinkStage;
 impl LinkStage<'_> {
   pub fn generate_lazy_export(&mut self) {
     let module_idx_to_exports_kind = append_only_vec::AppendOnlyVec::new();
-    self.module_table.modules.par_iter_mut().for_each(|module| {
+    self.module_table.par_iter_mut().for_each(|module| {
       let Module::Normal(module) = module else {
         return;
       };
@@ -70,7 +70,7 @@ impl LinkStage<'_> {
           continue;
         }
         // if json is not a ObjectExpression, we will fallback to normal esm lazy export transform
-        let module = &mut self.module_table.modules[module_idx];
+        let module = &mut self.module_table[module_idx];
         let module = module.as_normal_mut().unwrap();
         update_module_default_export_info(module, module.default_export_ref, 1.into());
       }
@@ -111,7 +111,7 @@ fn json_object_expr_to_esm(
   ast_idx: EcmaAstIdx,
 ) -> bool {
   let target = link_staged.options.target;
-  let module = &mut link_staged.module_table.modules[module_idx];
+  let module = &mut link_staged.module_table[module_idx];
   let Module::Normal(module) = module else {
     return false;
   };

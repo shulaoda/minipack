@@ -64,12 +64,10 @@ impl<'a> GenerateStage<'a> {
     let ast_table_iter = self.link_output.index_ecma_ast.par_iter_mut();
     ast_table_iter
       .filter(|(_ast, owner)| {
-        self.link_output.module_table.modules[*owner]
-          .as_normal()
-          .is_some_and(|m| m.meta.is_included())
+        self.link_output.module_table[*owner].as_normal().is_some_and(|m| m.meta.is_included())
       })
       .for_each(|(ast, owner)| {
-        let Module::Normal(module) = &self.link_output.module_table.modules[*owner] else {
+        let Module::Normal(module) = &self.link_output.module_table[*owner] else {
           return;
         };
         let chunk_id = chunk_graph.module_to_chunk[module.idx].unwrap();
@@ -86,7 +84,7 @@ impl<'a> GenerateStage<'a> {
                 symbol_db: &self.link_output.symbol_ref_db,
                 linking_info,
                 module,
-                modules: &self.link_output.module_table.modules,
+                modules: &self.link_output.module_table,
                 linking_infos: &self.link_output.metadata,
                 runtime: &self.link_output.runtime_brief,
                 chunk_graph: &chunk_graph,
@@ -109,7 +107,7 @@ impl<'a> GenerateStage<'a> {
               scope: &module.scope,
               ctx: &IsolatingModuleFinalizerContext {
                 module,
-                modules: &self.link_output.module_table.modules,
+                modules: &self.link_output.module_table,
                 symbol_db: &self.link_output.symbol_ref_db,
               },
               snippet: AstSnippet::new(alloc),
@@ -130,7 +128,7 @@ impl<'a> GenerateStage<'a> {
       let mut module_idx_to_filenames = FxHashMap::default();
       // replace asset name in ecma view
       chunk.asset_preliminary_filenames.iter().for_each(|(module_idx, preliminary)| {
-        let Module::Normal(module) = &mut self.link_output.module_table.modules[*module_idx] else {
+        let Module::Normal(module) = &mut self.link_output.module_table[*module_idx] else {
           return;
         };
         let asset_filename: ArcStr = preliminary.as_str().into();
@@ -141,7 +139,7 @@ impl<'a> GenerateStage<'a> {
       });
       // replace asset name in css view
       chunk.modules.iter().for_each(|module_idx| {
-        let module = &mut self.link_output.module_table.modules[*module_idx];
+        let module = &mut self.link_output.module_table[*module_idx];
         if let Some(css_view) =
           module.as_normal_mut().and_then(|normal_module| normal_module.css_view.as_mut())
         {

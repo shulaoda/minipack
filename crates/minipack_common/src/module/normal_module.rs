@@ -6,11 +6,12 @@ use crate::types::interop::Interop;
 use crate::{
   AssetView, CssView, ExportsKind, ImportRecordIdx, ImportRecordMeta, ModuleId, ModuleIdx,
 };
-use crate::{EcmaAstIdx, IndexModules, Module, ModuleType};
+use crate::{EcmaAstIdx, Module, ModuleType};
 use std::ops::{Deref, DerefMut};
 
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 use minipack_utils::rstr::Rstr;
+use oxc_index::IndexVec;
 use rustc_hash::FxHashSet;
 
 #[derive(Debug)]
@@ -58,7 +59,7 @@ impl NormalModule {
   pub fn get_exported_names<'modules>(
     &'modules self,
     export_star_set: &mut FxHashSet<ModuleIdx>,
-    modules: &'modules IndexModules,
+    modules: &'modules IndexVec<ModuleIdx, Module>,
     include_default: bool,
     ret: &mut FxHashSet<&'modules Rstr>,
   ) {
@@ -85,7 +86,7 @@ impl NormalModule {
 
   pub fn star_exports_from_external_modules<'me>(
     &'me self,
-    modules: &'me IndexModules,
+    modules: &'me IndexVec<ModuleIdx, Module>,
   ) -> impl Iterator<Item = ImportRecordIdx> + 'me {
     self.ecma_view.import_records.iter_enumerated().filter_map(move |(rec_id, rec)| {
       if !rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR) {

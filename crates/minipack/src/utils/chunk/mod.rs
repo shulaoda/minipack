@@ -1,6 +1,5 @@
 pub mod deconflict_chunk_symbols;
 pub mod determine_export_mode;
-pub mod determine_use_strict;
 pub mod finalize_chunks;
 pub mod generate_rendered_chunk;
 pub mod namespace_marker;

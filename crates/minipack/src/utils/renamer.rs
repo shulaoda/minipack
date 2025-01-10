@@ -1,5 +1,5 @@
 use minipack_common::{
-  IndexModules, ModuleIdx, NormalModule, OutputFormat, SymbolNameRefToken, SymbolRef, SymbolRefDb,
+  ModuleIdx, NormalModule, OutputFormat, SymbolNameRefToken, SymbolRef, SymbolRefDb,
 };
 use minipack_utils::concat_string;
 use minipack_utils::rayon::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -9,6 +9,8 @@ use oxc::syntax::keyword::{GLOBAL_OBJECTS, RESERVED_KEYWORDS};
 use rustc_hash::FxHashMap;
 use std::borrow::Cow;
 use std::collections::hash_map::Entry;
+
+use crate::types::IndexModules;
 
 #[derive(Debug)]
 pub struct Renamer<'name> {

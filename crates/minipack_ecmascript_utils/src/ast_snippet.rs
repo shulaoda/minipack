@@ -642,7 +642,7 @@ impl<'ast> AstSnippet<'ast> {
     )
   }
 
-  /// var [assignee] = require([source]);
+  /// `var [assignee] = require([source]);`
   pub fn variable_declarator_require_call_stmt(
     &self,
     assignee: &str,

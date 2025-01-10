@@ -16,7 +16,6 @@ pub mod member_expr_ref;
 pub mod module_def_format;
 pub mod module_id;
 pub mod module_info;
-pub mod module_table;
 pub mod named_export;
 pub mod named_import;
 pub mod namespace_alias;

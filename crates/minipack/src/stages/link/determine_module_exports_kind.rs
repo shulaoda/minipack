@@ -10,12 +10,11 @@ impl LinkStage<'_> {
     let entry_ids = self.entry_points.iter().map(|e| e.id).collect::<FxHashSet<_>>();
     self
       .module_table
-      .modules
       .iter()
       .filter_map(|module| module.as_normal().filter(|importer| importer.is_js_type()))
       .for_each(|importer| {
         importer.import_records.iter().for_each(|rec| {
-          let Module::Normal(importee) = &self.module_table.modules[rec.resolved_module] else {
+          let Module::Normal(importee) = &self.module_table[rec.resolved_module] else {
             return;
           };
 

@@ -12,7 +12,7 @@ pub struct MemberExprRef {
   pub props: Vec<CompactStr>,
   /// Span of the whole member expression
   /// FIXME: use `AstNodeId` to identify the MemberExpr instead of `Span`
-  /// related discussion: https://github.com/rolldown/rolldown/pull/1818#discussion_r1699374441
+  /// related discussion: <https://github.com/rolldown/rolldown/pull/1818#discussion_r1699374441>
   pub span: Span,
 }
 

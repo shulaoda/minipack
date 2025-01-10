@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use arcstr::ArcStr;
 use indexmap::IndexSet;
 use minipack_common::{
-  ExportsKind, IndexModules, Module, ModuleIdx, ModuleType, NamespaceAlias, NormalModule,
-  OutputFormat, ResolvedExport, Specifier, SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
+  ExportsKind, Module, ModuleIdx, ModuleType, NamespaceAlias, NormalModule, OutputFormat,
+  ResolvedExport, Specifier, SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
 };
 use minipack_utils::{
   ecmascript::{is_validate_identifier_name, legitimize_identifier_name},
@@ -14,7 +14,7 @@ use minipack_utils::{
 use oxc::span::CompactStr;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::types::{linking_metadata::LinkingMetadataVec, SharedOptions};
+use crate::types::{linking_metadata::LinkingMetadataVec, IndexModules, SharedOptions};
 
 use super::LinkStage;
 
@@ -119,7 +119,7 @@ impl LinkStage<'_> {
   pub fn bind_imports_and_exports(&mut self) {
     // Initialize `resolved_exports` to prepare for matching imports with exports
     self.metadata.iter_mut_enumerated().for_each(|(module_id, meta)| {
-      let Module::Normal(module) = &self.module_table.modules[module_id] else {
+      let Module::Normal(module) = &self.module_table[module_id] else {
         return;
       };
       let mut resolved_exports = module
@@ -137,7 +137,7 @@ impl LinkStage<'_> {
       let mut module_stack = vec![];
       if module.has_star_export() {
         Self::add_exports_for_export_star(
-          &self.module_table.modules,
+          &self.module_table,
           &mut resolved_exports,
           module_id,
           &mut module_stack,
@@ -147,14 +147,13 @@ impl LinkStage<'_> {
     });
     let side_effects_modules = self
       .module_table
-      .modules
       .iter_enumerated()
       .filter(|(_, item)| item.side_effects().has_side_effects())
       .map(|(idx, _)| idx)
       .collect::<FxHashSet<ModuleIdx>>();
     let mut normal_symbol_exports_chain_map = FxHashMap::default();
     let mut binding_ctx = BindImportsAndExportsContext {
-      index_modules: &self.module_table.modules,
+      index_modules: &self.module_table,
       metas: &mut self.metadata,
       symbol_db: &mut self.symbol_ref_db,
       options: self.options,
@@ -164,7 +163,7 @@ impl LinkStage<'_> {
       side_effects_modules: &side_effects_modules,
       normal_symbol_exports_chain_map: &mut normal_symbol_exports_chain_map,
     };
-    self.module_table.modules.iter().for_each(|module| {
+    self.module_table.iter().for_each(|module| {
       binding_ctx.match_imports_with_exports(module.idx());
     });
 
@@ -294,7 +293,6 @@ impl LinkStage<'_> {
     let warnings = append_only_vec::AppendOnlyVec::new();
     let resolved_meta_data = self
       .module_table
-      .modules
       .par_iter()
       .map(|module| match module {
         Module::Normal(module) => {
@@ -306,7 +304,7 @@ impl LinkStage<'_> {
                 // First get the canonical ref of `foo_ns`, then we get the `NormalModule#namespace_object_ref` of `foo.js`.
                 let mut canonical_ref = self.symbol_ref_db.canonical_ref_for(member_expr_ref.object_ref);
                 let mut canonical_ref_owner: &NormalModule =
-                  match &self.module_table.modules[canonical_ref.owner] {
+                  match &self.module_table[canonical_ref.owner] {
                     Module::Normal(module) => module,
                     Module::External(_) => return,
                   };
@@ -343,7 +341,7 @@ impl LinkStage<'_> {
                     return;
                   };
 
-                  if !self.module_table.modules[export_symbol.symbol_ref.owner]
+                  if !self.module_table[export_symbol.symbol_ref.owner]
                     .as_normal()
                     .unwrap()
                     .exports_kind
@@ -363,7 +361,7 @@ impl LinkStage<'_> {
                   ns_symbol_list.push((canonical_ref, name.to_rstr()));
                   canonical_ref = self.symbol_ref_db.canonical_ref_for(export_symbol.symbol_ref);
                   canonical_ref_owner =
-                    self.module_table.modules[canonical_ref.owner].as_normal().unwrap();
+                    self.module_table[canonical_ref.owner].as_normal().unwrap();
                   cursor += 1;
                   is_namespace_ref = canonical_ref_owner.namespace_object_ref == canonical_ref;
                 }

@@ -1,6 +1,4 @@
-use minipack_common::{
-  IndexModules, ModuleIdx, NormalModule, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
-};
+use minipack_common::{ModuleIdx, NormalModule, RuntimeModuleBrief, SymbolRef, SymbolRefDb};
 use minipack_utils::rstr::Rstr;
 use rustc_hash::FxHashMap;
 
@@ -8,7 +6,7 @@ use crate::{
   graph::ChunkGraph,
   types::{
     linking_metadata::{LinkingMetadata, LinkingMetadataVec},
-    SharedOptions,
+    IndexModules, SharedOptions,
   },
 };
 

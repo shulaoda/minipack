@@ -7,7 +7,6 @@ use crate::{
   types::generator::GenerateContext,
   utils::chunk::{
     determine_export_mode::determine_export_mode,
-    determine_use_strict::determine_use_strict,
     namespace_marker::render_namespace_markers,
     render_chunk_exports::{get_chunk_export_names, render_chunk_exports},
   },
@@ -52,7 +51,10 @@ pub fn render_cjs<'code>(
 ) -> BuildResult<SourceJoiner<'code>> {
   let mut source_joiner = SourceJoiner::default();
 
-  if determine_use_strict(ctx) {
+  if ctx.renderable_ecma_modules().all(|ecma_module| {
+    ecma_module.exports_kind.is_esm()
+      || ctx.link_output.index_ecma_ast[ecma_module.ecma_ast_idx()].0.contains_use_strict
+  }) {
     source_joiner.append_source("\"use strict\";");
   }
 
@@ -149,7 +151,7 @@ fn render_cjs_chunk_imports(ctx: &GenerateContext<'_>) -> String {
 
   // render external imports
   ctx.chunk.imports_from_external_modules.iter().for_each(|(importee_id, _)| {
-    let importee = ctx.link_output.module_table.modules[*importee_id]
+    let importee = ctx.link_output.module_table[*importee_id]
       .as_external()
       .expect("Should be external module here");
 

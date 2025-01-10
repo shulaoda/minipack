@@ -15,7 +15,7 @@ pub fn deconflict_chunk_symbols(
   index_chunk_id_to_name: &FxHashMap<ChunkIdx, ArcStr>,
 ) {
   let mut renamer =
-    Renamer::new(&link_output.symbol_ref_db, link_output.module_table.modules.len(), format);
+    Renamer::new(&link_output.symbol_ref_db, link_output.module_table.len(), format);
 
   if matches!(format, OutputFormat::Cjs) {
     // deconflict iife introduce symbols by external
@@ -23,18 +23,18 @@ pub fn deconflict_chunk_symbols(
     chunk
       .imports_from_external_modules
       .iter()
-      .filter_map(|(idx, _)| link_output.module_table.modules[*idx].as_external())
+      .filter_map(|(idx, _)| link_output.module_table[*idx].as_external())
       .for_each(|external_module| {
         renamer.add_symbol_in_root_scope(external_module.namespace_ref);
       });
 
     if let Some(module) = chunk.entry_module_idx() {
       let entry_module =
-        link_output.module_table.modules[module].as_normal().expect("should be normal module");
+        link_output.module_table[module].as_normal().expect("should be normal module");
       link_output.metadata[entry_module.idx].star_exports_from_external_modules.iter().for_each(
         |rec_idx| {
           let rec = &entry_module.ecma_view.import_records[*rec_idx];
-          let external_module = &link_output.module_table.modules[rec.resolved_module]
+          let external_module = &link_output.module_table[rec.resolved_module]
             .as_external()
             .expect("Should be external module here");
           renamer.add_symbol_in_root_scope(external_module.namespace_ref);
@@ -47,7 +47,7 @@ pub fn deconflict_chunk_symbols(
     .modules
     .iter()
     .copied()
-    .filter_map(|id| link_output.module_table.modules[id].as_normal())
+    .filter_map(|id| link_output.module_table[id].as_normal())
     .flat_map(|m| m.scope.root_unresolved_references().keys().map(Cow::Borrowed))
     .for_each(|name| {
       // global names should be reserved
@@ -101,7 +101,7 @@ pub fn deconflict_chunk_symbols(
     .copied()
     // Starts with entry module
     .rev()
-    .filter_map(|id| link_output.module_table.modules[id].as_normal())
+    .filter_map(|id| link_output.module_table[id].as_normal())
     .for_each(|module| {
       module
         .stmt_infos
@@ -114,7 +114,7 @@ pub fn deconflict_chunk_symbols(
     });
 
   // rename non-top-level names
-  renamer.rename_non_root_symbol(&chunk.modules, &link_output.module_table.modules);
+  renamer.rename_non_root_symbol(&chunk.modules, &link_output.module_table);
 
   (chunk.canonical_names, chunk.canonical_name_by_token) = renamer.into_canonical_names();
 }

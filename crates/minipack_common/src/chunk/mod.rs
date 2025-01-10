@@ -1,6 +1,5 @@
 use std::{borrow::Cow, path::PathBuf};
 
-pub mod chunk_table;
 pub mod types;
 
 use arcstr::ArcStr;
@@ -9,13 +8,13 @@ use minipack_utils::{
   bitset::BitSet, extract_hash_pattern::extract_hash_pattern,
   hash_placeholder::HashPlaceholderGenerator, indexmap::FxIndexMap, path_ext::PathExt, rstr::Rstr,
 };
+use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 
 use crate::{
-  ChunkIdx, ChunkKind, FileNameRenderOptions, FilenameTemplate, ModuleIdx, ModuleTable,
-  NamedImport, NormalModule, NormalizedBundlerOptions, RollupPreRenderedChunk, SymbolNameRefToken,
-  SymbolRef,
+  ChunkIdx, ChunkKind, FileNameRenderOptions, FilenameTemplate, Module, ModuleIdx, NamedImport,
+  NormalModule, NormalizedBundlerOptions, RollupPreRenderedChunk, SymbolNameRefToken, SymbolRef,
 };
 
 use self::types::{
@@ -182,9 +181,9 @@ impl Chunk {
 
   pub fn user_defined_entry_module<'module>(
     &self,
-    module_table: &'module ModuleTable,
+    module_table: &'module IndexVec<ModuleIdx, Module>,
   ) -> Option<&'module NormalModule> {
-    self.user_defined_entry_module_idx().and_then(|idx| module_table.modules[idx].as_normal())
+    self.user_defined_entry_module_idx().and_then(|idx| module_table[idx].as_normal())
   }
 
   pub fn entry_module_idx(&self) -> Option<ModuleIdx> {
@@ -196,8 +195,8 @@ impl Chunk {
 
   pub fn entry_module<'module>(
     &self,
-    module_table: &'module ModuleTable,
+    module_table: &'module IndexVec<ModuleIdx, Module>,
   ) -> Option<&'module NormalModule> {
-    self.entry_module_idx().and_then(|idx| module_table.modules[idx].as_normal())
+    self.entry_module_idx().and_then(|idx| module_table[idx].as_normal())
   }
 }

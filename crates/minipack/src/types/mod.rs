@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use minipack_common::{
   dynamic_import_usage::DynamicImportExportsUsage, Asset, AssetIdx, ChunkIdx, EcmaAstIdx,
-  InstantiatedChunk, ModuleIdx, NormalizedBundlerOptions,
+  InstantiatedChunk, Module, ModuleIdx, NormalizedBundlerOptions,
 };
 use minipack_ecmascript::EcmaAst;
 use minipack_fs::OsFileSystem;
@@ -18,6 +18,7 @@ use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 
 pub type IndexAssets = IndexVec<AssetIdx, Asset>;
+pub type IndexModules = IndexVec<ModuleIdx, Module>;
 pub type IndexEcmaAst = IndexVec<EcmaAstIdx, (EcmaAst, ModuleIdx)>;
 pub type IndexChunkToAssets = IndexVec<ChunkIdx, FxIndexSet<AssetIdx>>;
 pub type IndexInstantiatedChunks = IndexVec<AssetIdx, InstantiatedChunk>;

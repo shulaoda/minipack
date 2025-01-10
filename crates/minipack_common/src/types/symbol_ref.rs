@@ -1,7 +1,8 @@
 use minipack_utils::option_ext::OptionExt;
 use oxc::semantic::SymbolId;
+use oxc_index::IndexVec;
 
-use crate::{IndexModules, Module, ModuleIdx, SymbolRefDb, SymbolRefFlags};
+use crate::{Module, ModuleIdx, SymbolRefDb, SymbolRefFlags};
 
 use super::symbol_ref_db::{GetLocalDb, GetLocalDbMut};
 
@@ -67,7 +68,7 @@ impl SymbolRef {
   pub fn is_created_by_import_stmt_that_target_external(
     &self,
     db: &SymbolRefDb,
-    modules: &IndexModules,
+    modules: &IndexVec<ModuleIdx, Module>,
   ) -> bool {
     let canonical_ref = db.canonical_ref_for(*self);
 

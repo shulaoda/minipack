@@ -62,14 +62,14 @@ pub fn generate_pre_rendered_chunk(
     is_dynamic_entry: matches!(&chunk.kind, ChunkKind::EntryPoint { is_user_defined, .. } if !*is_user_defined),
     facade_module_id: match &chunk.kind {
       ChunkKind::EntryPoint { module, .. } => {
-        Some(graph.module_table.modules[*module].id().to_string().into())
+        Some(graph.module_table[*module].id().to_string().into())
       }
       ChunkKind::Common => None,
     },
     module_ids: chunk
       .modules
       .iter()
-      .map(|id| graph.module_table.modules[*id].id().to_string().into())
+      .map(|id| graph.module_table[*id].id().to_string().into())
       .collect(),
     exports: get_chunk_export_names(chunk, graph),
   }

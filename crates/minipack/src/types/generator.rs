@@ -67,7 +67,7 @@ impl GenerateContext<'_> {
 
   pub fn renderable_ecma_modules(&self) -> impl Iterator<Item = &NormalModule> {
     self.chunk.modules.iter().copied().filter_map(move |id| {
-      let module = &self.link_output.module_table.modules[id];
+      let module = &self.link_output.module_table[id];
       let Module::Normal(module) = module else { return None };
       if !module.is_included() {
         return None;

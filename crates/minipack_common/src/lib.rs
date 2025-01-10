@@ -24,7 +24,6 @@ pub use bundler_options::{
 pub use crate::{
   asset::asset_view::AssetView,
   chunk::{
-    chunk_table::ChunkTable,
     types::{
       cross_chunk_import_item::CrossChunkImportItem, preliminary_filename::PreliminaryFilename,
     },
@@ -76,7 +75,6 @@ pub use crate::{
     module_def_format::ModuleDefFormat,
     module_id::ModuleId,
     module_info::ModuleInfo,
-    module_table::{IndexModules, ModuleTable},
     named_export::LocalExport,
     named_import::{NamedImport, Specifier},
     namespace_alias::NamespaceAlias,

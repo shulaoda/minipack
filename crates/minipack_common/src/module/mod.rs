@@ -113,9 +113,9 @@ impl Module {
     }
   }
 
-  /// Returns `true` if the module is [`Ecma`].
+  /// Returns `true` if the module is [`Normal`].
   ///
-  /// [`Ecma`]: Module::Ecma
+  /// [`Normal`]: Module::Normal
   #[must_use]
   pub fn is_normal(&self) -> bool {
     matches!(self, Self::Normal(..))

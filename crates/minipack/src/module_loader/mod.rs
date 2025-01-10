@@ -11,9 +11,9 @@ use arcstr::ArcStr;
 use minipack_common::{
   side_effects::{DeterminedSideEffects, HookSideEffects},
   EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind, ImportRecordIdx,
-  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleTable, ModuleType,
-  NormalModuleTaskResult, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief,
-  RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule, RUNTIME_MODULE_ID,
+  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleType, NormalModuleTaskResult,
+  ResolvedId, ResolvedImportRecord, RuntimeModuleBrief, RuntimeModuleTaskResult, SymbolRefDb,
+  SymbolRefDbForModule, RUNTIME_MODULE_ID,
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
@@ -26,7 +26,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use task_context::TaskContext;
 use tokio::sync::mpsc::Receiver;
 
-use crate::types::{DynImportUsageMap, IndexEcmaAst, SharedOptions, SharedResolver};
+use crate::types::{DynImportUsageMap, IndexEcmaAst, IndexModules, SharedOptions, SharedResolver};
 
 pub struct IntermediateNormalModules {
   pub modules: IndexVec<ModuleIdx, Option<Module>>,
@@ -63,7 +63,7 @@ pub struct ModuleLoader {
 #[derive(Debug)]
 pub struct ModuleLoaderOutput {
   // Stored all modules
-  pub module_table: ModuleTable,
+  pub module_table: IndexModules,
   pub index_ecma_ast: IndexEcmaAst,
   pub symbol_ref_db: SymbolRefDb,
   // Entries that user defined + dynamic import entries
@@ -261,7 +261,7 @@ impl ModuleLoader {
       },
     );
 
-    let modules: IndexVec<ModuleIdx, Module> = self
+    let module_table: IndexVec<ModuleIdx, Module> = self
       .inm
       .modules
       .into_iter()
@@ -289,7 +289,7 @@ impl ModuleLoader {
     // if `inline_dynamic_imports` is set to be true, here we should not put dynamic imports to entries
     if !self.options.inline_dynamic_imports {
       let mut dynamic_import_entry_ids = dynamic_import_entry_ids.into_iter().collect::<Vec<_>>();
-      dynamic_import_entry_ids.sort_unstable_by_key(|id| modules[*id].stable_id());
+      dynamic_import_entry_ids.sort_unstable_by_key(|id| module_table[*id].stable_id());
 
       entry_points.extend(dynamic_import_entry_ids.into_iter().map(|id| EntryPoint {
         name: None,
@@ -302,7 +302,7 @@ impl ModuleLoader {
       runtime_brief.expect("Failed to find runtime module. This should not happen");
 
     Ok(ModuleLoaderOutput {
-      module_table: ModuleTable { modules },
+      module_table,
       symbol_ref_db: self.symbol_ref_db,
       index_ecma_ast: self.inm.index_ecma_ast,
       entry_points,

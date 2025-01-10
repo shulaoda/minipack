@@ -49,8 +49,8 @@ pub static MIME_TYPES: Map<&'static str, RawMimeExt> = phf_map! {
 };
 
 /// Adapted from:
-/// - https://github.com/rolldown/rolldown/pull/1406/files#diff-4b612e077c82ae0e05e50eb0d419e02c05a04b83c6ac5440c0d0c9d0c38af942
-/// - https://github.com/evanw/esbuild/blob/fc37c2fa9de2ad77476a6d4a8f1516196b90187e/internal/helpers/mime.go#L5
+/// - <https://github.com/rolldown/rolldown/pull/1406/files#diff-4b612e077c82ae0e05e50eb0d419e02c05a04b83c6ac5440c0d0c9d0c38af942>
+/// - <https://github.com/evanw/esbuild/blob/fc37c2fa9de2ad77476a6d4a8f1516196b90187e/internal/helpers/mime.go#L5>
 ///
 /// Thanks to @ikkz and @evanw for the inspiration.
 pub fn mime_type_by_extension(ext: &str) -> Option<RawMimeExt> {

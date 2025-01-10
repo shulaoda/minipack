@@ -1,4 +1,4 @@
-use minipack_common::{AstScopes, IndexModules, NormalModule, SymbolRefDb};
+use minipack_common::{AstScopes, NormalModule, SymbolRefDb};
 use minipack_ecmascript_utils::AstSnippet;
 use oxc::{
   allocator::Allocator,
@@ -6,6 +6,8 @@ use oxc::{
   span::CompactStr,
 };
 use rustc_hash::FxHashSet;
+
+use crate::types::IndexModules;
 
 mod impl_visit_mut;
 

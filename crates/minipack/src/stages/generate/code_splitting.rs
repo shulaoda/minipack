@@ -26,12 +26,12 @@ impl GenerateStage<'_> {
     // we create a facade entry point for it.
 
     let mut chunk_graph = ChunkGraph::new(&self.link_output.module_table);
-    chunk_graph.chunk_table.chunks.reserve(self.link_output.entry_points.len());
+    chunk_graph.chunk_table.reserve(self.link_output.entry_points.len());
 
     let mut index_splitting_info: IndexSplittingInfo = oxc_index::index_vec![SplittingInfo {
         bits: BitSet::new(entries_len),
         share_count: 0
-      }; self.link_output.module_table.modules.len()];
+      }; self.link_output.module_table.len()];
     let mut bits_to_chunk = FxHashMap::with_capacity(self.link_output.entry_points.len());
 
     let mut entry_module_to_entry_chunk: FxHashMap<ModuleIdx, ChunkIdx> =
@@ -41,7 +41,7 @@ impl GenerateStage<'_> {
       let count: u32 = entry_index.try_into().expect("Too many entries, u32 overflowed.");
       let mut bits = BitSet::new(entries_len);
       bits.set_bit(count);
-      let Module::Normal(module) = &self.link_output.module_table.modules[entry_point.id] else {
+      let Module::Normal(module) = &self.link_output.module_table[entry_point.id] else {
         continue;
       };
       let chunk = chunk_graph.add_chunk(Chunk::new(
@@ -68,12 +68,11 @@ impl GenerateStage<'_> {
     });
 
     let mut module_to_assigned: IndexVec<ModuleIdx, bool> =
-      oxc_index::index_vec![false; self.link_output.module_table.modules.len()];
+      oxc_index::index_vec![false; self.link_output.module_table.len()];
 
     // 1. Assign modules to corresponding chunks
     // 2. Create shared chunks to store modules that belong to multiple chunks.
-    for normal_module in self.link_output.module_table.modules.iter().filter_map(Module::as_normal)
-    {
+    for normal_module in self.link_output.module_table.iter().filter_map(Module::as_normal) {
       if !normal_module.meta.is_included() {
         continue;
       }
@@ -102,9 +101,9 @@ impl GenerateStage<'_> {
 
     // Sort modules in each chunk by execution order
     chunk_graph.chunk_table.iter_mut().for_each(|chunk| {
-      chunk.modules.sort_unstable_by_key(|module_id| {
-        self.link_output.module_table.modules[*module_id].exec_order()
-      });
+      chunk
+        .modules
+        .sort_unstable_by_key(|module_id| self.link_output.module_table[*module_id].exec_order());
     });
 
     chunk_graph
@@ -118,14 +117,13 @@ impl GenerateStage<'_> {
           (
             ChunkKind::EntryPoint { module: a_module_id, .. },
             ChunkKind::EntryPoint { module: b_module_id, .. },
-          ) => self.link_output.module_table.modules[*a_module_id]
+          ) => self.link_output.module_table[*a_module_id]
             .exec_order()
-            .cmp(&self.link_output.module_table.modules[*b_module_id].exec_order()),
+            .cmp(&self.link_output.module_table[*b_module_id].exec_order()),
           (ChunkKind::EntryPoint { module: a_module_id, .. }, ChunkKind::Common) => {
-            let a_module_exec_order =
-              self.link_output.module_table.modules[*a_module_id].exec_order();
+            let a_module_exec_order = self.link_output.module_table[*a_module_id].exec_order();
             let b_chunk_first_module_exec_order =
-              self.link_output.module_table.modules[b.modules[0]].exec_order();
+              self.link_output.module_table[b.modules[0]].exec_order();
             if a_module_exec_order == b_chunk_first_module_exec_order {
               a_should_be_first
             } else {
@@ -133,10 +131,9 @@ impl GenerateStage<'_> {
             }
           }
           (ChunkKind::Common, ChunkKind::EntryPoint { module: b_module_id, .. }) => {
-            let b_module_exec_order =
-              self.link_output.module_table.modules[*b_module_id].exec_order();
+            let b_module_exec_order = self.link_output.module_table[*b_module_id].exec_order();
             let a_chunk_first_module_exec_order =
-              self.link_output.module_table.modules[a.modules[0]].exec_order();
+              self.link_output.module_table[a.modules[0]].exec_order();
             if a_chunk_first_module_exec_order == b_module_exec_order {
               b_should_be_first
             } else {
@@ -145,9 +142,9 @@ impl GenerateStage<'_> {
           }
           (ChunkKind::Common, ChunkKind::Common) => {
             let a_chunk_first_module_exec_order =
-              self.link_output.module_table.modules[a.modules[0]].exec_order();
+              self.link_output.module_table[a.modules[0]].exec_order();
             let b_chunk_first_module_exec_order =
-              self.link_output.module_table.modules[b.modules[0]].exec_order();
+              self.link_output.module_table[b.modules[0]].exec_order();
             a_chunk_first_module_exec_order.cmp(&b_chunk_first_module_exec_order)
           }
         }
@@ -214,7 +211,7 @@ impl GenerateStage<'_> {
     entry_index: u32,
     index_splitting_info: &mut IndexSplittingInfo,
   ) {
-    let Module::Normal(module) = &self.link_output.module_table.modules[module_id] else {
+    let Module::Normal(module) = &self.link_output.module_table[module_id] else {
       return;
     };
     let meta = &self.link_output.metadata[module_id];

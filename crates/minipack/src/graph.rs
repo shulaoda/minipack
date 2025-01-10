@@ -1,10 +1,12 @@
-use minipack_common::{Chunk, ChunkIdx, ChunkTable, ModuleIdx, ModuleTable};
+use minipack_common::{Chunk, ChunkIdx, ModuleIdx};
 use oxc_index::{index_vec, IndexVec};
 use rustc_hash::FxHashMap;
 
+use crate::types::IndexModules;
+
 #[derive(Debug)]
 pub struct ChunkGraph {
-  pub chunk_table: ChunkTable,
+  pub chunk_table: IndexVec<ChunkIdx, Chunk>,
   pub sorted_chunk_idx_vec: Vec<ChunkIdx>,
   /// Module to chunk that contains the module
   pub module_to_chunk: IndexVec<ModuleIdx, Option<ChunkIdx>>,
@@ -12,10 +14,10 @@ pub struct ChunkGraph {
 }
 
 impl ChunkGraph {
-  pub fn new(module_table: &ModuleTable) -> Self {
+  pub fn new(module_table: &IndexModules) -> Self {
     Self {
-      chunk_table: ChunkTable::default(),
-      module_to_chunk: index_vec![None; module_table.modules.len()],
+      chunk_table: IndexVec::default(),
+      module_to_chunk: index_vec![None; module_table.len()],
       sorted_chunk_idx_vec: Vec::new(),
       entry_module_to_entry_chunk: FxHashMap::default(),
     }
@@ -26,7 +28,7 @@ impl ChunkGraph {
   }
 
   pub fn add_module_to_chunk(&mut self, module_idx: ModuleIdx, chunk_idx: ChunkIdx) {
-    self.chunk_table.chunks[chunk_idx].modules.push(module_idx);
+    self.chunk_table[chunk_idx].modules.push(module_idx);
     self.module_to_chunk[module_idx] = Some(chunk_idx);
   }
 }

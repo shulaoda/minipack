@@ -1,7 +1,7 @@
 use std::{ptr::addr_of, sync::Mutex};
 
 use minipack_common::{
-  ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleIdx, ModuleTable, OutputFormat,
+  ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleIdx, OutputFormat,
   ResolvedImportRecord, WrapKind,
 };
 use minipack_utils::{
@@ -10,16 +10,18 @@ use minipack_utils::{
   rayon::{IntoParallelRefIterator, ParallelIterator},
 };
 
+use crate::types::IndexModules;
+
 use super::LinkStage;
 
 impl LinkStage<'_> {
   fn is_external_dynamic_import(
-    table: &ModuleTable,
+    table: &IndexModules,
     record: &ResolvedImportRecord,
     module_idx: ModuleIdx,
   ) -> bool {
     record.kind == ImportKind::DynamicImport
-      && table.modules[module_idx].as_normal().is_some_and(|module| module.is_user_defined_entry)
+      && table[module_idx].as_normal().is_some_and(|module| module.is_user_defined_entry)
       && record.resolved_module != module_idx
   }
 
@@ -27,7 +29,6 @@ impl LinkStage<'_> {
     let symbols = Mutex::new(&mut self.symbol_ref_db);
     let record_meta_update_pending_pairs_list = self
       .module_table
-      .modules
       .par_iter()
       .filter_map(Module::as_normal)
       .map(|importer| {
@@ -43,7 +44,7 @@ impl LinkStage<'_> {
         stmt_infos.infos.iter_mut_enumerated().for_each(|(stmt_idx, stmt_info)| {
           stmt_info.import_records.iter().for_each(|rec_id| {
             let rec = &importer.import_records[*rec_id];
-            let rec_resolved_module = &self.module_table.modules[rec.resolved_module];
+            let rec_resolved_module = &self.module_table[rec.resolved_module];
             if (!rec_resolved_module.is_normal()
               || Self::is_external_dynamic_import(&self.module_table, rec, importer_idx))
               && (matches!(rec.kind, ImportKind::Require)
@@ -232,7 +233,7 @@ impl LinkStage<'_> {
 
     // merge import_record.meta
     for (module_idx, record_meta_pairs) in record_meta_update_pending_pairs_list {
-      let Some(module) = self.module_table.modules[module_idx].as_normal_mut() else {
+      let Some(module) = self.module_table[module_idx].as_normal_mut() else {
         continue;
       };
       for (rec_id, meta) in record_meta_pairs {

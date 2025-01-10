@@ -10,7 +10,7 @@ mod sort_modules;
 mod wrap_modules;
 
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, EntryPoint, ImportKind, ModuleIdx, ModuleTable,
+  dynamic_import_usage::DynamicImportExportsUsage, EntryPoint, ImportKind, ModuleIdx,
   RuntimeModuleBrief, SymbolRef, SymbolRefDb,
 };
 use oxc_index::IndexVec;
@@ -18,14 +18,14 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::types::{
   linking_metadata::{LinkingMetadata, LinkingMetadataVec},
-  IndexEcmaAst, SharedOptions,
+  IndexEcmaAst, IndexModules, SharedOptions,
 };
 
 use super::scan::ScanStageOutput;
 
 #[derive(Debug)]
 pub struct LinkStageOutput {
-  pub module_table: ModuleTable,
+  pub module_table: IndexModules,
   pub entry_points: Vec<EntryPoint>,
   pub index_ecma_ast: IndexEcmaAst,
   pub metadata: LinkingMetadataVec,
@@ -39,7 +39,7 @@ pub struct LinkStageOutput {
 
 #[derive(Debug)]
 pub struct LinkStage<'a> {
-  pub module_table: ModuleTable,
+  pub module_table: IndexModules,
   pub entry_points: Vec<EntryPoint>,
   pub symbol_ref_db: SymbolRefDb,
   pub runtime_brief: RuntimeModuleBrief,
@@ -66,7 +66,6 @@ impl<'a> LinkStage<'a> {
     } = scan_stage_output;
 
     let metadata = module_table
-      .modules
       .iter()
       .map(|module| {
         let dependencies = module
@@ -80,7 +79,7 @@ impl<'a> LinkStage<'a> {
 
         let star_exports_from_external_modules =
           module.as_normal().map_or_else(Vec::new, |inner| {
-            inner.star_exports_from_external_modules(&module_table.modules).collect()
+            inner.star_exports_from_external_modules(&module_table).collect()
           });
 
         LinkingMetadata {

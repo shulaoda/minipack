@@ -21,7 +21,6 @@ base-encode = { workspace = true }
 base64-simd = { workspace = true }
 indexmap    = { workspace = true, features = ["serde"] }
 infer       = { workspace = true }
-memchr      = { workspace = true }
 mime        = { workspace = true }
 oxc         = { workspace = true }
 phf         = { workspace = true }

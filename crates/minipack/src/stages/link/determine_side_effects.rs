@@ -1,5 +1,7 @@
-use minipack_common::{side_effects::DeterminedSideEffects, IndexModules, Module, ModuleIdx};
+use minipack_common::{side_effects::DeterminedSideEffects, Module, ModuleIdx};
 use oxc_index::IndexVec;
+
+use crate::types::IndexModules;
 
 use super::LinkStage;
 
@@ -62,21 +64,20 @@ impl LinkStage<'_> {
     }
 
     let mut index_side_effects_cache =
-      oxc_index::index_vec![SideEffectCache::None; self.module_table.modules.len()];
+      oxc_index::index_vec![SideEffectCache::None; self.module_table.len()];
     let index_module_side_effects = self
       .module_table
-      .modules
       .iter()
       .map(|module| {
         determine_side_effects_for_module(
           &mut index_side_effects_cache,
           module.idx(),
-          &self.module_table.modules,
+          &self.module_table,
         )
       })
       .collect::<Vec<_>>();
 
-    self.module_table.modules.iter_mut().zip(index_module_side_effects).for_each(
+    self.module_table.iter_mut().zip(index_module_side_effects).for_each(
       |(module, side_effects)| {
         if let Module::Normal(module) = module {
           module.side_effects = side_effects;
