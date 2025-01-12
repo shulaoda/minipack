@@ -10,12 +10,12 @@ use oxc::span::{Span, SPAN};
 
 /// Pre-process is a essential step to make rolldown generate correct and efficient code.
 pub struct PreProcessor<'ast> {
-  pub contains_use_strict: bool,
   snippet: AstSnippet<'ast>,
   /// For top level statements, this is used to store none_hoisted statements.
   /// For none top level statements, this is used to store split `VarDeclaration`.
   stmt_temp_storage: Vec<Statement<'ast>>,
   need_push_ast: bool,
+  pub contains_use_strict: bool,
 }
 
 impl<'ast> PreProcessor<'ast> {

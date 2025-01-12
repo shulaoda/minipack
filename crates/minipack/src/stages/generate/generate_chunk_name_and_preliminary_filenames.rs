@@ -172,6 +172,7 @@ impl GenerateStage<'_> {
           .absolutize_with(self.options.cwd.join(&self.options.dir))
           .expect_into_string(),
       );
+
       chunk.preliminary_filename = Some(preliminary_filename);
       chunk.css_preliminary_filename = Some(css_preliminary_filename);
     }

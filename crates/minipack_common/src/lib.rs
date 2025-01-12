@@ -22,22 +22,16 @@ pub use bundler_options::{
 
 // We don't want internal position adjustment of files affect users, so all items are exported in the root.
 pub use crate::{
-  asset::asset_view::AssetView,
+  asset::AssetView,
   chunk::{
     types::{
       cross_chunk_import_item::CrossChunkImportItem, preliminary_filename::PreliminaryFilename,
     },
     Chunk,
   },
-  css::{
-    css_module::CssModule,
-    css_module_idx::CssModuleIdx,
-    css_view::{CssAssetNameReplacer, CssRenderer, CssView},
-  },
+  css::{CssAssetNameReplacer, CssRenderer, CssView},
   ecmascript::{
-    comment_annotation::{get_leading_comment, ROLLDOWN_IGNORE},
     dynamic_import_usage,
-    ecma_asset_meta::EcmaAssetMeta,
     ecma_ast_idx::EcmaAstIdx,
     ecma_view::{
       generate_replace_this_expr_map, EcmaModuleAstUsage, EcmaView, EcmaViewMeta,

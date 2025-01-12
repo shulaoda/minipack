@@ -53,7 +53,6 @@ impl EcmaViewMeta {
   pub fn has_star_export(&self) -> bool {
     self.contains(Self::HAS_STAR_EXPORT)
   }
-
   #[inline]
   pub fn set_eval(&mut self, value: bool) {
     if value {

@@ -8,8 +8,7 @@ use crate::{
 };
 
 use minipack_common::{
-  EcmaAssetMeta, InstantiatedChunk, InstantiationKind, ModuleId, ModuleIdx, OutputFormat,
-  RenderedModule, Source,
+  InstantiatedChunk, ModuleId, ModuleIdx, OutputFormat, RenderedModule, Source,
 };
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -77,7 +76,7 @@ impl Generator for EcmaGenerator {
     let instantiated_chunk = InstantiatedChunk {
       origin_chunk: ctx.chunk_idx,
       content: content.into(),
-      kind: InstantiationKind::from(EcmaAssetMeta { rendered_chunk }),
+      kind: rendered_chunk.into(),
       augment_chunk_hash: None,
       file_dir: file_dir.to_path_buf(),
       preliminary_filename: ctx

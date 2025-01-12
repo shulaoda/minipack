@@ -48,16 +48,9 @@ impl ModuleTask {
     owner: Option<ModuleTaskOwner>,
     resolved_id: ResolvedId,
     is_user_defined_entry: bool,
-    assert_module_type: Option<ModuleType>,
+    asserted_module_type: Option<ModuleType>,
   ) -> Self {
-    Self {
-      ctx,
-      idx,
-      owner,
-      resolved_id,
-      is_user_defined_entry,
-      asserted_module_type: assert_module_type,
-    }
+    Self { ctx, idx, owner, resolved_id, is_user_defined_entry, asserted_module_type }
   }
 
   pub async fn run(mut self) {

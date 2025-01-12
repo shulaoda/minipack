@@ -13,9 +13,9 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@taplo/cli": "^0.7.0",
-    "@types/node": "^22.10.0",
-    "cspell": "^8.16.1",
-    "typescript": "^5.7.2"
+    "@types/node": "^22.10.5",
+    "cspell": "^8.17.1",
+    "typescript": "^5.7.3"
   },
   "prettier": {
     "arrowParens": "always",
@@ -29,5 +29,5 @@
     "*.{js,ts,json,md,yml,yaml,vue}": [],
     "*": "cspell --no-progress --gitignore --no-must-find-files"
   },
-  "packageManager": "pnpm@9.12.3"
+  "packageManager": "pnpm@9.15.3"
 }

@@ -38,7 +38,7 @@ impl Bundler {
 
   async fn build(&mut self, is_write: bool) -> BuildResult<BundleOutput> {
     if self.closed {
-      return Err(anyhow::anyhow!(
+      Err(anyhow::anyhow!(
         "Bundle is already closed, no more calls to 'generate' or 'write' are allowed."
       ))?;
     }
@@ -52,14 +52,14 @@ impl Bundler {
       GenerateStage::new(&mut link_stage_output, &self.options).generate().await?;
 
     if is_write {
-      let dist_dir = self.options.cwd.join(&self.options.dir);
+      let dist = self.options.cwd.join(&self.options.dir);
 
-      self.fs.create_dir_all(&dist_dir).map_err(|err| {
-        anyhow::anyhow!("Could not create directory for output chunks: {:?}", dist_dir).context(err)
+      self.fs.create_dir_all(&dist).map_err(|err| {
+        anyhow::anyhow!("Could not create directory for output chunks: {:?}", dist).context(err)
       })?;
 
       for chunk in &bundle_output.assets {
-        let dest = dist_dir.join(chunk.filename());
+        let dest = dist.join(chunk.filename());
         if let Some(p) = dest.parent() {
           if !self.fs.exists(p) {
             self.fs.create_dir_all(p).unwrap();

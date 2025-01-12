@@ -42,9 +42,8 @@ impl GenerateStage<'_> {
     let mut output = Vec::with_capacity(assets.len());
     for Asset { meta: rendered_chunk, content: code, preliminary_filename, filename, .. } in assets
     {
-      if let InstantiationKind::Ecma(ecma_meta) = rendered_chunk {
+      if let InstantiationKind::Ecma(rendered_chunk) = rendered_chunk {
         let code = code.try_into_string()?;
-        let rendered_chunk = ecma_meta.rendered_chunk;
 
         output.push(Output::Chunk(Box::new(OutputChunk {
           name: rendered_chunk.name,

@@ -119,10 +119,9 @@ pub fn finalize_assets(
       .into_owned()
       .into();
 
-      if let InstantiationKind::Ecma(ecma_meta) = &mut asset.kind {
-        ecma_meta.rendered_chunk.filename = filename.clone();
-        let (_, debug_id) = index_final_hashes[asset_idx];
-        ecma_meta.rendered_chunk.debug_id = debug_id;
+      if let InstantiationKind::Ecma(rendered_chunk) = &mut asset.kind {
+        rendered_chunk.filename = filename.clone();
+        rendered_chunk.debug_id = index_final_hashes[asset_idx].1;
       }
 
       match &mut asset.content {
@@ -143,16 +142,16 @@ pub fn finalize_assets(
     assets.iter().map(|asset| asset.filename.clone()).collect::<Vec<_>>().into();
 
   assets.par_iter_mut().for_each(|asset| {
-    if let InstantiationKind::Ecma(ecma_meta) = &mut asset.meta {
+    if let InstantiationKind::Ecma(rendered_chunk) = &mut asset.meta {
       let chunk = &chunk_graph.chunk_table[asset.origin_chunk];
-      ecma_meta.rendered_chunk.imports = chunk
+      rendered_chunk.imports = chunk
         .cross_chunk_imports
         .iter()
         .flat_map(|importee_idx| &index_chunk_to_assets[*importee_idx])
         .map(|importee_asset_idx| index_asset_to_filename[*importee_asset_idx].clone().into())
         .collect();
 
-      ecma_meta.rendered_chunk.dynamic_imports = chunk
+      rendered_chunk.dynamic_imports = chunk
         .cross_chunk_dynamic_imports
         .iter()
         .flat_map(|importee_idx| &index_chunk_to_assets[*importee_idx])

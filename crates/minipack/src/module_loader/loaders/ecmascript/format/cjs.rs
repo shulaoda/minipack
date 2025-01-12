@@ -51,10 +51,14 @@ pub fn render_cjs<'code>(
 ) -> BuildResult<SourceJoiner<'code>> {
   let mut source_joiner = SourceJoiner::default();
 
-  if ctx.renderable_ecma_modules().all(|ecma_module| {
-    ecma_module.exports_kind.is_esm()
-      || ctx.link_output.index_ecma_ast[ecma_module.ecma_ast_idx()].0.contains_use_strict
-  }) {
+  let mut modules = ctx.renderable_ecma_modules().peekable();
+  let is_strict = modules.peek().is_some()
+    && modules.all(|ecma_module| {
+      ecma_module.exports_kind.is_esm()
+        || ctx.link_output.index_ecma_ast[ecma_module.ecma_ast_idx()].0.contains_use_strict
+    });
+
+  if is_strict {
     source_joiner.append_source("\"use strict\";");
   }
 
