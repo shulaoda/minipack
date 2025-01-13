@@ -20,7 +20,7 @@ use crate::module_loader::ast_scanner::{AstScanResult, AstScanner};
 use crate::types::SharedNormalizedBundlerOptions;
 
 pub struct RuntimeModuleTask {
-  module_idx: ModuleIdx,
+  idx: ModuleIdx,
   tx: Sender<ModuleLoaderMsg>,
   options: SharedNormalizedBundlerOptions,
 }
@@ -34,11 +34,11 @@ pub struct MakeEcmaAstResult {
 
 impl RuntimeModuleTask {
   pub fn new(
-    module_idx: ModuleIdx,
-    tx: tokio::sync::mpsc::Sender<ModuleLoaderMsg>,
+    idx: ModuleIdx,
+    tx: Sender<ModuleLoaderMsg>,
     options: SharedNormalizedBundlerOptions,
   ) -> Self {
-    Self { module_idx, tx, options }
+    Self { idx, tx, options }
   }
 
   pub fn run(mut self) {
@@ -65,31 +65,25 @@ impl RuntimeModuleTask {
 
     let MakeEcmaAstResult { ast, ast_scope, scan_result, namespace_object_ref } = ecma_ast_result;
 
-    let runtime = RuntimeModuleBrief::new(self.module_idx, &ast_scope);
+    let runtime = RuntimeModuleBrief::new(self.idx, &ast_scope);
 
     let AstScanResult {
       named_imports,
       named_exports,
       stmt_infos,
       default_export_ref,
+      ast_usage,
+      symbols,
       imports,
       import_records: raw_import_records,
-      exports_kind: _,
-      warnings: _,
-      has_eval,
-      errors: _,
-      ast_usage,
-      symbol_ref_db,
-      self_referenced_class_decl_symbol_ids: _,
-      hashbang_range: _,
-      has_star_exports,
-      dynamic_import_rec_exports_usage: _,
       new_url_references,
-      this_expr_replace_map: _,
+      has_star_exports,
+      has_eval,
+      ..
     } = scan_result;
 
     let module = NormalModule {
-      idx: self.module_idx,
+      idx: self.idx,
       repr_name: "rolldown_runtime".to_string(),
       stable_id: RUNTIME_MODULE_ID.to_string(),
       id: ModuleId::new(RUNTIME_MODULE_ID),
@@ -141,7 +135,16 @@ impl RuntimeModuleTask {
       .iter()
       .map(|rec| {
         // We assume the runtime module only has external dependencies.
-        ResolvedId::new_external_without_side_effects(rec.module_request.to_string().into())
+        let id = rec.module_request.to_string().into();
+        ResolvedId {
+          id,
+          ignored: false,
+          module_def_format: ModuleDefFormat::Unknown,
+          is_external: true,
+          package_json: None,
+          side_effects: None,
+          is_external_without_side_effects: true,
+        }
       })
       .collect();
 
@@ -149,7 +152,7 @@ impl RuntimeModuleTask {
       ast,
       module,
       runtime,
-      symbol_ref_db,
+      symbols,
       resolved_deps,
       raw_import_records,
     });
@@ -174,7 +177,7 @@ impl RuntimeModuleTask {
     let ast_scope = AstScopes::new(scope);
     let facade_path = ModuleId::new("runtime");
     let scanner = AstScanner::new(
-      self.module_idx,
+      self.idx,
       &ast_scope,
       symbol_table,
       "rolldown_runtime",

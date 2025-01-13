@@ -20,15 +20,15 @@ impl LinkStage<'_> {
       .iter()
       .rev()
       .map(|entry| Status::ToBeExecuted(entry.id))
-      .chain(iter::once(Status::ToBeExecuted(self.runtime_brief.id())))
+      .chain(iter::once(Status::ToBeExecuted(self.runtime_module.id())))
       .collect::<Vec<_>>();
 
-    let mut executed_ids = FxHashSet::with_capacity(self.module_table.len());
+    let mut executed_ids = FxHashSet::with_capacity(self.modules.len());
     let mut stack_indexes_of_executing_id = FxHashMap::default();
 
     let mut next_exec_order = 0;
     let mut circular_dependencies = FxHashSet::default();
-    let mut sorted_modules = Vec::with_capacity(self.module_table.len());
+    let mut sorted_modules = Vec::with_capacity(self.modules.len());
 
     while let Some(status) = execution_stack.pop() {
       match status {
@@ -54,7 +54,7 @@ impl LinkStage<'_> {
             stack_indexes_of_executing_id.insert(id, execution_stack.len() - 1);
 
             execution_stack.extend(
-              self.module_table[id]
+              self.modules[id]
                 .import_records()
                 .iter()
                 .filter(|rec| rec.kind.is_static())
@@ -65,7 +65,7 @@ impl LinkStage<'_> {
           }
         }
         Status::WaitForExit(id) => {
-          match &mut self.module_table[id] {
+          match &mut self.modules[id] {
             Module::Normal(module) => {
               sorted_modules.push(id);
               module.exec_order = next_exec_order;
@@ -85,7 +85,7 @@ impl LinkStage<'_> {
         let paths = cycle
           .iter()
           .copied()
-          .filter_map(|id| self.module_table[id].as_normal())
+          .filter_map(|id| self.modules[id].as_normal())
           .map(|module| module.id.to_string())
           .collect::<Vec<_>>();
 

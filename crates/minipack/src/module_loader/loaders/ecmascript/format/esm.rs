@@ -16,12 +16,12 @@ pub fn render_esm<'code>(
 
   source_joiner.append_source(render_esm_chunk_imports(ctx));
 
-  if let Some(entry_module) = ctx.chunk.entry_module(&ctx.link_output.module_table) {
+  if let Some(entry_module) = ctx.chunk.entry_module(&ctx.link_output.modules) {
     if matches!(entry_module.exports_kind, ExportsKind::Esm) {
       entry_module
         .star_export_module_ids()
         .filter_map(|importee| {
-          let importee = &ctx.link_output.module_table[importee];
+          let importee = &ctx.link_output.modules[importee];
           importee.as_external().map(|m| &m.name)
         })
         .dedup()
@@ -89,7 +89,7 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
     let mut specifiers = items
       .iter()
       .filter_map(|item| {
-        let canonical_ref = ctx.link_output.symbol_ref_db.canonical_ref_for(item.import_ref);
+        let canonical_ref = ctx.link_output.symbols.canonical_ref_for(item.import_ref);
         let imported = &ctx.chunk.canonical_names[&canonical_ref];
         let Specifier::Literal(alias) = item.export_alias.as_ref().unwrap() else {
           panic!("should not be star import from other chunks")
@@ -115,15 +115,14 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
   });
   // render external imports
   ctx.chunk.imports_from_external_modules.iter().for_each(|(importee_id, named_imports)| {
-    let importee = &ctx.link_output.module_table[*importee_id]
-      .as_external()
-      .expect("Should be external module here");
+    let importee =
+      &ctx.link_output.modules[*importee_id].as_external().expect("Should be external module here");
     let mut has_importee_imported = false;
     let mut default_alias = vec![];
     let specifiers = named_imports
       .iter()
       .filter_map(|item| {
-        let canonical_ref = &ctx.link_output.symbol_ref_db.canonical_ref_for(item.imported_as);
+        let canonical_ref = &ctx.link_output.symbols.canonical_ref_for(item.imported_as);
         if !ctx.link_output.used_symbol_refs.contains(canonical_ref) {
           return None;
         };

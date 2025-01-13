@@ -54,8 +54,8 @@ pub struct ModuleLoader {
   remaining: u32,
   options: SharedOptions,
   shared_context: Arc<TaskContext>,
-  runtime_id: ModuleIdx,
-  symbol_ref_db: SymbolRefDb,
+  runtime_idx: ModuleIdx,
+  symbols: SymbolRefDb,
   inm: IntermediateNormalModules,
   visited: FxHashMap<ArcStr, ModuleIdx>,
 }
@@ -63,12 +63,12 @@ pub struct ModuleLoader {
 #[derive(Debug)]
 pub struct ModuleLoaderOutput {
   // Stored all modules
-  pub module_table: IndexModules,
+  pub symbols: SymbolRefDb,
+  pub modules: IndexModules,
   pub index_ecma_ast: IndexEcmaAst,
-  pub symbol_ref_db: SymbolRefDb,
   // Entries that user defined + dynamic import entries
   pub entry_points: Vec<EntryPoint>,
-  pub runtime_brief: RuntimeModuleBrief,
+  pub runtime_module: RuntimeModuleBrief,
   pub warnings: Vec<anyhow::Error>,
   pub dyn_import_usage_map: DynImportUsageMap,
 }
@@ -88,16 +88,16 @@ impl ModuleLoader {
 
     let mut inm = IntermediateNormalModules::new();
 
-    let runtime_id = inm.alloc_ecma_module_idx();
-    let symbol_ref_db = SymbolRefDb::default();
+    let runtime_idx = inm.alloc_ecma_module_idx();
+    let symbols = SymbolRefDb::default();
 
-    let visited = FxHashMap::from_iter([(RUNTIME_MODULE_ID.into(), runtime_id)]);
+    let visited = FxHashMap::from_iter([(RUNTIME_MODULE_ID.into(), runtime_idx)]);
 
-    let task = RuntimeModuleTask::new(runtime_id, tx.clone(), options.clone());
+    let task = RuntimeModuleTask::new(runtime_idx, tx.clone(), options.clone());
 
     tokio::spawn(async { task.run() });
 
-    Ok(Self { rx, remaining: 1, options, shared_context, runtime_id, symbol_ref_db, inm, visited })
+    Ok(Self { rx, remaining: 1, options, shared_context, runtime_idx, symbols, inm, visited })
   }
 
   pub async fn fetch_all_modules(
@@ -127,7 +127,7 @@ impl ModuleLoader {
     let mut errors: Vec<anyhow::Error> = vec![];
     let mut warnings: Vec<anyhow::Error> = vec![];
 
-    let mut runtime_brief: Option<RuntimeModuleBrief> = None;
+    let mut runtime_module: Option<RuntimeModuleBrief> = None;
 
     let mut dynamic_import_entry_ids = FxHashSet::default();
     let mut dynamic_import_exports_usage_pairs = vec![];
@@ -188,17 +188,17 @@ impl ModuleLoader {
 
           module.set_import_records(import_records);
 
-          if let Some(EcmaRelated { ast, symbol_ref_db, .. }) = ecma_related {
+          if let Some(EcmaRelated { ast, symbols, .. }) = ecma_related {
             let ast_idx = self.inm.index_ecma_ast.push((ast, module.idx()));
             module.set_ecma_ast_idx(ast_idx);
-            self.symbol_ref_db.store_local_db(module_idx, symbol_ref_db);
+            self.symbols.store_local_db(module_idx, symbols);
           }
           self.inm.modules[module_idx] = Some(module);
           self.remaining -= 1;
         }
         ModuleLoaderMsg::RuntimeModuleDone(task_result) => {
           let RuntimeModuleTaskResult {
-            symbol_ref_db,
+            symbols,
             mut module,
             runtime,
             ast,
@@ -226,12 +226,12 @@ impl ModuleLoader {
 
           let ast_idx = self.inm.index_ecma_ast.push((ast, module.idx));
 
-          runtime_brief = Some(runtime);
+          runtime_module = Some(runtime);
           module.ecma_ast_idx = Some(ast_idx);
           module.import_records = import_records;
 
-          self.inm.modules[self.runtime_id] = Some(module.into());
-          self.symbol_ref_db.store_local_db(self.runtime_id, symbol_ref_db);
+          self.inm.modules[self.runtime_idx] = Some(module.into());
+          self.symbols.store_local_db(self.runtime_idx, symbols);
 
           self.remaining -= 1;
         }
@@ -261,7 +261,7 @@ impl ModuleLoader {
       },
     );
 
-    let module_table: IndexVec<ModuleIdx, Module> = self
+    let modules: IndexVec<ModuleIdx, Module> = self
       .inm
       .modules
       .into_iter()
@@ -289,7 +289,7 @@ impl ModuleLoader {
     // if `inline_dynamic_imports` is set to be true, here we should not put dynamic imports to entries
     if !self.options.inline_dynamic_imports {
       let mut dynamic_import_entry_ids = dynamic_import_entry_ids.into_iter().collect::<Vec<_>>();
-      dynamic_import_entry_ids.sort_unstable_by_key(|id| module_table[*id].stable_id());
+      dynamic_import_entry_ids.sort_unstable_by_key(|id| modules[*id].stable_id());
 
       entry_points.extend(dynamic_import_entry_ids.into_iter().map(|id| EntryPoint {
         name: None,
@@ -298,15 +298,15 @@ impl ModuleLoader {
       }));
     }
 
-    let runtime_brief =
-      runtime_brief.expect("Failed to find runtime module. This should not happen");
+    let runtime_module =
+      runtime_module.expect("Failed to find runtime module. This should not happen");
 
     Ok(ModuleLoaderOutput {
-      module_table,
-      symbol_ref_db: self.symbol_ref_db,
+      modules,
+      symbols: self.symbols,
       index_ecma_ast: self.inm.index_ecma_ast,
       entry_points,
-      runtime_brief,
+      runtime_module,
       warnings,
       dyn_import_usage_map,
     })
@@ -336,12 +336,12 @@ impl ModuleLoader {
               DeterminedSideEffects::NoTreeshake
             };
 
-          self.symbol_ref_db.store_local_db(
+          self.symbols.store_local_db(
             idx,
             SymbolRefDbForModule::new(SymbolTable::default(), idx, ScopeId::new(0)),
           );
 
-          let symbol_ref = self.symbol_ref_db.create_facade_root_symbol_ref(
+          let symbol_ref = self.symbols.create_facade_root_symbol_ref(
             idx,
             &legitimize_identifier_name(resolved_id.id.as_str()),
           );

@@ -14,10 +14,10 @@ pub struct ChunkGraph {
 }
 
 impl ChunkGraph {
-  pub fn new(module_table: &IndexModules) -> Self {
+  pub fn new(modules: &IndexModules) -> Self {
     Self {
       chunk_table: IndexVec::default(),
-      module_to_chunk: index_vec![None; module_table.len()],
+      module_to_chunk: index_vec![None; modules.len()],
       sorted_chunk_idx_vec: Vec::new(),
       entry_module_to_entry_chunk: FxHashMap::default(),
     }

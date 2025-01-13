@@ -123,7 +123,7 @@ impl ModuleTask {
     let CreateEcmaViewReturn {
       view: mut ecma_view,
       ast,
-      symbol_ref_db,
+      symbols,
       raw_import_records: ecma_raw_import_records,
       dynamic_import_exports_usage,
     } = ret;
@@ -173,7 +173,7 @@ impl ModuleTask {
       resolved_deps,
       module_idx: self.idx,
       warnings,
-      ecma_related: Some(EcmaRelated { ast, symbol_ref_db, dynamic_import_exports_usage }),
+      ecma_related: Some(EcmaRelated { ast, symbols, dynamic_import_exports_usage }),
       module: module.into(),
       raw_import_records,
     });

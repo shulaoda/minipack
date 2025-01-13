@@ -1,18 +1,20 @@
-use arcstr::ArcStr;
-use dashmap::DashMap;
-use itertools::Itertools;
-use minipack_common::{ImportKind, ModuleDefFormat, PackageJson, Platform, ResolveOptions};
-use minipack_fs::{FileSystem, OsFileSystem};
 use std::{
   path::{Path, PathBuf},
   sync::Arc,
 };
+
+use arcstr::ArcStr;
+use dashmap::DashMap;
+use itertools::Itertools;
 use sugar_path::SugarPath;
 
 use oxc_resolver::{
   EnforceExtension, PackageJson as OxcPackageJson, Resolution, ResolveError,
   ResolveOptions as OxcResolverOptions, ResolverGeneric, TsconfigOptions,
 };
+
+use minipack_common::{ImportKind, ModuleDefFormat, PackageJson, Platform, ResolveOptions};
+use minipack_fs::{FileSystem, OsFileSystem};
 
 #[derive(Debug)]
 pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
@@ -170,78 +172,6 @@ pub struct ResolveReturn {
   pub package_json: Option<Arc<PackageJson>>,
 }
 
-impl<F: FileSystem + Default> Resolver<F> {
-  pub fn resolve(
-    &self,
-    importer: Option<&Path>,
-    specifier: &str,
-    import_kind: ImportKind,
-    is_user_defined_entry: bool,
-  ) -> Result<ResolveReturn, ResolveError> {
-    let selected_resolver = match import_kind {
-      ImportKind::NewUrl => &self.new_url_resolver,
-      ImportKind::Require => &self.require_resolver,
-      ImportKind::AtImport | ImportKind::UrlImport => &self.css_resolver,
-      ImportKind::Import | ImportKind::DynamicImport => &self.import_resolver,
-    };
-
-    let importer_dir = importer.and_then(|importer| importer.parent()).and_then(|inner| {
-      if inner.components().next().is_none() {
-        // Empty path `Path::new("")`
-        None
-      } else {
-        Some(inner)
-      }
-    });
-
-    let context_dir = importer_dir.unwrap_or(self.cwd.as_path());
-
-    let mut resolution = selected_resolver.resolve(context_dir, specifier);
-
-    if resolution.is_err() && is_user_defined_entry {
-      let is_specifier_path_like = specifier.starts_with('.') || specifier.starts_with('/');
-      let need_rollup_resolve_compat = !is_specifier_path_like;
-      if need_rollup_resolve_compat {
-        // Rolldown doesn't pursue to have the same resolve behavior as Rollup. Even though, in most cases, rolldown have the same resolve result as Rollup. And in this branch, it's the case that rolldown will perform differently from Rollup.
-
-        // The case is user writes config like `{ input: 'main' }`. `main` would be treated as a npm package name in rolldown
-        // and try to resolve it from `node_modules`. But rollup will resolve it to `<CWD>/main.{js,mjs,cjs}`.
-
-        // So in this branch, to improve rollup-compatibility, we try to simulate the Rollup's resolve behavior in this case.
-        // // Related rollup code: https://github.com/rollup/rollup/blob/680912e2ceb42c8d5e571e01c6ece0e4889aecbb/src/utils/resolveId.ts#L56.
-        let fallback = selected_resolver
-          .resolve(context_dir, &self.cwd.join(specifier).normalize().to_string_lossy());
-        if fallback.is_ok() {
-          resolution = fallback;
-        }
-      }
-    }
-
-    resolution.map(|info| {
-      let path: ArcStr =
-        info.full_path().to_str().expect("Should be valid utf8").to_string().into();
-      let package_json = info.package_json().map(|p| self.cached_package_json(p));
-      let module_def_format = infer_module_def_format(&info);
-
-      ResolveReturn { path, package_json, module_def_format }
-    })
-  }
-
-  fn cached_package_json(&self, oxc_pkg_json: &OxcPackageJson) -> Arc<PackageJson> {
-    if let Some(v) = self.package_json_cache.get(&oxc_pkg_json.realpath) {
-      Arc::clone(v.value())
-    } else {
-      let pkg_json = Arc::new(
-        PackageJson::new(oxc_pkg_json.path.clone())
-          .with_type(oxc_pkg_json.r#type.as_ref())
-          .with_side_effects(oxc_pkg_json.side_effects.as_ref()),
-      );
-      self.package_json_cache.insert(oxc_pkg_json.realpath.clone(), Arc::clone(&pkg_json));
-      pkg_json
-    }
-  }
-}
-
 fn infer_module_def_format(info: &Resolution) -> ModuleDefFormat {
   let fmt = ModuleDefFormat::from_path(info.path());
 
@@ -258,4 +188,62 @@ fn infer_module_def_format(info: &Resolution) -> ModuleDefFormat {
     }
   }
   ModuleDefFormat::Unknown
+}
+
+impl<F: FileSystem + Default> Resolver<F> {
+  pub fn resolve(
+    &self,
+    importer: Option<&Path>,
+    specifier: &str,
+    import_kind: ImportKind,
+    is_user_defined_entry: bool,
+  ) -> Result<ResolveReturn, ResolveError> {
+    let resolver = match import_kind {
+      ImportKind::NewUrl => &self.new_url_resolver,
+      ImportKind::Require => &self.require_resolver,
+      ImportKind::AtImport | ImportKind::UrlImport => &self.css_resolver,
+      ImportKind::Import | ImportKind::DynamicImport => &self.import_resolver,
+    };
+
+    let dir = importer
+      .and_then(|importer| importer.parent())
+      .filter(|inner| inner.components().next().is_some())
+      .unwrap_or(self.cwd.as_path());
+
+    let mut resolution = resolver.resolve(dir, specifier);
+
+    // Handle `{ input: 'main' }` -> `<CWD>/main.{js,mjs,cjs}`
+    if resolution.is_err() && is_user_defined_entry {
+      let is_specifier_path_like = specifier.starts_with('.') || specifier.starts_with('/');
+      let need_rollup_resolve_compat = !is_specifier_path_like;
+
+      if need_rollup_resolve_compat {
+        let normalized_specifier = self.cwd.join(specifier).normalize();
+        let result = resolver.resolve(dir, &normalized_specifier.to_string_lossy());
+        if result.is_ok() {
+          resolution = result;
+        }
+      }
+    }
+
+    resolution.map(|info| {
+      let path = info.full_path().to_str().expect("Should be valid utf8").to_string().into();
+      let package_json = info.package_json().map(|p| self.cached_package_json(p));
+      ResolveReturn { path, package_json, module_def_format: infer_module_def_format(&info) }
+    })
+  }
+
+  fn cached_package_json(&self, oxc_pkg_json: &OxcPackageJson) -> Arc<PackageJson> {
+    if let Some(v) = self.package_json_cache.get(&oxc_pkg_json.realpath) {
+      Arc::clone(v.value())
+    } else {
+      let pkg_json = Arc::new(
+        PackageJson::new(oxc_pkg_json.path.clone())
+          .with_type(oxc_pkg_json.r#type.as_ref())
+          .with_side_effects(oxc_pkg_json.side_effects.as_ref()),
+      );
+      self.package_json_cache.insert(oxc_pkg_json.realpath.clone(), Arc::clone(&pkg_json));
+      pkg_json
+    }
+  }
 }

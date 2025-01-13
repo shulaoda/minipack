@@ -71,7 +71,7 @@ impl GenerateStage<'_> {
           let mut module_ids = chunk_graph.chunk_table[*chunk_id]
             .modules
             .iter()
-            .map(|id| self.link_output.module_table[*id].id())
+            .map(|id| self.link_output.modules[*id].id())
             .collect::<Vec<_>>();
           module_ids.sort_unstable();
           module_ids
@@ -100,7 +100,7 @@ impl GenerateStage<'_> {
         imports_from_external_modules
           .into_iter()
           .sorted_by_key(|(external_module_id, _)| {
-            self.link_output.module_table[*external_module_id].exec_order()
+            self.link_output.modules[*external_module_id].exec_order()
           })
           .collect_vec()
       })
@@ -140,7 +140,7 @@ impl GenerateStage<'_> {
     index_chunk_imports_from_external_modules: &mut IndexChunkImportsFromExternalModules,
     index_cross_chunk_dynamic_imports: &mut IndexCrossChunkDynamicImports,
   ) {
-    let symbols = &self.link_output.symbol_ref_db;
+    let symbols = &self.link_output.symbols;
     let chunk_id_to_symbols_vec = append_only_vec::AppendOnlyVec::new();
 
     let chunks_iter = multizip((
@@ -159,7 +159,7 @@ impl GenerateStage<'_> {
       )| {
         let mut symbol_needs_to_assign = vec![];
         chunk.modules.iter().copied().for_each(|module_id| {
-          let Module::Normal(module) = &self.link_output.module_table[module_id] else {
+          let Module::Normal(module) = &self.link_output.modules[module_id] else {
             return;
           };
           module
@@ -167,7 +167,7 @@ impl GenerateStage<'_> {
             .iter()
             .inspect(|rec| {
               if let Module::Normal(importee_module) =
-                &self.link_output.module_table[rec.resolved_module]
+                &self.link_output.modules[rec.resolved_module]
               {
                 // the the resolved module is not included in module graph, skip
                 // TODO: Is that possible that the module of the record is a external module?
@@ -185,7 +185,7 @@ impl GenerateStage<'_> {
               matches!(rec.kind, ImportKind::Import)
                 && !rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR)
             })
-            .filter_map(|rec| self.link_output.module_table[rec.resolved_module].as_external())
+            .filter_map(|rec| self.link_output.modules[rec.resolved_module].as_external())
             .for_each(|importee| {
               // Ensure the external module is imported in case it has side effects.
               imports_from_external_modules.entry(importee.idx).or_default();
@@ -193,8 +193,7 @@ impl GenerateStage<'_> {
 
           module.named_imports.iter().for_each(|(_, import)| {
             let rec = &module.import_records[import.record_id];
-            if let Module::External(importee) = &self.link_output.module_table[rec.resolved_module]
-            {
+            if let Module::External(importee) = &self.link_output.modules[rec.resolved_module] {
               imports_from_external_modules.entry(importee.idx).or_default().push(import.clone());
             }
           });
@@ -220,8 +219,7 @@ impl GenerateStage<'_> {
                   if let Some(sym_ref) = member_expr.resolved_symbol_ref(
                     &self.link_output.metadata[module.idx].resolved_member_expr_refs,
                   ) {
-                    let mut canonical_ref =
-                      self.link_output.symbol_ref_db.canonical_ref_for(sym_ref);
+                    let mut canonical_ref = self.link_output.symbols.canonical_ref_for(sym_ref);
                     let symbol = symbols.get(canonical_ref);
                     if let Some(ref ns_alias) = symbol.namespace_alias {
                       canonical_ref = ns_alias.namespace_ref;
@@ -238,7 +236,7 @@ impl GenerateStage<'_> {
         });
 
         if let Some(entry_id) = &chunk.entry_module_idx() {
-          let entry = &self.link_output.module_table[*entry_id].as_normal().unwrap();
+          let entry = &self.link_output.modules[*entry_id].as_normal().unwrap();
           let entry_meta = &self.link_output.metadata[entry.idx];
 
           if !matches!(entry_meta.wrap_kind, WrapKind::Cjs) {
@@ -260,7 +258,7 @@ impl GenerateStage<'_> {
           if matches!(self.options.format, OutputFormat::Cjs)
             && matches!(entry.exports_kind, ExportsKind::Esm)
           {
-            depended_symbols.insert(self.link_output.runtime_brief.resolve_symbol("__toCommonJS"));
+            depended_symbols.insert(self.link_output.runtime_module.resolve_symbol("__toCommonJS"));
             depended_symbols.insert(entry.namespace_object_ref);
           }
         }
@@ -268,7 +266,7 @@ impl GenerateStage<'_> {
       },
     );
     // shadowing previous immutable borrow
-    let symbols = &mut self.link_output.symbol_ref_db;
+    let symbols = &mut self.link_output.symbols;
     for (chunk_id, symbol_list) in chunk_id_to_symbols_vec {
       for declared in symbol_list {
         if cfg!(debug_assertions) {
@@ -278,7 +276,7 @@ impl GenerateStage<'_> {
             "Symbol: {:?}, {:?} in {:?} should only belong to one chunk. Existed {:?}, new {chunk_id:?}",
             declared.name(symbols),
             declared,
-            self.link_output.module_table[declared.owner].id(),
+            self.link_output.modules[declared.owner].id(),
             symbol_data.chunk_id,
           );
         }
@@ -306,13 +304,13 @@ impl GenerateStage<'_> {
           continue;
         }
         // If the symbol from external, we don't need to include it.
-        if self.link_output.module_table[import_ref.owner].is_external() {
+        if self.link_output.modules[import_ref.owner].is_external() {
           continue;
         }
-        let import_symbol = self.link_output.symbol_ref_db.get(import_ref);
+        let import_symbol = self.link_output.symbols.get(import_ref);
         let importee_chunk_id = import_symbol.chunk_id.unwrap_or_else(|| {
-          let symbol_owner = &self.link_output.module_table[import_ref.owner];
-          let symbol_name = import_ref.name(&self.link_output.symbol_ref_db);
+          let symbol_owner = &self.link_output.modules[import_ref.owner];
+          let symbol_name = import_ref.name(&self.link_output.symbols);
           panic!("Symbol {:?} in {:?} should belong to a chunk", symbol_name, symbol_owner.id())
         });
         // Check if the import is from another chunk
@@ -335,7 +333,7 @@ impl GenerateStage<'_> {
           .filter(|(id, _)| *id != chunk_id)
           .filter(|(_, importee_chunk)| {
             importee_chunk.bits.has_bit(*importer_chunk_bit)
-              && importee_chunk.has_side_effect(self.link_output.runtime_brief.id())
+              && importee_chunk.has_side_effect(self.link_output.runtime_module.id())
           })
           .for_each(|(importee_chunk_id, _)| {
             index_cross_chunk_imports[chunk_id].insert(importee_chunk_id);
@@ -364,11 +362,11 @@ impl GenerateStage<'_> {
         .sorted_by_cached_key(|symbol_ref| {
           // same deconflict order in deconflict_chunk_symbols.rs
           // https://github.com/rolldown/rolldown/blob/504ea76c00563eb7db7a49c2b6e04b2fbe61bdc1/crates/rolldown/src/utils/chunk/deconflict_chunk_symbols.rs?plain=1#L86-L102
-          Reverse::<u32>(self.link_output.module_table[symbol_ref.owner].exec_order())
+          Reverse::<u32>(self.link_output.modules[symbol_ref.owner].exec_order())
         })
         .copied()
       {
-        let original_name = chunk_export.name(&self.link_output.symbol_ref_db).to_rstr();
+        let original_name = chunk_export.name(&self.link_output.symbols).to_rstr();
         let key: Cow<'_, Rstr> = Cow::Owned(original_name.clone());
         let count = name_count.entry(key).or_insert(0u32);
         let alias = if *count == 0 {

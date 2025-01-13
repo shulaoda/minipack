@@ -177,7 +177,7 @@ impl GenerateStage<'_> {
           .modules
           .par_iter()
           .map(|&module_idx| {
-            if let Some(module) = self.link_output.module_table[module_idx].as_normal() {
+            if let Some(module) = self.link_output.modules[module_idx].as_normal() {
               let ast = &self.link_output.index_ecma_ast[module.ecma_ast_idx()].0;
               module.render(&ModuleRenderArgs::Ecma { ast })
             } else {

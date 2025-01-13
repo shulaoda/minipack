@@ -12,7 +12,7 @@ use super::AstScanner;
 
 impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   pub fn check_import_assign(&mut self, ident: &IdentifierReference, symbol_id: SymbolId) {
-    let symbol_flag = self.result.symbol_ref_db.get_flags(symbol_id);
+    let symbol_flag = self.result.symbols.get_flags(symbol_id);
     if symbol_flag.contains(SymbolFlags::Import) {
       let is_namespace = self
         .result
@@ -25,7 +25,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
           return;
         }
       }
-      let reference_flag = self.result.symbol_ref_db.references[ident.reference_id()].flags();
+      let reference_flag = self.result.symbols.references[ident.reference_id()].flags();
       if reference_flag.is_write() {
         self.result.errors.push(anyhow::anyhow!("Cannot assign to import '{}'", ident.name));
       }

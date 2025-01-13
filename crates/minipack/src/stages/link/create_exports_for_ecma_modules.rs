@@ -106,14 +106,14 @@ fn create_wrapper(
 
 impl LinkStage<'_> {
   pub(crate) fn create_exports_for_ecma_modules(&mut self) {
-    self.module_table.iter_mut().filter_map(|m| m.as_normal_mut()).for_each(|ecma_module| {
+    self.modules.iter_mut().filter_map(|m| m.as_normal_mut()).for_each(|ecma_module| {
       let linking_info = &mut self.metadata[ecma_module.idx];
 
       create_wrapper(
         ecma_module,
         linking_info,
-        &mut self.symbol_ref_db,
-        &self.runtime_brief,
+        &mut self.symbols,
+        &self.runtime_module,
         self.options,
       );
       if let Some(entry) = self.entry_points.iter().find(|entry| entry.id == ecma_module.idx) {
@@ -147,12 +147,12 @@ impl LinkStage<'_> {
         let mut referenced_symbols = vec![];
         let mut declared_symbols = vec![];
         if !meta.is_canonical_exports_empty() {
-          referenced_symbols.push(self.runtime_brief.resolve_symbol("__export").into());
+          referenced_symbols.push(self.runtime_module.resolve_symbol("__export").into());
           referenced_symbols
             .extend(meta.canonical_exports().map(|(_, export)| export.symbol_ref.into()));
         }
         if !meta.star_exports_from_external_modules.is_empty() {
-          referenced_symbols.push(self.runtime_brief.resolve_symbol("__reExport").into());
+          referenced_symbols.push(self.runtime_module.resolve_symbol("__reExport").into());
           match self.options.format {
             OutputFormat::Esm => {
               meta.star_exports_from_external_modules.iter().copied().for_each(|rec_idx| {

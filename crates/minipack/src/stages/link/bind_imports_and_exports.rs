@@ -119,7 +119,7 @@ impl LinkStage<'_> {
   pub fn bind_imports_and_exports(&mut self) {
     // Initialize `resolved_exports` to prepare for matching imports with exports
     self.metadata.iter_mut_enumerated().for_each(|(module_id, meta)| {
-      let Module::Normal(module) = &self.module_table[module_id] else {
+      let Module::Normal(module) = &self.modules[module_id] else {
         return;
       };
       let mut resolved_exports = module
@@ -137,7 +137,7 @@ impl LinkStage<'_> {
       let mut module_stack = vec![];
       if module.has_star_export() {
         Self::add_exports_for_export_star(
-          &self.module_table,
+          &self.modules,
           &mut resolved_exports,
           module_id,
           &mut module_stack,
@@ -146,16 +146,16 @@ impl LinkStage<'_> {
       meta.resolved_exports = resolved_exports;
     });
     let side_effects_modules = self
-      .module_table
+      .modules
       .iter_enumerated()
       .filter(|(_, item)| item.side_effects().has_side_effects())
       .map(|(idx, _)| idx)
       .collect::<FxHashSet<ModuleIdx>>();
     let mut normal_symbol_exports_chain_map = FxHashMap::default();
     let mut binding_ctx = BindImportsAndExportsContext {
-      index_modules: &self.module_table,
+      index_modules: &self.modules,
       metas: &mut self.metadata,
-      symbol_db: &mut self.symbol_ref_db,
+      symbol_db: &mut self.symbols,
       options: self.options,
       errors: Vec::default(),
       warnings: Vec::default(),
@@ -163,7 +163,7 @@ impl LinkStage<'_> {
       side_effects_modules: &side_effects_modules,
       normal_symbol_exports_chain_map: &mut normal_symbol_exports_chain_map,
     };
-    self.module_table.iter().for_each(|module| {
+    self.modules.iter().for_each(|module| {
       binding_ctx.match_imports_with_exports(module.idx());
     });
 
@@ -175,7 +175,7 @@ impl LinkStage<'_> {
         let name = if key.as_str() == "default" {
           let key = symbol_set
             .first()
-            .map_or_else(|| key.clone(), |sym_ref| sym_ref.name(&self.symbol_ref_db).into());
+            .map_or_else(|| key.clone(), |sym_ref| sym_ref.name(&self.symbols).into());
           Cow::Owned(key)
         } else if is_validate_identifier_name(key.as_str()) {
           Cow::Borrowed(key)
@@ -183,9 +183,9 @@ impl LinkStage<'_> {
           let legal_name = legitimize_identifier_name(key);
           Cow::Owned(legal_name.as_ref().into())
         };
-        let target_symbol = self.symbol_ref_db.create_facade_root_symbol_ref(*module_idx, &name);
+        let target_symbol = self.symbols.create_facade_root_symbol_ref(*module_idx, &name);
         for symbol_ref in symbol_set {
-          self.symbol_ref_db.link(*symbol_ref, target_symbol);
+          self.symbols.link(*symbol_ref, target_symbol);
         }
       }
     }
@@ -195,10 +195,10 @@ impl LinkStage<'_> {
         if let Some(potentially_ambiguous_symbol_refs) =
           &resolved_export.potentially_ambiguous_symbol_refs
         {
-          let main_ref = self.symbol_ref_db.canonical_ref_for(resolved_export.symbol_ref);
+          let main_ref = self.symbols.canonical_ref_for(resolved_export.symbol_ref);
 
           for ambiguous_ref in potentially_ambiguous_symbol_refs {
-            let ambiguous_ref = self.symbol_ref_db.canonical_ref_for(*ambiguous_ref);
+            let ambiguous_ref = self.symbols.canonical_ref_for(*ambiguous_ref);
             if main_ref != ambiguous_ref {
               continue 'next_export;
             }
@@ -292,7 +292,7 @@ impl LinkStage<'_> {
   ) {
     let warnings = append_only_vec::AppendOnlyVec::new();
     let resolved_meta_data = self
-      .module_table
+      .modules
       .par_iter()
       .map(|module| match module {
         Module::Normal(module) => {
@@ -302,9 +302,9 @@ impl LinkStage<'_> {
             stmt_info.referenced_symbols.iter().for_each(|symbol_ref| {
               if let SymbolOrMemberExprRef::MemberExpr(member_expr_ref) = symbol_ref {
                 // First get the canonical ref of `foo_ns`, then we get the `NormalModule#namespace_object_ref` of `foo.js`.
-                let mut canonical_ref = self.symbol_ref_db.canonical_ref_for(member_expr_ref.object_ref);
+                let mut canonical_ref = self.symbols.canonical_ref_for(member_expr_ref.object_ref);
                 let mut canonical_ref_owner: &NormalModule =
-                  match &self.module_table[canonical_ref.owner] {
+                  match &self.modules[canonical_ref.owner] {
                     Module::Normal(module) => module,
                     Module::External(_) => return,
                   };
@@ -341,7 +341,7 @@ impl LinkStage<'_> {
                     return;
                   };
 
-                  if !self.module_table[export_symbol.symbol_ref.owner]
+                  if !self.modules[export_symbol.symbol_ref.owner]
                     .as_normal()
                     .unwrap()
                     .exports_kind
@@ -359,9 +359,9 @@ impl LinkStage<'_> {
                     }
                   }
                   ns_symbol_list.push((canonical_ref, name.to_rstr()));
-                  canonical_ref = self.symbol_ref_db.canonical_ref_for(export_symbol.symbol_ref);
+                  canonical_ref = self.symbols.canonical_ref_for(export_symbol.symbol_ref);
                   canonical_ref_owner =
-                    self.module_table[canonical_ref.owner].as_normal().unwrap();
+                    self.modules[canonical_ref.owner].as_normal().unwrap();
                   cursor += 1;
                   is_namespace_ref = canonical_ref_owner.namespace_object_ref == canonical_ref;
                 }

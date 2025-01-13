@@ -26,9 +26,9 @@ impl LinkStage<'_> {
   }
 
   pub(crate) fn reference_needed_symbols(&mut self) {
-    let symbols = Mutex::new(&mut self.symbol_ref_db);
+    let symbols = Mutex::new(&mut self.symbols);
     let record_meta_update_pending_pairs_list = self
-      .module_table
+      .modules
       .par_iter()
       .filter_map(Module::as_normal)
       .map(|importer| {
@@ -44,16 +44,16 @@ impl LinkStage<'_> {
         stmt_infos.infos.iter_mut_enumerated().for_each(|(stmt_idx, stmt_info)| {
           stmt_info.import_records.iter().for_each(|rec_id| {
             let rec = &importer.import_records[*rec_id];
-            let rec_resolved_module = &self.module_table[rec.resolved_module];
+            let rec_resolved_module = &self.modules[rec.resolved_module];
             if (!rec_resolved_module.is_normal()
-              || Self::is_external_dynamic_import(&self.module_table, rec, importer_idx))
+              || Self::is_external_dynamic_import(&self.modules, rec, importer_idx))
               && (matches!(rec.kind, ImportKind::Require)
                 || !self.options.format.keep_esm_import_export_syntax())
               && self.options.format.should_call_runtime_require()
             {
               stmt_info
                 .referenced_symbols
-                .push(self.runtime_brief.resolve_symbol("__require").into());
+                .push(self.runtime_module.resolve_symbol("__require").into());
               record_meta_pairs.push((*rec_id, ImportRecordMeta::CALL_RUNTIME_REQUIRE));
             }
 
@@ -76,7 +76,7 @@ impl LinkStage<'_> {
                       stmt_info.side_effect = true;
                       stmt_info
                         .referenced_symbols
-                        .push(self.runtime_brief.resolve_symbol("__toESM").into());
+                        .push(self.runtime_module.resolve_symbol("__toESM").into());
                     }
                   }
                 }
@@ -106,7 +106,7 @@ impl LinkStage<'_> {
                             stmt_info.side_effect = true;
                             stmt_info
                               .referenced_symbols
-                              .push(self.runtime_brief.resolve_symbol("__reExport").into());
+                              .push(self.runtime_module.resolve_symbol("__reExport").into());
                             stmt_info.referenced_symbols.push(importer.namespace_object_ref.into());
                             stmt_info.referenced_symbols.push(importee.namespace_object_ref.into());
                           }
@@ -122,10 +122,10 @@ impl LinkStage<'_> {
                             .push(importee_linking_info.wrapper_ref.unwrap().into());
                           stmt_info
                             .referenced_symbols
-                            .push(self.runtime_brief.resolve_symbol("__toESM").into());
+                            .push(self.runtime_module.resolve_symbol("__toESM").into());
                           stmt_info
                             .referenced_symbols
-                            .push(self.runtime_brief.resolve_symbol("__reExport").into());
+                            .push(self.runtime_module.resolve_symbol("__reExport").into());
                           stmt_info.referenced_symbols.push(importer.namespace_object_ref.into());
                         } else {
                           stmt_info.side_effect = importee.side_effects.has_side_effects();
@@ -138,7 +138,7 @@ impl LinkStage<'_> {
                           // dbg!(&importee_linking_info.wrapper_ref);
                           stmt_info
                             .referenced_symbols
-                            .push(self.runtime_brief.resolve_symbol("__toESM").into());
+                            .push(self.runtime_module.resolve_symbol("__toESM").into());
                           declared_symbol_for_stmt_pairs.push((stmt_idx, rec.namespace_ref));
                           rec.namespace_ref.set_name(
                             &mut symbols.lock().unwrap(),
@@ -158,7 +158,7 @@ impl LinkStage<'_> {
                           // something like `__reExport(foo_exports, other_exports)`
                           stmt_info
                             .referenced_symbols
-                            .push(self.runtime_brief.resolve_symbol("__reExport").into());
+                            .push(self.runtime_module.resolve_symbol("__reExport").into());
                           stmt_info.referenced_symbols.push(importer.namespace_object_ref.into());
                           stmt_info.referenced_symbols.push(importee.namespace_object_ref.into());
                         }
@@ -185,7 +185,7 @@ impl LinkStage<'_> {
                       if !rec.meta.contains(ImportRecordMeta::IS_REQUIRE_UNUSED) {
                         stmt_info
                           .referenced_symbols
-                          .push(self.runtime_brief.resolve_symbol("__toCommonJS").into());
+                          .push(self.runtime_module.resolve_symbol("__toCommonJS").into());
                       }
                     }
                   },
@@ -200,7 +200,7 @@ impl LinkStage<'_> {
                             .push(importee_linking_info.wrapper_ref.unwrap().into());
                           stmt_info
                             .referenced_symbols
-                            .push(self.runtime_brief.resolve_symbol("__toESM").into());
+                            .push(self.runtime_module.resolve_symbol("__toESM").into());
                         }
                         WrapKind::Esm => {
                           // `(init_foo(), foo_exports)`
@@ -233,7 +233,7 @@ impl LinkStage<'_> {
 
     // merge import_record.meta
     for (module_idx, record_meta_pairs) in record_meta_update_pending_pairs_list {
-      let Some(module) = self.module_table[module_idx].as_normal_mut() else {
+      let Some(module) = self.modules[module_idx].as_normal_mut() else {
         continue;
       };
       for (rec_id, meta) in record_meta_pairs {

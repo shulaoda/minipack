@@ -61,7 +61,7 @@ pub struct CreateEcmaViewReturn {
   pub view: EcmaView,
   pub raw_import_records: IndexVec<ImportRecordIdx, RawImportRecord>,
   pub ast: EcmaAst,
-  pub symbol_ref_db: SymbolRefDbForModule,
+  pub symbols: SymbolRefDbForModule,
   pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
 }
 
@@ -108,7 +108,7 @@ pub async fn create_ecma_view(
     has_eval,
     errors,
     ast_usage,
-    symbol_ref_db,
+    symbols,
     self_referenced_class_decl_symbol_ids,
     hashbang_range,
     has_star_exports,
@@ -197,7 +197,7 @@ pub async fn create_ecma_view(
     view,
     raw_import_records: import_records,
     ast,
-    symbol_ref_db,
+    symbols,
     dynamic_import_exports_usage,
   })
 }

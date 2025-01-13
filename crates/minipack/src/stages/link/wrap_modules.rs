@@ -68,15 +68,14 @@ fn has_dynamic_exports_due_to_export_star(
 
 impl LinkStage<'_> {
   pub(crate) fn wrap_modules(&mut self) {
-    let mut visited_modules_for_wrapping = oxc_index::index_vec![false; self.module_table.len()];
+    let mut visited_modules_for_wrapping = oxc_index::index_vec![false; self.modules.len()];
 
-    let mut visited_modules_for_dynamic_exports =
-      oxc_index::index_vec![false; self.module_table.len()];
+    let mut visited_modules_for_dynamic_exports = oxc_index::index_vec![false; self.modules.len()];
 
     debug_assert!(!self.sorted_modules.is_empty());
 
     let sorted_module_iter =
-      self.sorted_modules.iter().filter_map(|idx| self.module_table[*idx].as_normal());
+      self.sorted_modules.iter().filter_map(|idx| self.modules[*idx].as_normal());
 
     for module in sorted_module_iter {
       let need_to_wrap =
@@ -84,7 +83,7 @@ impl LinkStage<'_> {
 
       visited_modules_for_wrapping[module.idx] = true;
       module.import_records.iter().for_each(|rec| {
-        let Module::Normal(importee) = &self.module_table[rec.resolved_module] else {
+        let Module::Normal(importee) = &self.modules[rec.resolved_module] else {
           return;
         };
         if matches!(importee.exports_kind, ExportsKind::CommonJs) || need_to_wrap {
@@ -92,7 +91,7 @@ impl LinkStage<'_> {
             &mut Context {
               visited_modules: &mut visited_modules_for_wrapping,
               linking_infos: &mut self.metadata,
-              modules: &self.module_table,
+              modules: &self.modules,
             },
             importee.idx,
           );
@@ -102,7 +101,7 @@ impl LinkStage<'_> {
       if module.has_star_export() {
         has_dynamic_exports_due_to_export_star(
           module.idx,
-          &self.module_table,
+          &self.modules,
           &mut self.metadata,
           &mut visited_modules_for_dynamic_exports,
         );

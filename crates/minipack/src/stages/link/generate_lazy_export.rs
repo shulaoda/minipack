@@ -23,7 +23,7 @@ use super::LinkStage;
 impl LinkStage<'_> {
   pub fn generate_lazy_export(&mut self) {
     let module_idx_to_exports_kind = append_only_vec::AppendOnlyVec::new();
-    self.module_table.par_iter_mut().for_each(|module| {
+    self.modules.par_iter_mut().for_each(|module| {
       let Module::Normal(module) = module else {
         return;
       };
@@ -70,7 +70,7 @@ impl LinkStage<'_> {
           continue;
         }
         // if json is not a ObjectExpression, we will fallback to normal esm lazy export transform
-        let module = &mut self.module_table[module_idx];
+        let module = &mut self.modules[module_idx];
         let module = module.as_normal_mut().unwrap();
         update_module_default_export_info(module, module.default_export_ref, 1.into());
       }
@@ -111,7 +111,7 @@ fn json_object_expr_to_esm(
   ast_idx: EcmaAstIdx,
 ) -> bool {
   let target = link_staged.options.target;
-  let module = &mut link_staged.module_table[module_idx];
+  let module = &mut link_staged.modules[module_idx];
   let Module::Normal(module) = module else {
     return false;
   };
@@ -220,14 +220,14 @@ fn json_object_expr_to_esm(
   // update semantic data of module
   let root_scope_id = scope.root_scope_id();
   let ast_scope = AstScopes::new(scope);
-  let mut symbol_ref_db = SymbolRefDbForModule::new(symbol_table, module_idx, root_scope_id);
+  let mut symbols = SymbolRefDbForModule::new(symbol_table, module_idx, root_scope_id);
 
   let legitimized_repr_name = legitimize_identifier_name(&module.repr_name);
   let default_export_ref =
-    symbol_ref_db.create_facade_root_symbol_ref(&concat_string!(legitimized_repr_name, "_default"));
+    symbols.create_facade_root_symbol_ref(&concat_string!(legitimized_repr_name, "_default"));
 
   let name = concat_string!(legitimized_repr_name, "_exports");
-  let namespace_object_ref = symbol_ref_db.create_facade_root_symbol_ref(&name);
+  let namespace_object_ref = symbols.create_facade_root_symbol_ref(&name);
   module.namespace_object_ref = namespace_object_ref;
   module.default_export_ref = default_export_ref;
 
@@ -265,6 +265,6 @@ fn json_object_expr_to_esm(
       .with_referenced_symbols(all_declared_symbols),
   );
   module.ecma_view.scope = ast_scope;
-  link_staged.symbol_ref_db.store_local_db(module_idx, symbol_ref_db);
+  link_staged.symbols.store_local_db(module_idx, symbols);
   true
 }

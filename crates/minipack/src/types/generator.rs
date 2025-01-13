@@ -26,7 +26,7 @@ impl GenerateContext<'_> {
     cur_chunk_idx: ChunkIdx,
     canonical_names: &FxHashMap<SymbolRef, Rstr>,
   ) -> String {
-    let symbol_db = &self.link_output.symbol_ref_db;
+    let symbol_db = &self.link_output.symbols;
     let canonical_ref = symbol_db.canonical_ref_for(symbol_ref);
     let canonical_symbol = symbol_db.get(canonical_ref);
     let namespace_alias = &canonical_symbol.namespace_alias;
@@ -67,7 +67,7 @@ impl GenerateContext<'_> {
 
   pub fn renderable_ecma_modules(&self) -> impl Iterator<Item = &NormalModule> {
     self.chunk.modules.iter().copied().filter_map(move |id| {
-      let module = &self.link_output.module_table[id];
+      let module = &self.link_output.modules[id];
       let Module::Normal(module) = module else { return None };
       if !module.is_included() {
         return None;

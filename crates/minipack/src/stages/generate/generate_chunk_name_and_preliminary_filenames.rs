@@ -32,7 +32,7 @@ impl GenerateStage<'_> {
     &self,
     chunk_graph: &mut ChunkGraph,
   ) -> BuildResult<FxHashMap<ChunkIdx, ArcStr>> {
-    let modules = &self.link_output.module_table;
+    let modules = &self.link_output.modules;
 
     let mut index_chunk_id_to_name = FxHashMap::default();
     let mut index_pre_generated_names: IndexVec<ChunkIdx, ArcStr> = chunk_graph
@@ -63,8 +63,11 @@ impl GenerateStage<'_> {
           ChunkKind::Common => {
             // - rollup use the first entered/last executed module as the `[name]` of common chunks.
             // - esbuild always use 'chunk' as the `[name]`. However we try to make the name more meaningful here.
-            let first_executed_non_runtime_module =
-              chunk.modules.iter().rev().find(|each| **each != self.link_output.runtime_brief.id());
+            let first_executed_non_runtime_module = chunk
+              .modules
+              .iter()
+              .rev()
+              .find(|each| **each != self.link_output.runtime_module.id());
             first_executed_non_runtime_module.map_or_else(
               || arcstr::literal!("chunk"),
               |module_id| {

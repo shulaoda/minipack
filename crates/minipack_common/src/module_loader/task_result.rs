@@ -17,6 +17,6 @@ pub struct NormalModuleTaskResult {
 
 pub struct EcmaRelated {
   pub ast: EcmaAst,
-  pub symbol_ref_db: SymbolRefDbForModule,
+  pub symbols: SymbolRefDbForModule,
   pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
 }

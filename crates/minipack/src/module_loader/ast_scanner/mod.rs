@@ -49,7 +49,7 @@ pub struct AstScanResult {
   pub errors: Vec<anyhow::Error>,
   pub has_eval: bool,
   pub ast_usage: EcmaModuleAstUsage,
-  pub symbol_ref_db: SymbolRefDbForModule,
+  pub symbols: SymbolRefDbForModule,
   /// https://github.com/evanw/esbuild/blob/d34e79e2a998c21bb71d57b92b0017ca11756912/internal/js_parser/js_parser_lower_class.go#L2277-L2283
   /// used for check if current class decl symbol was referenced in its class scope
   /// We needs to record the info in ast scanner since after that the ast maybe touched, etc
@@ -114,17 +114,17 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     comments: &'me oxc::allocator::Vec<'me, Comment>,
     options: &'me SharedOptions,
   ) -> Self {
-    let mut symbol_ref_db = SymbolRefDbForModule::new(symbol_table, idx, scope.root_scope_id());
+    let mut symbols = SymbolRefDbForModule::new(symbol_table, idx, scope.root_scope_id());
     // This is used for converting "export default foo;" => "var default_symbol = foo;"
     let legitimized_repr_name = legitimize_identifier_name(repr_name);
-    let default_export_ref = symbol_ref_db
-      .create_facade_root_symbol_ref(&concat_string!(legitimized_repr_name, "_default"));
+    let default_export_ref =
+      symbols.create_facade_root_symbol_ref(&concat_string!(legitimized_repr_name, "_default"));
     // This is used for converting "export default foo;" => "var [default_export_ref] = foo;"
     // And we consider [default_export_ref] never get reassigned.
-    default_export_ref.flags_mut(&mut symbol_ref_db).insert(SymbolRefFlags::IS_NOT_REASSIGNED);
+    default_export_ref.flags_mut(&mut symbols).insert(SymbolRefFlags::IS_NOT_REASSIGNED);
 
     let name = concat_string!(legitimized_repr_name, "_exports");
-    let namespace_object_ref = symbol_ref_db.create_facade_root_symbol_ref(&name);
+    let namespace_object_ref = symbols.create_facade_root_symbol_ref(&name);
 
     let result = AstScanResult {
       named_imports: FxHashMap::default(),
@@ -143,7 +143,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       has_eval: false,
       errors: Vec::new(),
       ast_usage: EcmaModuleAstUsage::empty(),
-      symbol_ref_db,
+      symbols,
       self_referenced_class_decl_symbol_ids: FxHashSet::default(),
       hashbang_range: None,
       has_star_exports: false,
@@ -233,7 +233,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         .collect::<FxHashSet<_>>();
       for (name, symbol_id) in self.scopes.get_bindings(self.scopes.root_scope_id()) {
         let symbol_ref: SymbolRef = (self.idx, *symbol_id).into();
-        let scope_id = self.result.symbol_ref_db.get_scope_id(*symbol_id);
+        let scope_id = self.result.symbols.get_scope_id(*symbol_id);
         if !scanned_symbols_in_root_scope.remove(&symbol_ref) {
           return Err(vec![anyhow::anyhow!(
             "Symbol ({name:?}, {symbol_id:?}, {scope_id:?}) is declared in the top-level scope but doesn't get scanned by the scanner",
@@ -269,7 +269,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     // to `var import_foo = __toESM(require_foo())`, so we create a symbol for `import_foo` here. Notice that we
     // just create the symbol. If the symbol is finally used would be determined in the linking stage.
     let namespace_ref: SymbolRef =
-      self.result.symbol_ref_db.create_facade_root_symbol_ref(&concat_string!(
+      self.result.symbols.create_facade_root_symbol_ref(&concat_string!(
         "#LOCAL_NAMESPACE_IN_",
         itoa::Buffer::new().format(self.current_stmt_info.stmt_idx.unwrap_or_default()),
         "#"
@@ -315,15 +315,13 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   fn add_local_export(&mut self, export_name: &str, local: SymbolId, span: Span) {
     let symbol_ref: SymbolRef = (self.idx, local).into();
 
-    let is_const = self.result.symbol_ref_db.get_flags(local).is_const_variable();
+    let is_const = self.result.symbols.get_flags(local).is_const_variable();
 
     // If there is any write reference to the local variable, it is reassigned.
-    let is_reassigned = self
-      .scopes
-      .get_resolved_references(local, &self.result.symbol_ref_db)
-      .any(Reference::is_write);
+    let is_reassigned =
+      self.scopes.get_resolved_references(local, &self.result.symbols).any(Reference::is_write);
 
-    let ref_flags = symbol_ref.flags_mut(&mut self.result.symbol_ref_db);
+    let ref_flags = symbol_ref.flags_mut(&mut self.result.symbols);
     if is_const {
       ref_flags.insert(SymbolRefFlags::IS_CONST);
     }
@@ -386,7 +384,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       legitimize_identifier_name(export_name)
     };
     let generated_imported_as_ref =
-      self.result.symbol_ref_db.create_facade_root_symbol_ref(ident.as_ref());
+      self.result.symbols.create_facade_root_symbol_ref(ident.as_ref());
 
     self.current_stmt_info.declared_symbols.push(generated_imported_as_ref);
     let name_import = NamedImport {
@@ -411,10 +409,8 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     record_id: ImportRecordIdx,
     span_for_export_name: Span,
   ) {
-    let generated_imported_as_ref = self
-      .result
-      .symbol_ref_db
-      .create_facade_root_symbol_ref(&legitimize_identifier_name(export_name));
+    let generated_imported_as_ref =
+      self.result.symbols.create_facade_root_symbol_ref(&legitimize_identifier_name(export_name));
     self.current_stmt_info.declared_symbols.push(generated_imported_as_ref);
     let name_import = NamedImport {
       imported: Specifier::Star,
@@ -520,7 +516,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         self.current_stmt_info.debug_label.as_deref().unwrap_or("<None>")
       )
     });
-    self.scopes.symbol_id_for(ref_id, &self.result.symbol_ref_db)
+    self.scopes.symbol_id_for(ref_id, &self.result.symbols)
   }
   fn scan_export_default_decl(&mut self, decl: &ExportDefaultDeclaration) {
     use oxc::ast::ast::ExportDefaultDeclarationKind;
@@ -626,18 +622,18 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   }
 
   fn is_root_symbol(&self, symbol_id: SymbolId) -> bool {
-    self.scopes.root_scope_id() == self.result.symbol_ref_db.get_scope_id(symbol_id)
+    self.scopes.root_scope_id() == self.result.symbols.get_scope_id(symbol_id)
   }
 
   fn try_diagnostic_forbid_const_assign(&mut self, id_ref: &IdentifierReference) -> Option<()> {
     let ref_id = id_ref.reference_id.get()?;
-    let reference = &self.result.symbol_ref_db.references[ref_id];
+    let reference = &self.result.symbols.references[ref_id];
     if reference.is_write() {
       let symbol_id = reference.symbol_id()?;
-      if self.result.symbol_ref_db.get_flags(symbol_id).is_const_variable() {
+      if self.result.symbols.get_flags(symbol_id).is_const_variable() {
         self.result.errors.push(anyhow::anyhow!(
           "Unexpected re-assignment of const variable `{0}` at {1}",
-          self.result.symbol_ref_db.get_name(symbol_id),
+          self.result.symbols.get_name(symbol_id),
           self.id.to_string()
         ));
       }

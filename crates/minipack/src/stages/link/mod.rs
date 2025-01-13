@@ -25,12 +25,12 @@ use super::scan::ScanStageOutput;
 
 #[derive(Debug)]
 pub struct LinkStageOutput {
-  pub module_table: IndexModules,
+  pub modules: IndexModules,
   pub entry_points: Vec<EntryPoint>,
   pub index_ecma_ast: IndexEcmaAst,
   pub metadata: LinkingMetadataVec,
-  pub symbol_ref_db: SymbolRefDb,
-  pub runtime_brief: RuntimeModuleBrief,
+  pub symbols: SymbolRefDb,
+  pub runtime_module: RuntimeModuleBrief,
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
   pub used_symbol_refs: FxHashSet<SymbolRef>,
@@ -39,10 +39,10 @@ pub struct LinkStageOutput {
 
 #[derive(Debug)]
 pub struct LinkStage<'a> {
-  pub module_table: IndexModules,
+  pub modules: IndexModules,
   pub entry_points: Vec<EntryPoint>,
-  pub symbol_ref_db: SymbolRefDb,
-  pub runtime_brief: RuntimeModuleBrief,
+  pub symbols: SymbolRefDb,
+  pub runtime_module: RuntimeModuleBrief,
   pub sorted_modules: Vec<ModuleIdx>,
   pub metadata: LinkingMetadataVec,
   pub warnings: Vec<anyhow::Error>,
@@ -56,16 +56,16 @@ pub struct LinkStage<'a> {
 impl<'a> LinkStage<'a> {
   pub fn new(scan_stage_output: ScanStageOutput, options: &'a SharedOptions) -> Self {
     let ScanStageOutput {
-      module_table,
+      modules,
       index_ecma_ast,
-      symbol_ref_db,
+      symbols,
       entry_points,
-      runtime_brief,
+      runtime_module,
       warnings,
       dyn_import_usage_map,
     } = scan_stage_output;
 
-    let metadata = module_table
+    let metadata = modules
       .iter()
       .map(|module| {
         let dependencies = module
@@ -79,7 +79,7 @@ impl<'a> LinkStage<'a> {
 
         let star_exports_from_external_modules =
           module.as_normal().map_or_else(Vec::new, |inner| {
-            inner.star_exports_from_external_modules(&module_table).collect()
+            inner.star_exports_from_external_modules(&modules).collect()
           });
 
         LinkingMetadata {
@@ -92,10 +92,10 @@ impl<'a> LinkStage<'a> {
 
     Self {
       metadata,
-      module_table,
+      modules,
       entry_points,
-      symbol_ref_db,
-      runtime_brief,
+      symbols,
+      runtime_module,
       warnings,
       errors: vec![],
       sorted_modules: vec![],
@@ -119,11 +119,11 @@ impl<'a> LinkStage<'a> {
     self.patch_module_dependencies();
 
     LinkStageOutput {
-      module_table: self.module_table,
+      modules: self.modules,
       entry_points: self.entry_points,
       metadata: self.metadata,
-      symbol_ref_db: self.symbol_ref_db,
-      runtime_brief: self.runtime_brief,
+      symbols: self.symbols,
+      runtime_module: self.runtime_module,
       warnings: self.warnings,
       errors: self.errors,
       index_ecma_ast: self.index_ecma_ast,

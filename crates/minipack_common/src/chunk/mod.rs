@@ -181,9 +181,9 @@ impl Chunk {
 
   pub fn user_defined_entry_module<'module>(
     &self,
-    module_table: &'module IndexVec<ModuleIdx, Module>,
+    modules: &'module IndexVec<ModuleIdx, Module>,
   ) -> Option<&'module NormalModule> {
-    self.user_defined_entry_module_idx().and_then(|idx| module_table[idx].as_normal())
+    self.user_defined_entry_module_idx().and_then(|idx| modules[idx].as_normal())
   }
 
   pub fn entry_module_idx(&self) -> Option<ModuleIdx> {
@@ -195,8 +195,8 @@ impl Chunk {
 
   pub fn entry_module<'module>(
     &self,
-    module_table: &'module IndexVec<ModuleIdx, Module>,
+    modules: &'module IndexVec<ModuleIdx, Module>,
   ) -> Option<&'module NormalModule> {
-    self.entry_module_idx().and_then(|idx| module_table[idx].as_normal())
+    self.entry_module_idx().and_then(|idx| modules[idx].as_normal())
   }
 }

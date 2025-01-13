@@ -44,7 +44,7 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
         self.source,
         self.comments,
         true,
-        &self.result.symbol_ref_db,
+        &self.result.symbols,
       )
       .detect_side_effect_of_stmt(stmt);
 
