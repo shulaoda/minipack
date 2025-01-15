@@ -104,11 +104,8 @@ impl ModuleLoader {
     mut self,
     user_defined_entries: Vec<(Option<ArcStr>, ResolvedId)>,
   ) -> BuildResult<ModuleLoaderOutput> {
-    if self.options.input.is_empty() {
-      return Err(anyhow::anyhow!("You must supply options.input to rolldown"))?;
-    }
-
     let entries_count = user_defined_entries.len() + /* runtime */ 1;
+
     self.inm.modules.reserve(entries_count);
     self.inm.index_ecma_ast.reserve(entries_count);
 
