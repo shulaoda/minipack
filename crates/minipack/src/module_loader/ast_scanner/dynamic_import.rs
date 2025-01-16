@@ -186,7 +186,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         return Some(set);
       }
       ast::BindingPatternKind::ArrayPattern(_) | ast::BindingPatternKind::AssignmentPattern(_) => {
-        // TODO: handle advance pattern
         return None;
       }
     };

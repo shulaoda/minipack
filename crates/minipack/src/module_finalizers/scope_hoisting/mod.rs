@@ -908,15 +908,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
                   ExportsKind::None => {}
                 }
               }
-              Module::External(_importee) => {
-                // TODO: Why clippy doesn't work???
-                match self.ctx.options.format {
-                  OutputFormat::Esm | OutputFormat::Cjs => {
-                    // Just remove the statement
-                    return;
-                  }
-                }
-              }
+              Module::External(_) => {}
             }
 
             return;
