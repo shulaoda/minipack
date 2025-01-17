@@ -70,41 +70,43 @@ minipack_fs               = { version = "0.1.0", path = "./crates/minipack_fs" }
 minipack_resolver         = { version = "0.1.0", path = "./crates/minipack_resolver" }
 minipack_utils            = { version = "0.1.0", path = "./crates/minipack_utils" }
 
-anyhow            = { version = "1.0.86" }
-append-only-vec   = { version = "0.1.5" }
+anyhow            = { version = "1.0.95" }
+append-only-vec   = { version = "0.1.7" }
 arcstr            = { version = "1.2.0" }
 base-encode       = { version = "0.3.1" }
 base64-simd       = { version = "0.8.0" }
-bitflags          = { version = "2.6.0" }
+bitflags          = { version = "2.8.0" }
 css-module-lexer  = { version = "0.0.15" }
 daachorse         = { version = "1.0.0" }
-dashmap           = { version = "6.0.0" }
+dashmap           = { version = "6.1.0" }
 fast-glob         = { version = "0.4.3" }
-futures           = { version = "0.3.30" }
-indexmap          = { version = "2.2.6" }
+futures           = { version = "0.3.31" }
+indexmap          = { version = "2.7.0" }
 infer             = { version = "0.16.0" }
 itertools         = { version = "0.14.0" }
-itoa              = { version = "1.0.11" }
-memchr            = { version = "2.7.2" }
+itoa              = { version = "1.0.14" }
+memchr            = { version = "2.7.4" }
 mime              = { version = "0.3.17" }
-phf               = { version = "0.11.2" }
+phf               = { version = "0.11.3" }
 rayon             = { version = "1.10.0" }
-regex             = { version = "1.10.5" }
-rustc-hash        = { version = "2.0.0" }
+regex             = { version = "1.11.1" }
+rustc-hash        = { version = "2.1.0" }
 sanitize-filename = { version = "0.6.0" }
-self_cell         = { version = "1.0.4" }
-serde_json        = { version = "1.0.117" }
+self_cell         = { version = "1.1.0" }
+serde             = { version = "1.0.203", features = ["derive"] }
+serde_json        = { version = "1.0.135" }
 simdutf8          = { version = "0.1.5" }
 smallvec          = { version = "1.13.2" }
-string_wizard     = { version = "0.0.25" }
+string_wizard     = { version = "0.0.26", features = ["serde"] }
 sugar_path        = { version = "1.2.0", features = ["cached_current_dir"] }
-tokio             = { version = "1.38.0", default-features = false }
-xxhash-rust       = { version = "0.8.10" }
+tokio             = { version = "1.43.0", default-features = false }
+xxhash-rust       = { version = "0.8.15" }
 
 # oxc crates share the same version
-oxc           = { version = "0.44.0", features = ["transformer", "minifier", "semantic", "codegen"] }
-oxc_index     = { version = "2", features = ["rayon"] }
-oxc_resolver  = { version = "3" }
+# Please update with `cargo update oxc_resolver oxc_index`
+oxc          = { version = "0.46.0", features = ["transformer", "minifier", "semantic", "codegen", "serialize"] }
+oxc_index    = { version = "2", features = ["rayon", "serde"] }
+oxc_resolver = { version = "3" }
 
 [profile.release]
 codegen-units = 1

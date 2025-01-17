@@ -29,6 +29,7 @@ oxc           = { workspace = true }
 oxc_index     = { workspace = true }
 oxc_resolver  = { workspace = true }
 rustc-hash    = { workspace = true }
+serde         = { workspace = true }
 serde_json    = { workspace = true }
 string_wizard = { workspace = true }
 sugar_path    = { workspace = true }
