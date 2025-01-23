@@ -10,6 +10,7 @@ use oxc::{
   },
   span::{Span, SPAN},
 };
+use rustc_hash::FxHashSet;
 
 use super::ScopeHoistingFinalizer;
 
@@ -19,6 +20,28 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
     // we don't want oxc to generate hashbang statement in module level since we already handle
     // them in chunk level
     program.hashbang.take();
+
+    // init namespace_alias_symbol_id
+    self.namespace_alias_symbol_id = self
+      .ctx
+      .module
+      .ecma_view
+      .named_imports
+      .iter()
+      .filter_map(|(symbol_ref, v)| {
+        let rec_id = v.record_id;
+        let importee_idx = self.ctx.module.ecma_view.import_records[rec_id].resolved_module;
+        // bailout if the importee is a external module
+        // see rollup/test/function/samples/side-effects-only-default-exports/ as an
+        // example
+        // TODO: maybe we could relex the restriction if `platform: node` and the external module
+        // is a node builtin module
+        self.ctx.modules[importee_idx].as_normal()?;
+        self.ctx.symbol_db.get(*symbol_ref).namespace_alias.as_ref().and_then(|alias| {
+          (alias.property_name.as_str() == "default").then_some(symbol_ref.symbol)
+        })
+      })
+      .collect::<FxHashSet<_>>();
 
     let is_namespace_referenced = matches!(self.ctx.module.exports_kind, ExportsKind::Esm)
       && self.ctx.module.stmt_infos[StmtInfoIdx::new(0)].is_included;
@@ -78,18 +101,22 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
             self.canonical_ref_for_runtime("__commonJSMin")
           };
 
-          let commonjs_ref_expr = self.finalized_expr_for_symbol_ref(commonjs_ref, false);
+          let commonjs_ref_expr = self.finalized_expr_for_symbol_ref(commonjs_ref, false, None);
 
-          let old_body = program.body.take_in(self.alloc);
+          let var_init_stmts = self.generate_esm_namespace_in_cjs();
+
+          let mut stmts_inside_closure = allocator::Vec::new_in(self.alloc);
+          stmts_inside_closure.append(&mut program.body);
 
           program.body.push(self.snippet.commonjs_wrapper_stmt(
             wrap_ref_name,
             commonjs_ref_expr,
-            old_body,
+            stmts_inside_closure,
             self.ctx.module.ast_usage,
             !self.ctx.options.minify,
             &self.ctx.module.stable_id,
           ));
+          program.body.extend(var_init_stmts);
         }
         WrapKind::Esm => {
           use ast::Statement;
@@ -99,7 +126,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
           } else {
             self.canonical_ref_for_runtime("__esmMin")
           };
-          let esm_ref_expr = self.finalized_expr_for_symbol_ref(esm_ref, false);
+          let esm_ref_expr = self.finalized_expr_for_symbol_ref(esm_ref, false, None);
           let old_body = program.body.take_in(self.alloc);
 
           let mut fn_stmts = allocator::Vec::new_in(self.alloc);
@@ -288,6 +315,9 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
         }
       }
     } else {
+      if let Some(ref_id) = self.try_get_valid_namespace_alias_ref_id_from_member_expr(expr) {
+        self.interested_namespace_alias_ref_id.insert(ref_id);
+      };
       walk_mut::walk_member_expression(self, expr);
     }
   }

@@ -1,15 +1,18 @@
 use std::fmt::Debug;
 use std::sync::Arc;
 
-use crate::ecmascript::ecma_view::EcmaView;
+use crate::ecmascript::ecma_view::{EcmaView, EsmNamespaceInCjs};
 use crate::types::interop::Interop;
 use crate::{
   AssetView, CssView, ExportsKind, ImportRecordIdx, ImportRecordMeta, ModuleId, ModuleIdx,
+  RuntimeModuleBrief, StmtInfo, SymbolRef, SymbolRefDb,
 };
 use crate::{EcmaAstIdx, Module, ModuleType};
 use std::ops::{Deref, DerefMut};
 
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
+use minipack_utils::concat_string;
+use minipack_utils::ecmascript::legitimize_identifier_name;
 use minipack_utils::rstr::Rstr;
 use oxc_index::IndexVec;
 use rustc_hash::FxHashSet;
@@ -141,6 +144,70 @@ impl NormalModule {
 
   pub fn is_included(&self) -> bool {
     self.ecma_view.meta.is_included()
+  }
+
+  /// Generates
+  /// ```js
+  /// var import_xxx = __toESM(require_xxx());
+  /// ```
+  pub fn generate_esm_namespace_in_cjs_stmt(
+    &mut self,
+    symbol_db: &mut SymbolRefDb,
+    runtime_module: &RuntimeModuleBrief,
+    wrap_ref: SymbolRef,
+  ) {
+    if self.esm_namespace_in_cjs.is_some() {
+      return;
+    }
+    let esm_namespace_ref_derived_from_module_exports = symbol_db.create_facade_root_symbol_ref(
+      self.idx,
+      &concat_string!("import_", legitimize_identifier_name(&self.repr_name)),
+    );
+
+    let stmt_info_idx = self.stmt_infos.add_stmt_info(StmtInfo {
+      stmt_idx: None,
+      declared_symbols: vec![esm_namespace_ref_derived_from_module_exports],
+      referenced_symbols: vec![wrap_ref.into(), runtime_module.resolve_symbol("__toESM").into()],
+      debug_label: Some("esm_namespace_ref_derived_from_module_exports".to_string()),
+      ..Default::default()
+    });
+
+    self.esm_namespace_in_cjs = Some(EsmNamespaceInCjs {
+      namespace_ref: esm_namespace_ref_derived_from_module_exports,
+      stmt_info_idx,
+    });
+  }
+
+  /// Generates
+  /// ```js
+  /// var import_xxx = __toESM(require_xxx(), 1);
+  /// ```
+  pub fn generate_esm_namespace_in_cjs_node_mode_stmt(
+    &mut self,
+    symbol_db: &mut SymbolRefDb,
+    runtime_module: &RuntimeModuleBrief,
+    wrap_ref: SymbolRef,
+  ) {
+    if self.esm_namespace_in_cjs_node_mode.is_some() {
+      return;
+    }
+    let esm_namespace_ref_derived_from_module_exports = symbol_db.create_facade_root_symbol_ref(
+      self.idx,
+      &concat_string!("import_", legitimize_identifier_name(&self.repr_name)),
+    );
+
+    let stmt_info_idx = self.stmt_infos.add_stmt_info(StmtInfo {
+      stmt_idx: None,
+      declared_symbols: vec![esm_namespace_ref_derived_from_module_exports],
+      referenced_symbols: vec![wrap_ref.into(), runtime_module.resolve_symbol("__toESM").into()],
+      debug_label: Some("esm_namespace_ref_derived_from_module_exports node".to_string()),
+      ..Default::default()
+    });
+
+    self.esm_namespace_in_cjs_node_mode = Some(EsmNamespaceInCjs {
+      namespace_ref: esm_namespace_ref_derived_from_module_exports,
+      stmt_info_idx,
+    });
   }
 }
 

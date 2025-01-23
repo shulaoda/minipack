@@ -1,7 +1,10 @@
 use minipack_common::{ExportsKind, Module, ModuleIdx, WrapKind};
 use oxc_index::IndexVec;
 
-use crate::types::{linking_metadata::LinkingMetadataVec, IndexModules};
+use crate::{
+  stages::link::create_exports_for_ecma_modules::create_wrapper,
+  types::{linking_metadata::LinkingMetadataVec, IndexModules},
+};
 
 use super::LinkStage;
 
@@ -107,5 +110,15 @@ impl LinkStage<'_> {
         );
       }
     }
+    self.modules.iter_mut().filter_map(|m| m.as_normal_mut()).for_each(|ecma_module| {
+      let linking_info = &mut self.metadata[ecma_module.idx];
+      create_wrapper(
+        ecma_module,
+        linking_info,
+        &mut self.symbols,
+        &self.runtime_module,
+        self.options,
+      );
+    });
   }
 }

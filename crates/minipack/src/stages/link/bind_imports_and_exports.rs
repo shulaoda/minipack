@@ -3,15 +3,18 @@ use std::borrow::Cow;
 use arcstr::ArcStr;
 use indexmap::IndexSet;
 use minipack_common::{
-  ExportsKind, Module, ModuleIdx, ModuleType, NamespaceAlias, NormalModule, OutputFormat,
-  ResolvedExport, Specifier, SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
+  EcmaModuleAstUsage, ExportsKind, ImportKind, Module, ModuleIdx, ModuleType, NamespaceAlias,
+  NormalModule, OutputFormat, ResolvedExport, Specifier, SymbolOrMemberExprRef, SymbolRef,
+  SymbolRefDb, WrapKind,
 };
 use minipack_utils::{
   ecmascript::{is_validate_identifier_name, legitimize_identifier_name},
+  option_ext::OptionExt,
   rayon::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator},
   rstr::{Rstr, ToRstr},
 };
 use oxc::span::CompactStr;
+
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::types::{linking_metadata::LinkingMetadataVec, IndexModules, SharedOptions};
@@ -116,7 +119,50 @@ impl LinkStage<'_> {
   /// ```
   ///
   /// Unlike import from normal modules, the imported variable deosn't have a place that declared the variable. So we consider `import { a } from 'external'` in `foo.js` as the declaration statement of `a`.
+  #[expect(clippy::too_many_lines)]
   pub fn bind_imports_and_exports(&mut self) {
+    self.sorted_modules.iter().copied().for_each(|importer_idx| {
+      let Some(importer) = self.modules[importer_idx].as_normal() else {
+        return;
+      };
+
+      let imported_wrapped_cjs_modules = importer
+        .ecma_view
+        .import_records
+        .iter()
+        .filter_map(|import_rec| {
+          let importee = &self.modules[import_rec.resolved_module];
+          let importee_meta = &self.metadata[importee.idx()];
+          match (import_rec.kind, &importee_meta.wrap_kind) {
+            (ImportKind::Import, WrapKind::Cjs) => {
+              Some((importer.should_consider_node_esm_spec(), import_rec.resolved_module))
+            }
+            _ => None,
+          }
+        })
+        .collect::<Vec<_>>();
+
+      imported_wrapped_cjs_modules.iter().for_each(
+        |(should_consider_node_esm_spec, cjs_module_idx)| {
+          let cjs_module = self.modules[*cjs_module_idx].as_normal_mut().unpack();
+          let meta = &self.metadata[cjs_module.idx];
+          if *should_consider_node_esm_spec {
+            cjs_module.generate_esm_namespace_in_cjs_node_mode_stmt(
+              &mut self.symbols,
+              &self.runtime_module,
+              meta.wrapper_ref.unpack(),
+            );
+          } else {
+            cjs_module.generate_esm_namespace_in_cjs_stmt(
+              &mut self.symbols,
+              &self.runtime_module,
+              meta.wrapper_ref.unpack(),
+            );
+          }
+        },
+      );
+    });
+
     // Initialize `resolved_exports` to prepare for matching imports with exports
     self.metadata.iter_mut_enumerated().for_each(|(module_id, meta)| {
       let Module::Normal(module) = &self.modules[module_id] else {
@@ -210,6 +256,79 @@ impl LinkStage<'_> {
       meta.sorted_and_non_ambiguous_resolved_exports = sorted_and_non_ambiguous_resolved_exports;
     });
     self.resolve_member_expr_refs(&side_effects_modules, &normal_symbol_exports_chain_map);
+    self.update_cjs_module_meta();
+  }
+
+  /// Update the metadata of CommonJS modules.
+  /// - Safe to eliminate interop default export
+  ///   e.g.
+  /// ```js
+  /// // index.js
+  /// import a from './a'
+  /// a.something // this property could safely rewrite to `a.something` rather than `a.default.something`
+  ///
+  /// // a.js
+  /// module.exports = require('./mod.js')
+  ///
+  /// // mod.js
+  /// exports.something = 1
+  /// ```
+  fn update_cjs_module_meta(&mut self) {
+    /// caller should guarantee that the idx of module belongs to a normal module
+    fn recursive_update_cjs_module_interop_default_removable(
+      module_tables: &IndexModules,
+      module_idx: ModuleIdx,
+      cache: &mut FxHashMap<ModuleIdx, bool>,
+    ) -> bool {
+      if let Some(&result) = cache.get(&module_idx) {
+        return result;
+      }
+      let module = module_tables[module_idx].as_normal().unwrap();
+      let v = if module.ast_usage.contains(EcmaModuleAstUsage::IsCjsReexport) {
+        module.import_records.iter().all(|item| {
+          let Some(importee) = module_tables[item.resolved_module].as_normal() else {
+            return false;
+          };
+          if importee.exports_kind.is_commonjs() {
+            recursive_update_cjs_module_interop_default_removable(
+              module_tables,
+              importee.idx,
+              cache,
+            )
+          } else {
+            false
+          }
+        })
+      } else {
+        module.ast_usage.contains(EcmaModuleAstUsage::AllStaticExportPropertyAccess)
+      };
+      cache.insert(module_idx, v);
+      v
+    }
+
+    let mut cache = FxHashMap::default();
+    let cjs_exports_type_modules = self
+      .modules
+      .iter()
+      .filter_map(|module| {
+        let Module::Normal(module) = module else {
+          return None;
+        };
+        if module.exports_kind.is_commonjs() {
+          Some(module.idx)
+        } else {
+          None
+        }
+      })
+      .collect::<Vec<_>>();
+    for module_idx in cjs_exports_type_modules {
+      let v = recursive_update_cjs_module_interop_default_removable(
+        &self.modules,
+        module_idx,
+        &mut cache,
+      );
+      self.metadata[module_idx].safe_cjs_to_eliminate_interop_default = v;
+    }
   }
 
   fn add_exports_for_export_star(
@@ -325,11 +444,9 @@ impl LinkStage<'_> {
                         member_expr_ref.span,
                         (None, member_expr_ref.props[cursor..].to_vec()),
                       );
-
                       warnings.push(anyhow::anyhow!("Import `{}` will always be undefined because there is no matching export in '{}'", 
                       ArcStr::from(name.as_str()),
                       canonical_ref_owner.stable_id.to_string()));
-
                     }
                     break;
                   };
@@ -341,6 +458,7 @@ impl LinkStage<'_> {
                     return;
                   };
 
+                  // TODO(hyf0): suspicious cjs might just fallback to dynamic lookup?
                   if !self.modules[export_symbol.symbol_ref.owner]
                     .as_normal()
                     .unwrap()
@@ -555,21 +673,26 @@ impl BindImportsAndExportsContext<'_> {
       }
       ctx.tracker_stack.push(tracker.clone());
       let import_status = self.advance_import_tracker(ctx);
-
       let importer = &self.index_modules[tracker.importer];
       let named_import = &importer.as_normal().unwrap().named_imports[&tracker.imported_as];
       let importer_record = &importer.as_normal().unwrap().import_records[named_import.record_id];
+      let importee = &self.index_modules[importer_record.resolved_module];
 
       let kind = match import_status {
-        ImportStatus::CommonJS => match &tracker.imported {
-          Specifier::Star => {
-            MatchImportKind::Namespace { namespace_ref: importer_record.namespace_ref }
+        ImportStatus::CommonJS => {
+          let esm_namespace = if importer.as_normal().unpack().should_consider_node_esm_spec() {
+            importee.as_normal().unpack().esm_namespace_in_cjs_node_mode.unpack_ref().namespace_ref
+          } else {
+            importee.as_normal().unpack().esm_namespace_in_cjs.unpack_ref().namespace_ref
+          };
+          match &tracker.imported {
+            Specifier::Star => MatchImportKind::Namespace { namespace_ref: esm_namespace },
+            Specifier::Literal(alias) => MatchImportKind::NormalAndNamespace {
+              namespace_ref: esm_namespace,
+              alias: alias.clone(),
+            },
           }
-          Specifier::Literal(alias) => MatchImportKind::NormalAndNamespace {
-            namespace_ref: importer_record.namespace_ref,
-            alias: alias.clone(),
-          },
-        },
+        }
         ImportStatus::DynamicFallback { namespace_ref } => match &tracker.imported {
           Specifier::Star => MatchImportKind::Namespace { namespace_ref },
           Specifier::Literal(alias) => {

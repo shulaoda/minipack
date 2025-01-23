@@ -33,7 +33,7 @@ pub fn init_entry_point_stmt_info(
   meta.referenced_symbols_by_entry_point_chunk.extend(referenced_symbols);
 }
 
-fn create_wrapper(
+pub fn create_wrapper(
   module: &mut NormalModule,
   linking_info: &mut LinkingMetadata,
   symbols: &mut SymbolRefDb,
@@ -60,7 +60,7 @@ fn create_wrapper(
         } else {
           runtime.resolve_symbol("__commonJSMin").into()
         }],
-        side_effect: false,
+        side_effect: true,
         is_included: false,
         import_records: Vec::new(),
         debug_label: None,
@@ -109,13 +109,6 @@ impl LinkStage<'_> {
     self.modules.iter_mut().filter_map(|m| m.as_normal_mut()).for_each(|ecma_module| {
       let linking_info = &mut self.metadata[ecma_module.idx];
 
-      create_wrapper(
-        ecma_module,
-        linking_info,
-        &mut self.symbols,
-        &self.runtime_module,
-        self.options,
-      );
       if let Some(entry) = self.entry_points.iter().find(|entry| entry.id == ecma_module.idx) {
         init_entry_point_stmt_info(linking_info, entry, &self.dyn_import_usage_map);
       }
