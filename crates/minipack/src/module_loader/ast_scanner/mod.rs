@@ -1,4 +1,5 @@
 mod dynamic_import;
+mod esmodule_flag_analyzer;
 mod impl_visit;
 mod import_assign_analyzer;
 pub mod pre_processor;
