@@ -85,7 +85,7 @@ impl LinkStage<'_> {
         matches!(self.metadata[module.idx].wrap_kind, WrapKind::Cjs | WrapKind::Esm);
 
       visited_modules_for_wrapping[module.idx] = true;
-      module.import_records.iter().for_each(|rec| {
+      module.import_records.iter().filter(|rec| !rec.is_dummy()).for_each(|rec| {
         let Module::Normal(importee) = &self.modules[rec.resolved_module] else {
           return;
         };

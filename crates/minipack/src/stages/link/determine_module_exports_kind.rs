@@ -13,7 +13,7 @@ impl LinkStage<'_> {
       .iter()
       .filter_map(|module| module.as_normal().filter(|importer| importer.is_js_type()))
       .for_each(|importer| {
-        importer.import_records.iter().for_each(|rec| {
+        importer.import_records.iter().filter(|rec| !rec.is_dummy()).for_each(|rec| {
           let Module::Normal(importee) = &self.modules[rec.resolved_module] else {
             return;
           };

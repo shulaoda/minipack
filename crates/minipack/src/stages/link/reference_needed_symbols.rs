@@ -46,6 +46,18 @@ impl LinkStage<'_> {
         stmt_infos.infos.iter_mut_enumerated().for_each(|(_stmt_idx, stmt_info)| {
           stmt_info.import_records.iter().for_each(|rec_id| {
             let rec = &importer.import_records[*rec_id];
+            if rec.is_dummy() {
+              if matches!(rec.kind, ImportKind::Require)
+                && self.options.format.should_call_runtime_require()
+                && self.options.polyfill_require_for_esm_format_with_node_platform()
+              {
+                stmt_info
+                  .referenced_symbols
+                  .push(self.runtime_module.resolve_symbol("__require").into());
+                record_meta_pairs.push((*rec_id, ImportRecordMeta::CALL_RUNTIME_REQUIRE));
+              }
+              return;
+            }
             let rec_resolved_module = &self.modules[rec.resolved_module];
             if (!rec_resolved_module.is_normal()
               || Self::is_external_dynamic_import(&self.modules, rec, importer_idx))

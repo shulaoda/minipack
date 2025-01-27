@@ -14,8 +14,7 @@ use oxc::{
 };
 
 use super::{
-  esmodule_flag_analyzer::EsModuleFlagCheckType, side_effect_detector::SideEffectDetector,
-  AstScanner,
+  cjs_ast_analyzer::CjsGlobalAssignmentType, side_effect_detector::SideEffectDetector, AstScanner,
 };
 
 impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
@@ -79,6 +78,18 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
           ThisExprReplaceKind::Undefined,
         );
       }
+    }
+
+    // check if the module is a reexport cjs module e.g.
+    // module.exports = require('a');
+    // normalize ast usage flag
+    if self.ast_usage.contains(EcmaModuleAstUsage::ModuleRef)
+      || !self.ast_usage.contains(EcmaModuleAstUsage::ExportsRef)
+    {
+      self.ast_usage.remove(EcmaModuleAstUsage::AllStaticExportPropertyAccess);
+    }
+    if !self.ast_usage.contains(EcmaModuleAstUsage::ModuleRef) {
+      self.ast_usage.remove(EcmaModuleAstUsage::IsCjsReexport);
     }
   }
 
@@ -242,28 +253,26 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   fn process_identifier_ref_by_scope(&mut self, ident_ref: &IdentifierReference) {
     match self.resolve_identifier_reference(ident_ref) {
       super::IdentifierReferenceKind::Global => {
-        if !self.ast_usage.contains(EcmaModuleAstUsage::ModuleOrExports) {
-          match ident_ref.name.as_str() {
-            "module" => {
-              if self
-                .check_es_module_flag(&EsModuleFlagCheckType::ModuleExportsAssignment)
-                .unwrap_or_default()
-              {
-                self.ast_usage.insert(EcmaModuleAstUsage::EsModuleFlag);
-              };
-              self.ast_usage.insert(EcmaModuleAstUsage::ModuleRef);
-            }
-            "exports" => {
-              if self
-                .check_es_module_flag(&EsModuleFlagCheckType::ExportsAssignment)
-                .unwrap_or_default()
-              {
-                self.ast_usage.insert(EcmaModuleAstUsage::EsModuleFlag);
-              };
-              self.ast_usage.insert(EcmaModuleAstUsage::ExportsRef);
-            }
-            _ => {}
+        match ident_ref.name.as_str() {
+          "module" => {
+            self.cjs_ast_analyzer(&CjsGlobalAssignmentType::ModuleExportsAssignment);
           }
+          "exports" => {
+            self.cjs_ast_analyzer(&CjsGlobalAssignmentType::ExportsAssignment);
+          }
+          "require" => {
+            if let Some(AstKind::ExpressionStatement(_)) = self.visit_path.last() {
+              let import_rec_idx = self.add_import_record(
+                "",
+                ImportKind::Require,
+                ident_ref.span,
+                ImportRecordMeta::IS_DUMMY,
+              );
+
+              self.result.imports.insert(ident_ref.span, import_rec_idx);
+            }
+          }
+          _ => {}
         }
         self.process_global_identifier_ref_by_ancestor(ident_ref);
       }

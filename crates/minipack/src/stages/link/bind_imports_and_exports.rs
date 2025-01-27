@@ -131,6 +131,9 @@ impl LinkStage<'_> {
         .import_records
         .iter()
         .filter_map(|import_rec| {
+          if import_rec.is_dummy() {
+            return None;
+          }
           let importee = &self.modules[import_rec.resolved_module];
           let importee_meta = &self.metadata[importee.idx()];
           match (import_rec.kind, &importee_meta.wrap_kind) {

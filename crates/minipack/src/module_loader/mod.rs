@@ -11,9 +11,9 @@ use arcstr::ArcStr;
 use minipack_common::{
   side_effects::{DeterminedSideEffects, HookSideEffects},
   EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind, ImportRecordIdx,
-  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleType, NormalModuleTaskResult,
-  ResolvedId, ResolvedImportRecord, RuntimeModuleBrief, RuntimeModuleTaskResult, SymbolRefDb,
-  SymbolRefDbForModule, RUNTIME_MODULE_ID,
+  ImportRecordMeta, ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleType,
+  NormalModuleTaskResult, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief,
+  RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule, DUMMY_MODULE_IDX, RUNTIME_MODULE_ID,
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
@@ -156,6 +156,9 @@ impl ModuleLoader {
             .into_iter_enumerated()
             .zip(resolved_deps)
             .map(|((rec_idx, raw_rec), info)| {
+              if raw_rec.meta.contains(ImportRecordMeta::IS_DUMMY) {
+                return raw_rec.into_resolved(DUMMY_MODULE_IDX);
+              }
               let normal_module = module.as_normal().unwrap();
               let owner = ModuleTaskOwner::new(normal_module.stable_id.as_str().into());
               let id = self.try_spawn_new_task(

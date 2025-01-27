@@ -1,7 +1,8 @@
 use arcstr::ArcStr;
 use minipack_common::{
-  EcmaRelated, ImportKind, ImportRecordIdx, ModuleDefFormat, ModuleId, ModuleIdx, ModuleLoaderMsg,
-  ModuleType, NormalModule, NormalModuleTaskResult, ResolvedId, StrOrBytes, RUNTIME_MODULE_ID,
+  EcmaRelated, ImportKind, ImportRecordIdx, ImportRecordMeta, ModuleDefFormat, ModuleId, ModuleIdx,
+  ModuleLoaderMsg, ModuleType, NormalModule, NormalModuleTaskResult, ResolvedId, StrOrBytes,
+  RUNTIME_MODULE_ID,
 };
 use minipack_error::BuildResult;
 use minipack_utils::{ecmascript::legitimize_identifier_name, path_ext::PathExt, rstr::Rstr};
@@ -134,7 +135,12 @@ impl ModuleTask {
 
     let resolved_deps = raw_import_records
       .iter()
-      .map(|item| self.resolve_id(&item.module_request, item.kind))
+      .map(|item| {
+        if item.meta.contains(ImportRecordMeta::IS_DUMMY) {
+          return Ok(ResolvedId::make_dummy());
+        }
+        self.resolve_id(&item.module_request, item.kind)
+      })
       .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
 
     if !matches!(module_type, ModuleType::Css) {
