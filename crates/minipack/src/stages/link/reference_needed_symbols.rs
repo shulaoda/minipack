@@ -49,7 +49,6 @@ impl LinkStage<'_> {
             if rec.is_dummy() {
               if matches!(rec.kind, ImportKind::Require)
                 && self.options.format.should_call_runtime_require()
-                && self.options.polyfill_require_for_esm_format_with_node_platform()
               {
                 stmt_info
                   .referenced_symbols

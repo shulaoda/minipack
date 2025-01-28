@@ -32,12 +32,4 @@ impl NormalizedBundlerOptions {
   pub fn is_esm_format_with_node_platform(&self) -> bool {
     matches!(self.format, OutputFormat::Esm) && matches!(self.platform, Platform::Node)
   }
-
-  /// make sure the `polyfill_require` is only valid for `esm` format with `node` platform
-  pub fn polyfill_require_for_esm_format_with_node_platform(&self) -> bool {
-    if self.is_esm_format_with_node_platform() {
-      return true;
-    }
-    true
-  }
 }
