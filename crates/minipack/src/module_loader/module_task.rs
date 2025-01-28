@@ -5,6 +5,7 @@ use minipack_common::{
   RUNTIME_MODULE_ID,
 };
 use minipack_error::BuildResult;
+use minipack_fs::FileSystem;
 use minipack_utils::{ecmascript::legitimize_identifier_name, path_ext::PathExt, rstr::Rstr};
 use oxc_index::IndexVec;
 use std::sync::Arc;
@@ -17,7 +18,7 @@ use crate::{
     ecmascript::ecma_module_view_factory::{create_ecma_view, CreateEcmaViewReturn},
   },
   types::module_factory::{CreateModuleContext, CreateModuleViewArgs},
-  utils::{load_source::load_source, resolve_id::resolve_id},
+  utils::resolve_id::resolve_id,
 };
 
 use super::task_context::TaskContext;
@@ -61,13 +62,7 @@ impl ModuleTask {
   }
 
   async fn run_inner(&mut self) -> BuildResult<()> {
-    let id = ModuleId::new(ArcStr::clone(&self.resolved_id.id));
-
-    let hook_side_effects = self.resolved_id.side_effects.take();
-
-    let result = load_source(&self.ctx.fs, &self.resolved_id);
-
-    let (mut source, mut module_type) = result.map_err(|err| {
+    let result = self.load_source().map_err(|err| {
       anyhow::anyhow!(
         "Could not load {}{} - {}.",
         self.resolved_id.debug_id(self.ctx.options.cwd.as_path()),
@@ -79,6 +74,8 @@ impl ModuleTask {
         err,
       )
     })?;
+
+    let (mut source, mut module_type) = result;
 
     if let Some(asserted) = &self.asserted_module_type {
       module_type = asserted.clone();
@@ -92,6 +89,7 @@ impl ModuleTask {
       None
     };
 
+    let id = ModuleId::new(&self.resolved_id.id);
     let stable_id = id.stabilize(&self.ctx.options.cwd);
     let mut raw_import_records = IndexVec::default();
 
@@ -107,6 +105,8 @@ impl ModuleTask {
     };
 
     let mut warnings = vec![];
+
+    let hook_side_effects = self.resolved_id.side_effects.take();
 
     let ret = create_ecma_view(
       &mut CreateModuleContext {
@@ -207,5 +207,39 @@ impl ModuleTask {
     let resolver = &self.ctx.resolver;
 
     resolve_id(resolver, specifier, Some(importer), kind, false)
+  }
+
+  pub fn load_source(&self) -> anyhow::Result<(StrOrBytes, ModuleType)> {
+    let fs: &dyn FileSystem = &self.ctx.fs;
+    let asserted_module_type = self.asserted_module_type.clone();
+
+    if self.resolved_id.ignored {
+      return Ok((String::new().into(), asserted_module_type.unwrap_or(ModuleType::Empty)));
+    }
+
+    let id = &self.resolved_id.id;
+    let ext = id.rsplit('.').next().filter(|ext| *ext != id).unwrap_or("");
+
+    let module_type = match ext {
+      "js" | "mjs" | "cjs" => ModuleType::Js,
+      "ts" | "mts" | "cts" => ModuleType::Ts,
+      "jsx" => ModuleType::Jsx,
+      "tsx" => ModuleType::Tsx,
+      "json" => ModuleType::Json,
+      "txt" => ModuleType::Text,
+      "css" => ModuleType::Css,
+      _ => ModuleType::Js,
+    };
+
+    let content = match module_type {
+      ModuleType::Base64 | ModuleType::Binary | ModuleType::Dataurl | ModuleType::Asset => {
+        StrOrBytes::Bytes(fs.read(id.as_path())?)
+      }
+      _ => StrOrBytes::Str(fs.read_to_string(id.as_path())?),
+    };
+
+    let final_type = self.asserted_module_type.clone().unwrap_or(module_type);
+
+    Ok((content, final_type))
   }
 }
