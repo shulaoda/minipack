@@ -19,7 +19,7 @@ anyhow      = { workspace = true }
 arcstr      = { workspace = true }
 base-encode = { workspace = true }
 base64-simd = { workspace = true }
-indexmap    = { workspace = true, features = ["serde"] }
+indexmap    = { workspace = true }
 infer       = { workspace = true }
 mime        = { workspace = true }
 oxc         = { workspace = true }
