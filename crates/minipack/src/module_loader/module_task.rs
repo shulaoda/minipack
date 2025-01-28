@@ -139,7 +139,23 @@ impl ModuleTask {
         if item.meta.contains(ImportRecordMeta::IS_DUMMY) {
           return Ok(ResolvedId::make_dummy());
         }
-        self.resolve_id(&item.module_request, item.kind)
+
+        let specifier = item.module_request.as_str();
+
+        // Check runtime module
+        if specifier == RUNTIME_MODULE_ID {
+          return Ok(ResolvedId {
+            id: item.module_request.to_string().into(),
+            ignored: false,
+            module_def_format: ModuleDefFormat::EsmMjs,
+            is_external: false,
+            package_json: None,
+            side_effects: None,
+            is_external_without_side_effects: false,
+          });
+        }
+
+        resolve_id(&self.ctx.resolver, specifier, Some(&self.resolved_id.id), item.kind, false)
       })
       .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
 
@@ -187,26 +203,6 @@ impl ModuleTask {
     let _ = self.ctx.tx.send(result).await;
 
     Ok(())
-  }
-
-  fn resolve_id(&self, specifier: &str, kind: ImportKind) -> BuildResult<ResolvedId> {
-    // Check runtime module
-    if specifier == RUNTIME_MODULE_ID {
-      return Ok(ResolvedId {
-        id: specifier.to_string().into(),
-        ignored: false,
-        module_def_format: ModuleDefFormat::EsmMjs,
-        is_external: false,
-        package_json: None,
-        side_effects: None,
-        is_external_without_side_effects: false,
-      });
-    }
-
-    let importer = &self.resolved_id.id;
-    let resolver = &self.ctx.resolver;
-
-    resolve_id(resolver, specifier, Some(importer), kind, false)
   }
 
   pub fn load_source(&self) -> anyhow::Result<(StrOrBytes, ModuleType)> {
