@@ -6,7 +6,7 @@ use oxc::{
 use crate::EcmaAst;
 
 impl EcmaAst {
-  pub fn make_semantic<'ast>(program: &'_ Program<'ast>) -> Semantic<'ast> {
+  pub fn make_semantic<'ast>(program: &'ast Program<'ast>) -> Semantic<'ast> {
     SemanticBuilder::new().with_scope_tree_child_ids(true).build(program).semantic
   }
 
