@@ -139,7 +139,6 @@ impl ModuleLoader {
           let NormalModuleTaskResult {
             mut ecma_related,
             mut module,
-            module_idx,
             resolved_deps,
             raw_import_records,
             warnings: task_result_warnings,
@@ -188,11 +187,12 @@ impl ModuleLoader {
 
           module.set_import_records(import_records);
 
+          let module_idx = module.idx();
           if let Some(EcmaRelated { ast, symbols, .. }) = ecma_related {
-            let ast_idx = self.inm.index_ecma_ast.push((ast, module.idx()));
-            module.set_ecma_ast_idx(ast_idx);
+            module.set_ecma_ast_idx(self.inm.index_ecma_ast.push((ast, module_idx)));
             self.symbols.store_local_db(module_idx, symbols);
           }
+
           self.inm.modules[module_idx] = Some(module);
           self.remaining -= 1;
         }

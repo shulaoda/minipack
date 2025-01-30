@@ -175,29 +175,32 @@ impl ModuleTask {
     }
 
     let repr_name = self.resolved_id.id.as_path().representative_file_name().into_owned();
-    let repr_name = legitimize_identifier_name(&repr_name);
+    let repr_name = legitimize_identifier_name(&repr_name).into_owned();
+
+    let debug_id = self.resolved_id.debug_id(&self.ctx.options.cwd);
 
     let module = NormalModule {
-      repr_name: repr_name.into_owned(),
-      stable_id,
       id,
-      debug_id: self.resolved_id.debug_id(&self.ctx.options.cwd),
       idx: self.idx,
+      debug_id,
+      stable_id,
+      repr_name,
       exec_order: u32::MAX,
-      is_user_defined_entry: self.is_user_defined_entry,
-      module_type: module_type.clone(),
       ecma_view,
       css_view,
       asset_view,
+      module_type: module_type.clone(),
+      is_user_defined_entry: self.is_user_defined_entry,
     };
 
+    let ecma_related = Some(EcmaRelated { ast, symbols, dynamic_import_exports_usage });
+
     let result = ModuleLoaderMsg::NormalModuleDone(NormalModuleTaskResult {
+      ecma_related,
       resolved_deps,
-      module_idx: self.idx,
-      warnings,
-      ecma_related: Some(EcmaRelated { ast, symbols, dynamic_import_exports_usage }),
       module: module.into(),
       raw_import_records,
+      warnings,
     });
 
     let _ = self.ctx.tx.send(result).await;
@@ -207,10 +210,12 @@ impl ModuleTask {
 
   pub fn load_source(&self) -> anyhow::Result<(StrOrBytes, ModuleType)> {
     let fs: &dyn FileSystem = &self.ctx.fs;
-    let asserted_module_type = self.asserted_module_type.clone();
 
     if self.resolved_id.ignored {
-      return Ok((String::new().into(), asserted_module_type.unwrap_or(ModuleType::Empty)));
+      return Ok((
+        StrOrBytes::default(),
+        self.asserted_module_type.clone().unwrap_or(ModuleType::Empty),
+      ));
     }
 
     let id = &self.resolved_id.id;
