@@ -1,6 +1,6 @@
 use arcstr::ArcStr;
 use minipack_common::{
-  EcmaRelated, ImportKind, ImportRecordIdx, ImportRecordMeta, ModuleDefFormat, ModuleId, ModuleIdx,
+  ImportKind, ImportRecordIdx, ImportRecordMeta, ModuleDefFormat, ModuleId, ModuleIdx,
   ModuleLoaderMsg, ModuleType, NormalModule, NormalModuleTaskResult, ResolvedId, StrOrBytes,
   RUNTIME_MODULE_ID,
 };
@@ -62,7 +62,7 @@ impl ModuleTask {
   }
 
   async fn run_inner(&mut self) -> BuildResult<()> {
-    let result = self.load_source().map_err(|err| {
+    let (mut source, module_type) = self.load_source().map_err(|err| {
       anyhow::anyhow!(
         "Could not load {}{} - {}.",
         self.resolved_id.debug_id(self.ctx.options.cwd.as_path()),
@@ -75,33 +75,25 @@ impl ModuleTask {
       )
     })?;
 
-    let (mut source, mut module_type) = result;
-
-    if let Some(asserted) = &self.asserted_module_type {
-      module_type = asserted.clone();
-    }
-
-    let asset_view = if matches!(module_type, ModuleType::Asset) {
-      let asset_source = source.into_bytes();
-      source = StrOrBytes::Str(String::new());
-      Some(create_asset_view(asset_source.into()))
-    } else {
-      None
-    };
-
-    let id = ModuleId::new(&self.resolved_id.id);
-    let stable_id = id.stabilize(&self.ctx.options.cwd);
+    let mut css_view = None;
+    let mut asset_view = None;
     let mut raw_import_records = IndexVec::default();
 
-    let css_view = if matches!(module_type, ModuleType::Css) {
-      let css_source: ArcStr = source.try_into_string()?.into();
-      // FIXME: This makes creating `EcmaView` rely on creating `CssView` first, while they should be done in parallel.
-      let (css_view, import_records) = create_css_view(css_source);
-      source = StrOrBytes::Str(String::new());
-      raw_import_records = import_records;
-      Some(css_view)
-    } else {
-      None
+    match module_type {
+      ModuleType::Asset => {
+        let asset_source = source.into_bytes();
+        asset_view = Some(create_asset_view(asset_source.into()));
+        source = StrOrBytes::default();
+      }
+      ModuleType::Css => {
+        let css_source = source.try_into_string()?.into();
+        // FIXME: This makes creating `EcmaView` rely on creating `CssView` first, while they should be done in parallel.
+        let (raw_css_view, import_records) = create_css_view(css_source);
+        raw_import_records = import_records;
+        css_view = Some(raw_css_view);
+        source = StrOrBytes::default();
+      }
+      _ => {}
     };
 
     let mut warnings = vec![];
@@ -123,13 +115,11 @@ impl ModuleTask {
 
     let CreateEcmaViewReturn {
       view: mut ecma_view,
-      ast,
-      symbols,
+      ecma_related,
       raw_import_records: ecma_raw_import_records,
-      dynamic_import_exports_usage,
     } = ret;
 
-    if !matches!(module_type, ModuleType::Css) {
+    if css_view.is_none() {
       raw_import_records = ecma_raw_import_records;
     }
 
@@ -159,7 +149,7 @@ impl ModuleTask {
       })
       .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
 
-    if !matches!(module_type, ModuleType::Css) {
+    if css_view.is_none() {
       for (record, info) in raw_import_records.iter().zip(&resolved_deps) {
         match record.kind {
           ImportKind::Import | ImportKind::Require | ImportKind::NewUrl => {
@@ -177,6 +167,8 @@ impl ModuleTask {
     let repr_name = self.resolved_id.id.as_path().representative_file_name().into_owned();
     let repr_name = legitimize_identifier_name(&repr_name).into_owned();
 
+    let id = ModuleId::new(&self.resolved_id.id);
+    let stable_id = id.stabilize(&self.ctx.options.cwd);
     let debug_id = self.resolved_id.debug_id(&self.ctx.options.cwd);
 
     let module = NormalModule {
@@ -193,12 +185,10 @@ impl ModuleTask {
       is_user_defined_entry: self.is_user_defined_entry,
     };
 
-    let ecma_related = Some(EcmaRelated { ast, symbols, dynamic_import_exports_usage });
-
     let result = ModuleLoaderMsg::NormalModuleDone(NormalModuleTaskResult {
-      ecma_related,
-      resolved_deps,
       module: module.into(),
+      resolved_deps,
+      ecma_related: Some(ecma_related),
       raw_import_records,
       warnings,
     });

@@ -1,9 +1,8 @@
 use arcstr::ArcStr;
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage,
   side_effects::{DeterminedSideEffects, HookSideEffects},
-  AstScopes, EcmaView, EcmaViewMeta, ImportRecordIdx, ModuleDefFormat, ModuleId, ModuleIdx,
-  ModuleType, RawImportRecord, SymbolRef, SymbolRefDbForModule,
+  AstScopes, EcmaRelated, EcmaView, EcmaViewMeta, ImportRecordIdx, ModuleDefFormat, ModuleId,
+  ModuleIdx, ModuleType, RawImportRecord, SymbolRef,
 };
 use minipack_ecmascript::EcmaAst;
 use minipack_error::BuildResult;
@@ -13,7 +12,6 @@ use minipack_utils::{
 use oxc::semantic::{ScopeTree, SymbolTable};
 use oxc_index::IndexVec;
 
-use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 
 use crate::{
@@ -59,10 +57,8 @@ fn scan_ast(
 }
 pub struct CreateEcmaViewReturn {
   pub view: EcmaView,
+  pub ecma_related: EcmaRelated,
   pub raw_import_records: IndexVec<ImportRecordIdx, RawImportRecord>,
-  pub ast: EcmaAst,
-  pub symbols: SymbolRefDbForModule,
-  pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
 }
 
 pub async fn create_ecma_view(
@@ -77,7 +73,7 @@ pub async fn create_ecma_view(
     &stable_id,
     ctx.options,
     &ctx.module_type,
-    args.source.clone(),
+    args.source,
     ctx.is_user_defined_entry,
   )?;
 
@@ -100,7 +96,7 @@ pub async fn create_ecma_view(
     named_imports,
     named_exports,
     stmt_infos,
-    import_records,
+    import_records: raw_import_records,
     default_export_ref,
     imports,
     exports_kind,
@@ -195,11 +191,6 @@ pub async fn create_ecma_view(
     esm_namespace_in_cjs_node_mode: None,
   };
 
-  Ok(CreateEcmaViewReturn {
-    view,
-    raw_import_records: import_records,
-    ast,
-    symbols,
-    dynamic_import_exports_usage,
-  })
+  let ecma_related = EcmaRelated { ast, symbols, dynamic_import_exports_usage };
+  Ok(CreateEcmaViewReturn { view, ecma_related, raw_import_records })
 }
