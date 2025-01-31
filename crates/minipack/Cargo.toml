@@ -27,6 +27,7 @@ indexmap          = { workspace = true }
 itertools         = { workspace = true }
 itoa              = { workspace = true }
 oxc               = { workspace = true }
+oxc_ecmascript    = { workspace = true }
 oxc_index         = { workspace = true }
 rustc-hash        = { workspace = true }
 sanitize-filename = { workspace = true }

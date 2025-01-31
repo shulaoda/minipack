@@ -11,6 +11,7 @@ use minipack_common::{
   ModuleIdx, NamedImport, OutputFormat, SymbolOrMemberExprRef, SymbolRef, WrapKind,
 };
 use minipack_utils::{
+  concat_string,
   indexmap::FxIndexSet,
   rayon::{IntoParallelIterator, ParallelBridge, ParallelIterator},
   rstr::{Rstr, ToRstr},
@@ -367,15 +368,24 @@ impl GenerateStage<'_> {
         .copied()
       {
         let original_name = chunk_export.name(&self.link_output.symbols).to_rstr();
-        let key: Cow<'_, Rstr> = Cow::Owned(original_name.clone());
-        let count = name_count.entry(key).or_insert(0u32);
-        let alias = if *count == 0 {
-          original_name.clone()
-        } else {
-          format!("{original_name}${}", itoa::Buffer::new().format(*count)).into()
-        };
-        chunk.exports_to_other_chunks.insert(chunk_export, alias.clone());
-        *count += 1;
+        let mut candidate_name = original_name.clone();
+        loop {
+          let key: Cow<'_, Rstr> = Cow::Owned(candidate_name.clone());
+          match name_count.entry(key) {
+            std::collections::hash_map::Entry::Occupied(mut occ) => {
+              let next_conflict_index = *occ.get() + 1;
+              *occ.get_mut() = next_conflict_index;
+              candidate_name =
+                concat_string!(original_name, "$", itoa::Buffer::new().format(next_conflict_index))
+                  .into();
+            }
+            std::collections::hash_map::Entry::Vacant(vac) => {
+              vac.insert(0);
+              break;
+            }
+          }
+        }
+        chunk.exports_to_other_chunks.insert(chunk_export, candidate_name.clone());
       }
     }
 
