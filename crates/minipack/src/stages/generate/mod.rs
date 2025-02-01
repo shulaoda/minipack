@@ -70,6 +70,8 @@ impl<'a> GenerateStage<'a> {
         let Module::Normal(module) = &self.link_output.modules[*owner] else {
           return;
         };
+        let ast_scope_idx = module.ecma_view.ast_scope_idx.expect("scope idx should be set");
+        let ast_scope = &self.link_output.ast_scope_table[ast_scope_idx];
         let chunk_id = chunk_graph.module_to_chunk[module.idx].unwrap();
         let chunk = &chunk_graph.chunk_table[chunk_id];
         let linking_info = &self.link_output.metadata[module.idx];
@@ -92,7 +94,7 @@ impl<'a> GenerateStage<'a> {
                 cur_stmt_index: 0,
                 keep_name_statement_to_insert: Vec::new(),
               },
-              scope: &module.scope,
+              scope: ast_scope,
               snippet: AstSnippet::new(alloc),
               comments: oxc_program.comments.take_in(alloc),
               namespace_alias_symbol_id: FxHashSet::default(),
@@ -106,7 +108,7 @@ impl<'a> GenerateStage<'a> {
             let (oxc_program, alloc) = (fields.program, fields.allocator);
             let mut finalizer = IsolatingModuleFinalizer {
               alloc,
-              scope: &module.scope,
+              scope: ast_scope,
               ctx: &IsolatingModuleFinalizerContext {
                 module,
                 modules: &self.link_output.modules,

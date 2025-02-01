@@ -55,6 +55,7 @@ pub use crate::{
     asset::Asset,
     asset_idx::AssetIdx,
     asset_meta::InstantiationKind,
+    ast_scope_idx::AstScopeIdx,
     ast_scopes::AstScopes,
     chunk_idx::ChunkIdx,
     chunk_kind::ChunkKind,

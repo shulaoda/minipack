@@ -50,11 +50,19 @@ impl Generator for EcmaGenerator {
       ctx.chunk_graph,
     );
 
+    let hashbang = match ctx.chunk.user_defined_entry_module(&ctx.link_output.modules) {
+      Some(normal_module) => normal_module
+        .ecma_view
+        .hashbang_range
+        .map(|range| &normal_module.source[range.start as usize..range.end as usize]),
+      None => None,
+    };
+
     let mut warnings = vec![];
 
     let source_joiner = match ctx.options.format {
-      OutputFormat::Esm => render_esm(ctx, &rendered_module_sources),
-      OutputFormat::Cjs => render_cjs(ctx, &rendered_module_sources, &mut warnings)?,
+      OutputFormat::Esm => render_esm(ctx, hashbang, &rendered_module_sources),
+      OutputFormat::Cjs => render_cjs(ctx, hashbang, &rendered_module_sources, &mut warnings)?,
     };
 
     ctx.warnings.extend(warnings);

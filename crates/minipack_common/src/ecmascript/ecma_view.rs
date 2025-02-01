@@ -6,7 +6,8 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  side_effects::DeterminedSideEffects, types::source_mutation::BoxedSourceMutation, AstScopes,
+  side_effects::DeterminedSideEffects,
+  types::{ast_scope_idx::AstScopeIdx, source_mutation::BoxedSourceMutation},
   EcmaAstIdx, ExportsKind, ImportRecordIdx, LocalExport, ModuleDefFormat, ModuleId, NamedImport,
   ResolvedImportRecord, SourceMutation, StmtInfoIdx, StmtInfos, SymbolRef,
 };
@@ -103,7 +104,7 @@ pub struct EcmaView {
   /// and `CallExpression`(only when the callee is `require`).
   pub imports: FxHashMap<Span, ImportRecordIdx>,
   pub exports_kind: ExportsKind,
-  pub scope: AstScopes,
+  pub ast_scope_idx: Option<AstScopeIdx>,
   pub default_export_ref: SymbolRef,
   // the ids of all modules that statically import this module
   pub importers: FxIndexSet<ModuleId>,

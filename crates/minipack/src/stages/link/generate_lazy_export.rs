@@ -206,7 +206,7 @@ fn json_object_expr_to_esm(
   }
 
   // recreate semantic data
-  let (symbol_table, scope) = ecma_ast.make_symbol_table_and_scope_tree_with_semantic_builder(
+  let (symbols, scope) = ecma_ast.make_symbol_table_and_scope_tree_with_semantic_builder(
     SemanticBuilder::new().with_scope_tree_child_ids(true).with_stats(Stats {
       nodes: declaration_binding_names.len().next_power_of_two() as u32,
       scopes: 1,
@@ -220,14 +220,14 @@ fn json_object_expr_to_esm(
   // update semantic data of module
   let root_scope_id = scope.root_scope_id();
   let ast_scope = AstScopes::new(scope);
-  let mut symbols = SymbolRefDbForModule::new(symbol_table, module_idx, root_scope_id);
+  let mut symbol_db = SymbolRefDbForModule::new(module_idx, symbols, root_scope_id);
 
   let legitimized_repr_name = legitimize_identifier_name(&module.repr_name);
   let default_export_ref =
-    symbols.create_facade_root_symbol_ref(&concat_string!(legitimized_repr_name, "_default"));
+    symbol_db.create_facade_root_symbol_ref(&concat_string!(legitimized_repr_name, "_default"));
 
   let name = concat_string!(legitimized_repr_name, "_exports");
-  let namespace_object_ref = symbols.create_facade_root_symbol_ref(&name);
+  let namespace_object_ref = symbol_db.create_facade_root_symbol_ref(&name);
   module.namespace_object_ref = namespace_object_ref;
   module.default_export_ref = default_export_ref;
 
@@ -264,7 +264,7 @@ fn json_object_expr_to_esm(
       .with_declared_symbols(vec![namespace_object_ref])
       .with_referenced_symbols(all_declared_symbols),
   );
-  module.ecma_view.scope = ast_scope;
-  link_staged.symbols.store_local_db(module_idx, symbols);
+  link_staged.symbols.store_local_db(module_idx, symbol_db);
+  link_staged.ast_scope_table[module.ecma_view.ast_scope_idx.unwrap()] = ast_scope;
   true
 }

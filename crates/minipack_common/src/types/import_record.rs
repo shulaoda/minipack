@@ -88,14 +88,14 @@ impl RawImportRecord {
     kind: ImportKind,
     namespace_ref: SymbolRef,
     span: Span,
-    assert_module_type: Option<ModuleType>,
+    asserted_module_type: Option<ModuleType>,
   ) -> RawImportRecord {
     RawImportRecord {
       module_request: specifier,
       kind,
       namespace_ref,
       meta: ImportRecordMeta::empty(),
-      state: ImportRecordStateInit { span, asserted_module_type: assert_module_type },
+      state: ImportRecordStateInit { span, asserted_module_type },
     }
   }
 

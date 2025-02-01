@@ -9,8 +9,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::Sender;
 
 use minipack_common::{
-  AstScopes, EcmaView, EcmaViewMeta, ExportsKind, ModuleIdx, ModuleType, NormalModule, ResolvedId,
-  RuntimeModuleBrief, RuntimeModuleTaskResult, SymbolRef, RUNTIME_MODULE_ID,
+  EcmaView, EcmaViewMeta, ExportsKind, ModuleIdx, ModuleType, NormalModule, ResolvedId,
+  RuntimeModuleBrief, RuntimeModuleTaskResult, RUNTIME_MODULE_ID,
 };
 use minipack_common::{ModuleDefFormat, ModuleId, ModuleLoaderMsg};
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
@@ -23,13 +23,6 @@ pub struct RuntimeModuleTask {
   idx: ModuleIdx,
   tx: Sender<ModuleLoaderMsg>,
   options: SharedNormalizedBundlerOptions,
-}
-
-pub struct MakeEcmaAstResult {
-  ast: EcmaAst,
-  ast_scope: AstScopes,
-  scan_result: AstScanResult,
-  namespace_object_ref: SymbolRef,
 }
 
 impl RuntimeModuleTask {
@@ -61,18 +54,16 @@ impl RuntimeModuleTask {
       ))
     };
 
-    let ecma_ast_result = self.make_ecma_ast(&source)?;
-
-    let MakeEcmaAstResult { ast, ast_scope, scan_result, namespace_object_ref } = ecma_ast_result;
-
-    let runtime = RuntimeModuleBrief::new(self.idx, &ast_scope);
+    let (ast, scan_result) = self.make_ecma_ast(&source)?;
 
     let AstScanResult {
       named_imports,
       named_exports,
       stmt_infos,
       default_export_ref,
+      namespace_object_ref,
       ast_usage,
+      scopes,
       symbols,
       imports,
       import_records: raw_import_records,
@@ -87,12 +78,10 @@ impl RuntimeModuleTask {
       repr_name: "rolldown_runtime".to_string(),
       stable_id: RUNTIME_MODULE_ID.to_string(),
       id: ModuleId::new(RUNTIME_MODULE_ID),
-
       debug_id: RUNTIME_MODULE_ID.to_string(),
       exec_order: u32::MAX,
       is_user_defined_entry: false,
       module_type: ModuleType::Js,
-
       ecma_view: EcmaView {
         ecma_ast_idx: None,
         source,
@@ -108,7 +97,7 @@ impl RuntimeModuleTask {
         stmt_infos,
         imports,
         default_export_ref,
-        scope: ast_scope,
+        ast_scope_idx: None,
         exports_kind: ExportsKind::Esm,
         namespace_object_ref,
         def_format: ModuleDefFormat::EsmMjs,
@@ -144,16 +133,17 @@ impl RuntimeModuleTask {
           module_def_format: ModuleDefFormat::Unknown,
           is_external: true,
           package_json: None,
-          side_effects: None,
           is_external_without_side_effects: true,
         }
       })
       .collect();
 
+    let runtime = RuntimeModuleBrief::new(self.idx, &scopes);
     let result = ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
       ast,
       module,
       runtime,
+      scopes,
       symbols,
       resolved_deps,
       raw_import_records,
@@ -164,7 +154,7 @@ impl RuntimeModuleTask {
     Ok(())
   }
 
-  fn make_ecma_ast(&mut self, source: &ArcStr) -> BuildResult<MakeEcmaAstResult> {
+  fn make_ecma_ast(&mut self, source: &ArcStr) -> BuildResult<(EcmaAst, AstScanResult)> {
     let source_type = SourceType::default();
 
     let mut ast = EcmaCompiler::parse(source, source_type)?;
@@ -175,12 +165,11 @@ impl RuntimeModuleTask {
       ast.contains_use_strict = pre_processor.contains_use_strict;
     });
 
-    let (symbol_table, scope) = ast.make_symbol_table_and_scope_tree();
-    let ast_scope = AstScopes::new(scope);
+    let (symbol_table, scopes) = ast.make_symbol_table_and_scope_tree();
     let facade_path = ModuleId::new("runtime");
     let scanner = AstScanner::new(
       self.idx,
-      &ast_scope,
+      scopes,
       symbol_table,
       "rolldown_runtime",
       ModuleDefFormat::EsmMjs,
@@ -189,9 +178,8 @@ impl RuntimeModuleTask {
       ast.comments(),
       &self.options,
     );
-    let namespace_object_ref = scanner.namespace_object_ref;
     let scan_result = scanner.scan(ast.program())?;
 
-    Ok(MakeEcmaAstResult { ast, ast_scope, scan_result, namespace_object_ref })
+    Ok((ast, scan_result))
   }
 }

@@ -1,6 +1,6 @@
 use arcstr::ArcStr;
 use minipack_common::{
-  ImportKind, ImportRecordIdx, ImportRecordMeta, ModuleDefFormat, ModuleId, ModuleIdx,
+  ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleDefFormat, ModuleId, ModuleIdx,
   ModuleLoaderMsg, ModuleType, NormalModule, NormalModuleTaskResult, ResolvedId, StrOrBytes,
   RUNTIME_MODULE_ID,
 };
@@ -17,7 +17,7 @@ use crate::{
     css::create_css_view,
     ecmascript::ecma_module_view_factory::{create_ecma_view, CreateEcmaViewReturn},
   },
-  types::module_factory::{CreateModuleContext, CreateModuleViewArgs},
+  types::module_factory::CreateModuleContext,
   utils::resolve_id::resolve_id,
 };
 
@@ -75,33 +75,33 @@ impl ModuleTask {
       )
     })?;
 
+    let mut warnings = vec![];
+
     let mut css_view = None;
     let mut asset_view = None;
     let mut raw_import_records = IndexVec::default();
 
     match module_type {
       ModuleType::Asset => {
-        let asset_source = source.into_bytes();
-        asset_view = Some(create_asset_view(asset_source.into()));
+        asset_view = Some(create_asset_view(source.into_bytes()));
         source = StrOrBytes::default();
       }
       ModuleType::Css => {
-        let css_source = source.try_into_string()?.into();
-        // FIXME: This makes creating `EcmaView` rely on creating `CssView` first, while they should be done in parallel.
-        let (raw_css_view, import_records) = create_css_view(css_source);
+        let (raw_css_view, import_records, css_warnings) =
+          create_css_view(source.try_into_string()?);
         raw_import_records = import_records;
         css_view = Some(raw_css_view);
         source = StrOrBytes::default();
+        warnings.extend(css_warnings);
       }
       _ => {}
     };
 
-    let mut warnings = vec![];
-
-    let hook_side_effects = self.resolved_id.side_effects.take();
-
+    let id = ModuleId::new(&self.resolved_id.id);
+    let stable_id = id.stabilize(&self.ctx.options.cwd);
     let ret = create_ecma_view(
       &mut CreateModuleContext {
+        stable_id: &stable_id,
         module_index: self.idx,
         resolved_id: &self.resolved_id,
         options: &self.ctx.options,
@@ -109,12 +109,12 @@ impl ModuleTask {
         module_type: module_type.clone(),
         is_user_defined_entry: self.is_user_defined_entry,
       },
-      CreateModuleViewArgs { source, hook_side_effects },
+      source,
     )
     .await?;
 
     let CreateEcmaViewReturn {
-      view: mut ecma_view,
+      mut ecma_view,
       ecma_related,
       raw_import_records: ecma_raw_import_records,
     } = ret;
@@ -131,8 +131,6 @@ impl ModuleTask {
         }
 
         let specifier = item.module_request.as_str();
-
-        // Check runtime module
         if specifier == RUNTIME_MODULE_ID {
           return Ok(ResolvedId {
             id: item.module_request.to_string().into(),
@@ -140,7 +138,6 @@ impl ModuleTask {
             module_def_format: ModuleDefFormat::EsmMjs,
             is_external: false,
             package_json: None,
-            side_effects: None,
             is_external_without_side_effects: false,
           });
         }
@@ -158,37 +155,32 @@ impl ModuleTask {
           ImportKind::DynamicImport => {
             ecma_view.dynamically_imported_ids.insert(ArcStr::clone(&info.id).into());
           }
-          // for a none css module, we should not have `at-import` or `url-import`
-          ImportKind::AtImport | ImportKind::UrlImport => unreachable!(),
+          _ => unreachable!(),
         }
       }
     }
 
-    let repr_name = self.resolved_id.id.as_path().representative_file_name().into_owned();
+    let repr_name = self.resolved_id.id.as_path().representative_file_name();
     let repr_name = legitimize_identifier_name(&repr_name).into_owned();
 
-    let id = ModuleId::new(&self.resolved_id.id);
-    let stable_id = id.stabilize(&self.ctx.options.cwd);
     let debug_id = self.resolved_id.debug_id(&self.ctx.options.cwd);
 
-    let module = NormalModule {
-      id,
-      idx: self.idx,
-      debug_id,
-      stable_id,
-      repr_name,
-      exec_order: u32::MAX,
-      ecma_view,
-      css_view,
-      asset_view,
-      module_type: module_type.clone(),
-      is_user_defined_entry: self.is_user_defined_entry,
-    };
-
     let result = ModuleLoaderMsg::NormalModuleDone(NormalModuleTaskResult {
-      module: module.into(),
-      resolved_deps,
+      module: Module::Normal(Box::new(NormalModule {
+        id,
+        idx: self.idx,
+        debug_id,
+        stable_id,
+        repr_name,
+        css_view,
+        asset_view,
+        ecma_view,
+        exec_order: u32::MAX,
+        module_type: module_type.clone(),
+        is_user_defined_entry: self.is_user_defined_entry,
+      })),
       ecma_related: Some(ecma_related),
+      resolved_deps,
       raw_import_records,
       warnings,
     });

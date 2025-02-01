@@ -1,6 +1,6 @@
 use minipack_utils::option_ext::OptionExt;
 use oxc::semantic::SymbolId;
-use oxc_index::IndexVec;
+use oxc_index::{Idx, IndexVec};
 
 use crate::{Module, ModuleIdx, SymbolRefDb, SymbolRefFlags};
 
@@ -11,6 +11,12 @@ use super::symbol_ref_db::{GetLocalDb, GetLocalDbMut};
 pub struct SymbolRef {
   pub owner: ModuleIdx,
   pub symbol: SymbolId,
+}
+
+impl Default for SymbolRef {
+  fn default() -> Self {
+    Self { owner: ModuleIdx::from_raw(0), symbol: SymbolId::from_usize(0) }
+  }
 }
 
 impl From<(ModuleIdx, SymbolId)> for SymbolRef {

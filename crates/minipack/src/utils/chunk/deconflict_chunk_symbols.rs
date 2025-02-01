@@ -14,7 +14,7 @@ pub fn deconflict_chunk_symbols(
   format: OutputFormat,
   index_chunk_id_to_name: &FxHashMap<ChunkIdx, ArcStr>,
 ) {
-  let mut renamer = Renamer::new(&link_output.symbols, link_output.modules.len(), format);
+  let mut renamer = Renamer::new(&link_output.symbols, format);
 
   if matches!(format, OutputFormat::Cjs) {
     // deconflict iife introduce symbols by external
@@ -46,7 +46,11 @@ pub fn deconflict_chunk_symbols(
     .iter()
     .copied()
     .filter_map(|id| link_output.modules[id].as_normal())
-    .flat_map(|m| m.scope.root_unresolved_references().keys().map(Cow::Borrowed))
+    .flat_map(|m| {
+      let ast_scope =
+        &link_output.ast_scope_table[m.ast_scope_idx.expect("ast_scope_idx should be set")];
+      ast_scope.root_unresolved_references().keys().map(Cow::Borrowed)
+    })
     .for_each(|name| {
       // global names should be reserved
       renamer.reserve(name.to_rstr());
@@ -112,7 +116,10 @@ pub fn deconflict_chunk_symbols(
     });
 
   // rename non-top-level names
-  renamer.rename_non_root_symbol(&chunk.modules, &link_output.modules);
-
+  renamer.rename_non_root_symbol(
+    &chunk.modules,
+    &link_output.modules,
+    &link_output.ast_scope_table,
+  );
   (chunk.canonical_names, chunk.canonical_name_by_token) = renamer.into_canonical_names();
 }

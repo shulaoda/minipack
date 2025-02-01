@@ -3,19 +3,21 @@ pub mod css_generator;
 use arcstr::ArcStr;
 
 use minipack_common::{
-  CssRenderer, CssView, ImportKind, ImportRecordIdx, ModuleIdx, RawImportRecord, SymbolRef,
+  CssRenderer, CssView, ImportKind, ImportRecordIdx, RawImportRecord, SymbolRef,
 };
-use oxc::{semantic::SymbolId, span::Span};
-use oxc_index::{Idx, IndexVec};
+use oxc::span::Span;
+use oxc_index::IndexVec;
 
-pub fn create_css_view(source: ArcStr) -> (CssView, IndexVec<ImportRecordIdx, RawImportRecord>) {
-  let (lexed_deps, _warnings) =
+pub fn create_css_view(
+  source: impl Into<ArcStr>,
+) -> (CssView, IndexVec<ImportRecordIdx, RawImportRecord>, Vec<anyhow::Error>) {
+  let source: ArcStr = source.into();
+  let (lexed_deps, warnings) =
     css_module_lexer::collect_dependencies(&source, css_module_lexer::Mode::Css);
 
-  let mut dependencies: IndexVec<ImportRecordIdx, RawImportRecord> = IndexVec::default();
-  let mut record_idx_to_span: IndexVec<ImportRecordIdx, Span> = IndexVec::default();
-
   let mut css_renderer = CssRenderer::default();
+  let mut dependencies = IndexVec::default();
+  let mut record_idx_to_span = IndexVec::default();
 
   for lexed_dep in lexed_deps {
     match lexed_dep {
@@ -23,7 +25,7 @@ pub fn create_css_view(source: ArcStr) -> (CssView, IndexVec<ImportRecordIdx, Ra
         dependencies.push(RawImportRecord::new(
           request.into(),
           ImportKind::AtImport,
-          SymbolRef::from((ModuleIdx::from_raw(0), SymbolId::from_usize(0))),
+          SymbolRef::default(),
           Span::new(range.start, range.end),
           None,
         ));
@@ -55,7 +57,7 @@ pub fn create_css_view(source: ArcStr) -> (CssView, IndexVec<ImportRecordIdx, Ra
         dependencies.push(RawImportRecord::new(
           request.into(),
           ImportKind::UrlImport,
-          SymbolRef::from((ModuleIdx::from_raw(0), SymbolId::from_usize(0))),
+          SymbolRef::default(),
           span,
           None,
         ));
@@ -65,6 +67,9 @@ pub fn create_css_view(source: ArcStr) -> (CssView, IndexVec<ImportRecordIdx, Ra
     }
   }
 
+  let warnings =
+    warnings.into_iter().map(|warning| anyhow::anyhow!("{warning}")).collect::<Vec<_>>();
+
   (
     CssView {
       source,
@@ -73,5 +78,6 @@ pub fn create_css_view(source: ArcStr) -> (CssView, IndexVec<ImportRecordIdx, Ra
       record_idx_to_span,
     },
     dependencies,
+    warnings,
   )
 }

@@ -28,7 +28,7 @@ use oxc::{
     },
     AstKind, Comment, Visit,
   },
-  semantic::{Reference, ScopeFlags, ScopeId, SymbolId, SymbolTable},
+  semantic::{Reference, ScopeFlags, ScopeId, ScopeTree, SymbolId, SymbolTable},
   span::{CompactStr, GetSpan, Span, SPAN},
 };
 use oxc_index::IndexVec;
@@ -44,25 +44,27 @@ pub struct AstScanResult {
   pub stmt_infos: StmtInfos,
   pub import_records: IndexVec<ImportRecordIdx, RawImportRecord>,
   pub default_export_ref: SymbolRef,
+  /// Represents [Module Namespace Object](https://tc39.es/ecma262/#sec-module-namespace-exotic-objects)
+  pub namespace_object_ref: SymbolRef,
   pub imports: FxHashMap<Span, ImportRecordIdx>,
   pub exports_kind: ExportsKind,
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
   pub has_eval: bool,
   pub ast_usage: EcmaModuleAstUsage,
+  pub scopes: AstScopes,
   pub symbols: SymbolRefDbForModule,
   /// https://github.com/evanw/esbuild/blob/d34e79e2a998c21bb71d57b92b0017ca11756912/internal/js_parser/js_parser_lower_class.go#L2277-L2283
   /// used for check if current class decl symbol was referenced in its class scope
   /// We needs to record the info in ast scanner since after that the ast maybe touched, etc
   /// (naming deconflict)
   pub self_referenced_class_decl_symbol_ids: FxHashSet<SymbolId>,
-  /// hashbang only works if it's literally the first character.So we need to generate it in chunk
+  /// Hashbang only works if it's literally the first character. So we need to generate it in chunk
   /// level rather than module level, or a syntax error will be raised if there are multi modules
   /// has hashbang. Storing the span of hashbang used for hashbang codegen in chunk level
   pub hashbang_range: Option<Span>,
   pub has_star_exports: bool,
-  /// we don't know the ImportRecord related ModuleIdx yet, so use ImportRecordIdx as key
-  /// temporarily
+  /// We don't know the ImportRecord related ModuleIdx yet, so use ImportRecordIdx as key temporarily
   pub dynamic_import_rec_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
   /// `new URL('...', import.meta.url)`
   pub new_url_references: FxHashMap<Span, ImportRecordIdx>,
@@ -74,17 +76,14 @@ pub struct AstScanner<'me, 'ast> {
   source: &'me ArcStr,
   module_type: ModuleDefFormat,
   id: &'me ModuleId,
-  scopes: &'me AstScopes,
   comments: &'me oxc::allocator::Vec<'me, Comment>,
   current_stmt_info: StmtInfo,
   result: AstScanResult,
   esm_export_keyword: Option<Span>,
   esm_import_keyword: Option<Span>,
-  /// Represents [Module Namespace Object](https://tc39.es/ecma262/#sec-module-namespace-exotic-objects)
-  pub namespace_object_ref: SymbolRef,
-  /// cjs ident span used for emit `commonjs_variable_in_esm` warning
-  cjs_exports_ident: Option<Span>,
+  /// Cjs ident span used for emit `commonjs_variable_in_esm` warning
   cjs_module_ident: Option<Span>,
+  cjs_exports_ident: Option<Span>,
   /// Whether the module is a commonjs module
   /// The reason why we can't reuse `cjs_exports_ident` and `cjs_module_ident` is that
   /// any `module` or `exports` in the top-level scope should be treated as a commonjs module.
@@ -106,8 +105,8 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   #[allow(clippy::too_many_arguments)]
   pub fn new(
     idx: ModuleIdx,
-    scope: &'me AstScopes,
-    symbol_table: SymbolTable,
+    scopes: ScopeTree,
+    symbols: SymbolTable,
     repr_name: &'me str,
     module_type: ModuleDefFormat,
     source: &'me ArcStr,
@@ -115,7 +114,8 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     comments: &'me oxc::allocator::Vec<'me, Comment>,
     options: &'me SharedOptions,
   ) -> Self {
-    let mut symbols = SymbolRefDbForModule::new(symbol_table, idx, scope.root_scope_id());
+    let scopes = AstScopes::new(scopes);
+    let mut symbols = SymbolRefDbForModule::new(idx, symbols, scopes.root_scope_id());
     // This is used for converting "export default foo;" => "var default_symbol = foo;"
     let legitimized_repr_name = legitimize_identifier_name(repr_name);
     let default_export_ref =
@@ -144,7 +144,9 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       has_eval: false,
       errors: Vec::new(),
       ast_usage: EcmaModuleAstUsage::empty(),
+      scopes,
       symbols,
+      namespace_object_ref,
       self_referenced_class_decl_symbol_ids: FxHashSet::default(),
       hashbang_range: None,
       has_star_exports: false,
@@ -155,13 +157,11 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
 
     Self {
       idx,
-      scopes: scope,
       current_stmt_info: StmtInfo::default(),
       result,
       esm_export_keyword: None,
       esm_import_keyword: None,
       module_type,
-      namespace_object_ref,
       cjs_module_ident: None,
       cjs_exports_ident: None,
       source,
@@ -185,7 +185,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       .iter()
       .filter_map(|item| *item)
       .rev()
-      .all(|scope| self.scopes.get_flags(scope).is_top())
+      .all(|scope| self.result.scopes.get_flags(scope).is_top())
   }
 
   pub fn scan(mut self, program: &Program<'ast>) -> BuildResult<AstScanResult> {
@@ -222,27 +222,9 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       }
     }
 
+    self.result.ast_usage = self.ast_usage;
     self.result.exports_kind = exports_kind;
 
-    if cfg!(debug_assertions) {
-      use rustc_hash::FxHashSet;
-      let mut scanned_symbols_in_root_scope = self
-        .result
-        .stmt_infos
-        .iter()
-        .flat_map(|stmt_info| stmt_info.declared_symbols.iter())
-        .collect::<FxHashSet<_>>();
-      for (name, symbol_id) in self.scopes.get_bindings(self.scopes.root_scope_id()) {
-        let symbol_ref: SymbolRef = (self.idx, *symbol_id).into();
-        let scope_id = self.result.symbols.get_scope_id(*symbol_id);
-        if !scanned_symbols_in_root_scope.remove(&symbol_ref) {
-          return Err(vec![anyhow::anyhow!(
-            "Symbol ({name:?}, {symbol_id:?}, {scope_id:?}) is declared in the top-level scope but doesn't get scanned by the scanner",
-          )])?;
-        }
-      }
-    }
-    self.result.ast_usage = self.ast_usage;
     Ok(self.result)
   }
 
@@ -255,7 +237,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   }
 
   fn get_root_binding(&self, name: &str) -> Option<SymbolId> {
-    self.scopes.get_root_binding(name)
+    self.result.scopes.get_root_binding(name)
   }
 
   /// `is_dummy` means if it the import record is created during ast transformation.
@@ -319,8 +301,11 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     let is_const = self.result.symbols.get_flags(local).is_const_variable();
 
     // If there is any write reference to the local variable, it is reassigned.
-    let is_reassigned =
-      self.scopes.get_resolved_references(local, &self.result.symbols).any(Reference::is_write);
+    let is_reassigned = self
+      .result
+      .scopes
+      .get_resolved_references(local, &self.result.symbols)
+      .any(Reference::is_write);
 
     let ref_flags = symbol_ref.flags_mut(&mut self.result.symbols);
     if is_const {
@@ -517,7 +502,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         self.current_stmt_info.debug_label.as_deref().unwrap_or("<None>")
       )
     });
-    self.scopes.symbol_id_for(ref_id, &self.result.symbols)
+    self.result.scopes.symbol_id_for(ref_id, &self.result.symbols)
   }
   fn scan_export_default_decl(&mut self, decl: &ExportDefaultDeclaration) {
     use oxc::ast::ast::ExportDefaultDeclarationKind;
@@ -623,7 +608,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   }
 
   fn is_root_symbol(&self, symbol_id: SymbolId) -> bool {
-    self.scopes.root_scope_id() == self.result.symbols.get_scope_id(symbol_id)
+    self.result.scopes.root_scope_id() == self.result.symbols.get_scope_id(symbol_id)
   }
 
   fn try_diagnostic_forbid_const_assign(&mut self, id_ref: &IdentifierReference) -> Option<()> {
@@ -697,7 +682,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     self.is_nested_this_inside_class
       || self.scope_stack.iter().any(|scope| {
         scope.map_or(false, |scope| {
-          let flags = self.scopes.get_flags(scope);
+          let flags = self.result.scopes.get_flags(scope);
           flags.contains(ScopeFlags::Function) && !flags.contains(ScopeFlags::Arrow)
         })
       })

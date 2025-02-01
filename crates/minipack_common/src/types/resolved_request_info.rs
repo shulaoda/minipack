@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use arcstr::ArcStr;
 
-use crate::{side_effects::HookSideEffects, ModuleDefFormat, PackageJson};
+use crate::{ModuleDefFormat, PackageJson};
 
 use super::module_id::stabilize_module_id;
 
@@ -14,7 +14,6 @@ pub struct ResolvedId {
   pub module_def_format: ModuleDefFormat,
   pub is_external: bool,
   pub package_json: Option<Arc<PackageJson>>,
-  pub side_effects: Option<HookSideEffects>,
   pub is_external_without_side_effects: bool,
 }
 
@@ -28,7 +27,6 @@ impl ResolvedId {
       module_def_format: ModuleDefFormat::Unknown,
       is_external: false,
       package_json: None,
-      side_effects: None,
       is_external_without_side_effects: false,
     }
   }

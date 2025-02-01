@@ -1,6 +1,6 @@
 use crate::{
-  dynamic_import_usage::DynamicImportExportsUsage, ImportRecordIdx, Module, RawImportRecord,
-  ResolvedId, SymbolRefDbForModule,
+  dynamic_import_usage::DynamicImportExportsUsage, AstScopes, ImportRecordIdx, Module,
+  RawImportRecord, ResolvedId, SymbolRefDbForModule,
 };
 use minipack_ecmascript::EcmaAst;
 use oxc_index::IndexVec;
@@ -16,6 +16,7 @@ pub struct NormalModuleTaskResult {
 
 pub struct EcmaRelated {
   pub ast: EcmaAst,
+  pub scopes: AstScopes,
   pub symbols: SymbolRefDbForModule,
   pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
 }

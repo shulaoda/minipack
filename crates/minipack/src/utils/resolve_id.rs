@@ -29,7 +29,6 @@ pub fn resolve_id(
       ignored: false,
       is_external: true,
       package_json: None,
-      side_effects: None,
       is_external_without_side_effects: false,
     });
   }
@@ -44,7 +43,6 @@ pub fn resolve_id(
       module_def_format: resolved.module_def_format,
       is_external: false,
       package_json: resolved.package_json,
-      side_effects: None,
       is_external_without_side_effects: false,
     }),
     Err(err) => match err {
@@ -61,7 +59,6 @@ pub fn resolve_id(
         is_external: true,
         module_def_format: ModuleDefFormat::Unknown,
         package_json: None,
-        side_effects: None,
       }),
       ResolveError::Ignored(p) => Ok(ResolvedId {
         id: p.to_str().expect("Should be valid utf8").into(),
@@ -69,7 +66,6 @@ pub fn resolve_id(
         is_external: false,
         module_def_format: ModuleDefFormat::Unknown,
         package_json: None,
-        side_effects: None,
         is_external_without_side_effects: false,
       }),
       _ => Err(anyhow::anyhow!("{:?}", err))?,

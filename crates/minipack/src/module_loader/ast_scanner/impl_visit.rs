@@ -43,7 +43,7 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
     for (idx, stmt) in program.body.iter().enumerate() {
       self.current_stmt_info.stmt_idx = Some(idx);
       self.current_stmt_info.side_effect = SideEffectDetector::new(
-        self.scopes,
+        &self.result.scopes,
         self.source,
         self.comments,
         true,

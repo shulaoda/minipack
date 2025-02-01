@@ -10,9 +10,14 @@ use crate::{
 
 pub fn render_esm<'code>(
   ctx: &mut GenerateContext<'_>,
+  hashbang: Option<&'code str>,
   module_sources: &'code RenderedModuleSources,
 ) -> SourceJoiner<'code> {
   let mut source_joiner = SourceJoiner::default();
+
+  if let Some(hashbang) = hashbang {
+    source_joiner.append_source(hashbang);
+  }
 
   source_joiner.append_source(render_esm_chunk_imports(ctx));
 

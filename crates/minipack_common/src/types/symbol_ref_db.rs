@@ -34,26 +34,21 @@ bitflags::bitflags! {
 
 #[derive(Debug)]
 pub struct SymbolRefDbForModule {
-  owner_idx: ModuleIdx,
+  owner: ModuleIdx,
   root_scope_id: ScopeId,
-  pub(crate) symbol_table: SymbolTable,
+  pub symbols: SymbolTable,
   // Only some symbols would be cared about, so we use a hashmap to store the flags.
   pub flags: FxHashMap<SymbolId, SymbolRefFlags>,
   pub classic_data: IndexVec<SymbolId, SymbolRefDataClassic>,
 }
 
 impl SymbolRefDbForModule {
-  pub fn new(symbol_table: SymbolTable, owner_idx: ModuleIdx, top_level_scope_id: ScopeId) -> Self {
-    Self {
-      owner_idx,
-      root_scope_id: top_level_scope_id,
-      classic_data: symbol_table
-        .names()
-        .map(|_name| SymbolRefDataClassic { link: None, chunk_id: None, namespace_alias: None })
-        .collect(),
-      symbol_table,
-      flags: FxHashMap::default(),
-    }
+  pub fn new(owner: ModuleIdx, symbols: SymbolTable, root_scope_id: ScopeId) -> Self {
+    let classic_data = symbols
+      .names()
+      .map(|_| SymbolRefDataClassic { link: None, chunk_id: None, namespace_alias: None })
+      .collect();
+    Self { owner, symbols, classic_data, root_scope_id, flags: FxHashMap::default() }
   }
 
   // The `facade` means the symbol is actually not exist in the AST.
@@ -63,7 +58,7 @@ impl SymbolRefDbForModule {
       chunk_id: None,
       namespace_alias: None,
     });
-    let symbol_id = self.symbol_table.create_symbol(
+    let symbol_id = self.symbols.create_symbol(
       SPAN,
       name,
       SymbolFlags::empty(),
@@ -71,7 +66,7 @@ impl SymbolRefDbForModule {
       NodeId::DUMMY,
     );
 
-    SymbolRef::from((self.owner_idx, symbol_id))
+    SymbolRef::from((self.owner, symbol_id))
   }
 
   /// This method is used to hide the `SymbolTable::create_symbol` method since
@@ -86,13 +81,13 @@ impl Deref for SymbolRefDbForModule {
   type Target = SymbolTable;
 
   fn deref(&self) -> &Self::Target {
-    &self.symbol_table
+    &self.symbols
   }
 }
 
 impl DerefMut for SymbolRefDbForModule {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.symbol_table
+    &mut self.symbols
   }
 }
 
@@ -110,10 +105,9 @@ impl SymbolRefDb {
     }
   }
 
-  pub fn store_local_db(&mut self, module_id: ModuleIdx, local_db: SymbolRefDbForModule) {
-    self.ensure_exact_capacity(module_id);
-
-    self.inner[module_id] = Some(local_db);
+  pub fn store_local_db(&mut self, idx: ModuleIdx, local_db: SymbolRefDbForModule) {
+    self.ensure_exact_capacity(idx);
+    self.inner[idx] = Some(local_db);
   }
 
   pub fn create_facade_root_symbol_ref(&mut self, owner: ModuleIdx, name: &str) -> SymbolRef {
@@ -208,14 +202,14 @@ impl GetLocalDbMut for SymbolRefDb {
 
 impl GetLocalDb for SymbolRefDbForModule {
   fn local_db(&self, owner: ModuleIdx) -> &SymbolRefDbForModule {
-    debug_assert!(self.owner_idx == owner);
+    debug_assert!(self.owner == owner);
     self
   }
 }
 
 impl GetLocalDbMut for SymbolRefDbForModule {
   fn local_db_mut(&mut self, owner: ModuleIdx) -> &mut SymbolRefDbForModule {
-    debug_assert!(self.owner_idx == owner);
+    debug_assert!(self.owner == owner);
     self
   }
 }

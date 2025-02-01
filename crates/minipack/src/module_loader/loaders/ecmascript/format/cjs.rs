@@ -46,10 +46,15 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
 
 pub fn render_cjs<'code>(
   ctx: &GenerateContext<'_>,
+  hashbang: Option<&'code str>,
   module_sources: &'code RenderedModuleSources,
   warnings: &mut Vec<anyhow::Error>,
 ) -> BuildResult<SourceJoiner<'code>> {
   let mut source_joiner = SourceJoiner::default();
+
+  if let Some(hashbang) = hashbang {
+    source_joiner.append_source(hashbang);
+  }
 
   let mut modules = ctx.renderable_ecma_modules().peekable();
   let is_strict = modules.peek().is_some()
