@@ -4,7 +4,7 @@ use super::SharedOptions;
 
 pub struct CreateModuleContext<'a> {
   pub stable_id: &'a str,
-  pub module_index: ModuleIdx,
+  pub module_idx: ModuleIdx,
   pub resolved_id: &'a ResolvedId,
   pub options: &'a SharedOptions,
   pub module_type: ModuleType,

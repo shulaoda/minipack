@@ -30,12 +30,11 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     // IdentifierReference, but IdentifierReference did not saved the related `SymbolId`
     // Something wrong with semantic analyze
     let symbol_id = reference.symbol_id().expect("should have symbol id");
-    let parent = self.visit_path.last()?;
     // if the property could be converted as a static property name, e.g.
     // a.b // static
     // a.['b'] // static
     // a[b] // dynamic
-    let partial_name = match parent {
+    let partial_name = match self.visit_path.last()? {
       AstKind::MemberExpression(expr) => expr.static_property_name(),
       _ => None,
     };

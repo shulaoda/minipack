@@ -1,3 +1,6 @@
+use std::sync::LazyLock;
+
+use daachorse::DoubleArrayAhoCorasick;
 use minipack_common::AstScopes;
 use minipack_ecmascript_utils::{ExpressionExt, SpanExt};
 use oxc::{
@@ -11,6 +14,12 @@ use oxc::{
 };
 
 use super::SideEffectDetector;
+
+static PURE_COMMENTS: LazyLock<DoubleArrayAhoCorasick<usize>> = LazyLock::new(|| {
+  let patterns = vec!["@__PURE__", "#__PURE__"];
+
+  DoubleArrayAhoCorasick::new(patterns).unwrap()
+});
 
 impl SideEffectDetector<'_> {
   /// Get the nearest comment before the `span`, return `None` if no leading comment is founded.
@@ -35,14 +44,15 @@ impl SideEffectDetector<'_> {
     let comment = comments_range(self.comments, ..span.start).next_back()?;
 
     let comment_span = comment.content_span();
-
     let comment_text = comment_span.source_text(self.source);
+
     // If there are non-whitespace characters between the `comment` and the `span`,
     // we treat the `comment` not belongs to the `span`.
     let leading_comment_span = Span::new(comment_span.end, span.start);
     if !leading_comment_span.is_valid(self.source) {
       return None;
     }
+
     let range_text = leading_comment_span.source_text(self.source);
     let only_whitespace = match comment.kind {
       CommentKind::Line => range_text.trim().is_empty(),
@@ -52,11 +62,29 @@ impl SideEffectDetector<'_> {
           .is_some_and(|s| s.trim().is_empty())
       }
     };
+
     if !only_whitespace {
       return None;
     }
 
     Some((comment, comment_text))
+  }
+
+  /// Comments containing @__PURE__ or #__PURE__ mark a specific function call
+  /// or constructor invocation as side effect free.
+  ///
+  /// Such an annotation is considered valid if it directly
+  /// precedes a function call or constructor invocation
+  /// and is only separated from the callee by white-space or comments.
+  ///
+  /// The only exception are parentheses that wrap a call or invocation.
+  ///
+  /// <https://rollupjs.org/configuration-options/#pure>
+  /// Derived from https://github.com/oxc-project/oxc/blob/147864cfeb112df526bb83d5b8671b465c005066/crates/oxc_linter/src/utils/tree_shaking.rs#L162-L171
+  pub fn is_pure_function_or_constructor_call(&self, span: Span) -> bool {
+    let leading_comment = self.leading_comment_for(span);
+
+    leading_comment.is_some_and(|(_, text)| PURE_COMMENTS.find_iter(text).next().is_some())
   }
 }
 
@@ -70,26 +98,6 @@ pub(crate) enum PrimitiveType {
   BigInt,
   Mixed,
   Unknown,
-}
-
-fn merged_known_primitive_types(
-  scope: &AstScopes,
-  left: &Expression,
-  right: &Expression,
-  symbol_table: &SymbolTable,
-) -> PrimitiveType {
-  let left_type = known_primitive_type(scope, left, symbol_table);
-  if left_type == PrimitiveType::Unknown {
-    return PrimitiveType::Unknown;
-  }
-  let right_type = known_primitive_type(scope, right, symbol_table);
-  if right_type == PrimitiveType::Unknown {
-    return PrimitiveType::Unknown;
-  }
-  if right_type == left_type {
-    return right_type;
-  }
-  PrimitiveType::Mixed
 }
 
 pub(crate) fn known_primitive_type(
@@ -141,7 +149,18 @@ pub(crate) fn known_primitive_type(
     },
     Expression::LogicalExpression(e) => match e.operator {
       LogicalOperator::Or | LogicalOperator::And => {
-        merged_known_primitive_types(scope, &e.left, &e.right, symbol_table)
+        let left_type = known_primitive_type(scope, &e.left, symbol_table);
+        if left_type == PrimitiveType::Unknown {
+          return PrimitiveType::Unknown;
+        }
+        let right_type = known_primitive_type(scope, &e.right, symbol_table);
+        if right_type == PrimitiveType::Unknown {
+          return PrimitiveType::Unknown;
+        }
+        if right_type == left_type {
+          return right_type;
+        }
+        PrimitiveType::Mixed
       }
       LogicalOperator::Coalesce => {
         let left = known_primitive_type(scope, &e.left, symbol_table);
@@ -257,15 +276,15 @@ pub fn is_primitive_literal(
     | Expression::StringLiteral(_)
     | Expression::BigIntLiteral(_) => true,
     // Include `+1` / `-1`.
-    Expression::UnaryExpression(e)
-      if matches!(e.operator, |UnaryOperator::UnaryNegation| UnaryOperator::UnaryPlus)
-        && matches!(e.argument, Expression::NumericLiteral(_)) =>
-    {
-      true
-    }
+    Expression::UnaryExpression(e) => match e.operator {
+      UnaryOperator::Void => is_primitive_literal(scope, &e.argument, symbol_table),
+      UnaryOperator::UnaryNegation | UnaryOperator::UnaryPlus => {
+        matches!(e.argument, Expression::NumericLiteral(_))
+      }
+      _ => false,
+    },
     Expression::Identifier(id)
-      if id.name == "undefined"
-        && scope.is_unresolved(id.reference_id.get().unwrap(), symbol_table) =>
+      if id.name == "undefined" && scope.is_unresolved(id.reference_id(), symbol_table) =>
     {
       true
     }
@@ -280,34 +299,27 @@ pub fn extract_member_expr_chain<'a>(
   if max_len == 0 {
     return None;
   }
+
   let mut chain = vec![];
-  match expr {
+  let mut cur = match expr {
     MemberExpression::ComputedMemberExpression(computed_expr) => {
       let Expression::StringLiteral(ref str) = computed_expr.expression else {
         return None;
       };
       chain.push(str.value);
-      let mut cur = &computed_expr.object;
-      extract_rest_member_expr_chain(&mut cur, &mut chain, max_len).map(|ref_id| (ref_id, chain))
+      &computed_expr.object
     }
     MemberExpression::StaticMemberExpression(static_expr) => {
-      let mut cur = &static_expr.object;
       chain.push(static_expr.property.name);
-      extract_rest_member_expr_chain(&mut cur, &mut chain, max_len).map(|ref_id| (ref_id, chain))
+      &static_expr.object
     }
-    MemberExpression::PrivateFieldExpression(_) => None,
-  }
-}
+    MemberExpression::PrivateFieldExpression(_) => return None,
+  };
 
-fn extract_rest_member_expr_chain<'a>(
-  cur: &mut &'a Expression,
-  chain: &mut Vec<Atom<'a>>,
-  max_len: usize,
-) -> Option<ReferenceId> {
   loop {
-    match &cur {
+    match cur {
       Expression::StaticMemberExpression(expr) => {
-        *cur = &expr.object;
+        cur = &expr.object;
         chain.push(expr.property.name);
       }
       Expression::ComputedMemberExpression(expr) => {
@@ -315,13 +327,13 @@ fn extract_rest_member_expr_chain<'a>(
           break;
         };
         chain.push(str.value);
-        *cur = &expr.object;
+        cur = &expr.object;
       }
       Expression::Identifier(ident) => {
         chain.push(ident.name);
         let ref_id = ident.reference_id.get().expect("should have reference_id");
         chain.reverse();
-        return Some(ref_id);
+        return Some((ref_id, chain));
       }
       _ => break,
     }
@@ -343,8 +355,7 @@ pub fn is_side_effect_free_unbound_identifier_ref(
   symbol_table: &SymbolTable,
 ) -> Option<bool> {
   let ident = value.as_identifier()?;
-  let is_unresolved = scope.is_unresolved(ident.reference_id(), symbol_table);
-  if !is_unresolved {
+  if !scope.is_unresolved(ident.reference_id(), symbol_table) {
     return Some(false);
   }
   let bin_expr = guard_condition.as_binary_expression()?;
@@ -425,27 +436,24 @@ pub fn maybe_side_effect_free_global_constructor(
     match ident.name.as_str() {
       "WeakSet" | "WeakMap" => match expr.arguments.len() {
         0 => return true,
-        1 => {
-          let arg = &expr.arguments[0];
-          match arg {
-            ast::Argument::NullLiteral(_) => return true,
-            ast::Argument::Identifier(id)
-              if id.name == "undefined" && scope.is_unresolved(id.reference_id(), symbol_table) =>
-            {
-              return true
-            }
-            ast::Argument::ArrayExpression(arr) if arr.elements.is_empty() => return true,
-            _ => {}
+        1 => match &expr.arguments[0] {
+          ast::Argument::NullLiteral(_) => return true,
+          ast::Argument::Identifier(id)
+            if id.name == "undefined" && scope.is_unresolved(id.reference_id(), symbol_table) =>
+          {
+            return true
           }
-        }
+          ast::Argument::ArrayExpression(arr) if arr.elements.is_empty() => return true,
+          _ => {}
+        },
         _ => {}
       },
       "Date" => match expr.arguments.len() {
         0 => return true,
         1 => {
-          let arg = &expr.arguments[0];
-          let known_primitive_type =
-            arg.as_expression().map(|item| known_primitive_type(scope, item, symbol_table));
+          let known_primitive_type = expr.arguments[0]
+            .as_expression()
+            .map(|item| known_primitive_type(scope, item, symbol_table));
           if let Some(primitive_ty) = known_primitive_type {
             if matches!(
               primitive_ty,
@@ -463,44 +471,38 @@ pub fn maybe_side_effect_free_global_constructor(
       },
       "Set" => match expr.arguments.len() {
         0 => return true,
-        1 => {
-          let arg = &expr.arguments[0];
-          match arg {
-            ast::Argument::NullLiteral(_) | ast::Argument::ArrayExpression(_) => return true,
-            ast::Argument::Identifier(id)
-              if id.name == "undefined" && scope.is_unresolved(id.reference_id(), symbol_table) =>
-            {
-              return true
-            }
-            _ => {}
+        1 => match &expr.arguments[0] {
+          ast::Argument::NullLiteral(_) | ast::Argument::ArrayExpression(_) => return true,
+          ast::Argument::Identifier(id)
+            if id.name == "undefined" && scope.is_unresolved(id.reference_id(), symbol_table) =>
+          {
+            return true
           }
-        }
+          _ => {}
+        },
         _ => {}
       },
       "Map" => match expr.arguments.len() {
         0 => return true,
-        1 => {
-          let arg = &expr.arguments[0];
-          match arg {
-            ast::Argument::NullLiteral(_) => return true,
-            ast::Argument::Identifier(id)
-              if id.name == "undefined" && scope.is_unresolved(id.reference_id(), symbol_table) =>
-            {
-              return true
-            }
-            ast::Argument::ArrayExpression(arr) => {
-              let all_entries_are_arrays = arr.elements.iter().all(|item| {
-                item
-                  .as_expression()
-                  .is_some_and(|expr| matches!(expr, ast::Expression::ArrayExpression(_)))
-              });
-              if all_entries_are_arrays {
-                return true;
-              }
-            }
-            _ => {}
+        1 => match &expr.arguments[0] {
+          ast::Argument::NullLiteral(_) => return true,
+          ast::Argument::Identifier(id)
+            if id.name == "undefined" && scope.is_unresolved(id.reference_id(), symbol_table) =>
+          {
+            return true
           }
-        }
+          ast::Argument::ArrayExpression(arr) => {
+            let all_entries_are_arrays = arr.elements.iter().all(|item| {
+              item
+                .as_expression()
+                .is_some_and(|expr| matches!(expr, ast::Expression::ArrayExpression(_)))
+            });
+            if all_entries_are_arrays {
+              return true;
+            }
+          }
+          _ => {}
+        },
         _ => {}
       },
       _ => {}

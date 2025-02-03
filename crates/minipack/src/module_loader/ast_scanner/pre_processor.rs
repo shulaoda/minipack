@@ -67,14 +67,14 @@ impl<'ast> PreProcessor<'ast> {
 impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
   fn visit_program(&mut self, program: &mut ast::Program<'ast>) {
     program.directives.retain(|directive| {
-      let is_use_strict = directive.is_use_strict();
-      if is_use_strict {
+      if directive.is_use_strict() {
         self.contains_use_strict = true;
         false
       } else {
         true
       }
     });
+
     let original_body = program.body.take_in(self.snippet.alloc());
     program.body.reserve_exact(original_body.len());
     self.stmt_temp_storage = Vec::with_capacity(
@@ -95,23 +95,8 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
     program.body.extend(std::mem::take(&mut self.stmt_temp_storage));
   }
 
-  fn visit_declaration(&mut self, it: &mut Declaration<'ast>) {
-    match it {
-      Declaration::VariableDeclaration(_)
-      | Declaration::FunctionDeclaration(_)
-      | Declaration::ClassDeclaration(_) => {}
-      Declaration::TSTypeAliasDeclaration(_)
-      | Declaration::TSInterfaceDeclaration(_)
-      | Declaration::TSEnumDeclaration(_)
-      | Declaration::TSModuleDeclaration(_)
-      | Declaration::TSImportEqualsDeclaration(_) => unreachable!(),
-    }
-    walk_mut::walk_declaration(self, it);
-  }
-
   fn visit_export_named_declaration(&mut self, named_decl: &mut ast::ExportNamedDeclaration<'ast>) {
     walk_mut::walk_export_named_declaration(self, named_decl);
-    let named_decl_span = named_decl.span;
 
     let Some(Declaration::VariableDeclaration(ref mut var_decl)) = named_decl.declaration else {
       return;
@@ -122,7 +107,7 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
       .iter()
       .any(|declarator| matches!(declarator.id.kind, BindingPatternKind::BindingIdentifier(_)))
     {
-      let rewritten = self.split_var_declaration(var_decl, Some(named_decl_span));
+      let rewritten = self.split_var_declaration(var_decl, Some(named_decl.span));
       self.stmt_temp_storage.extend(rewritten);
       self.need_push_ast = false;
     }

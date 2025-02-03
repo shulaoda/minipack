@@ -166,7 +166,7 @@ impl RuntimeModuleTask {
     });
 
     let (symbol_table, scopes) = ast.make_symbol_table_and_scope_tree();
-    let facade_path = ModuleId::new("runtime");
+    let facade_path = ModuleId::new(RUNTIME_MODULE_ID);
     let scanner = AstScanner::new(
       self.idx,
       scopes,

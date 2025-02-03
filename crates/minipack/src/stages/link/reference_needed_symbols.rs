@@ -142,16 +142,6 @@ impl LinkStage<'_> {
                             .referenced_symbols
                             .push(self.runtime_module.resolve_symbol("__reExport").into());
                           stmt_info.referenced_symbols.push(importer.namespace_object_ref.into());
-                        } else {
-                          // - import * as bar from 'bar_cjs'
-                          // - import { prop } from 'bar_cjs'
-                          // will be removed in the final bundler. Nothing need to do here.
-                          // stmt_info.side_effect = importee.side_effects.has_side_effects();
-
-                          // `require_bar_cjs`
-                          // stmt_info
-                          //   .referenced_symbols
-                          //   .push(importee_linking_info.wrapper_ref.unwrap().into());
                         }
                       }
                       WrapKind::Esm => {

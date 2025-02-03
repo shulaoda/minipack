@@ -102,7 +102,7 @@ impl ModuleTask {
     let ret = create_ecma_view(
       &mut CreateModuleContext {
         stable_id: &stable_id,
-        module_index: self.idx,
+        module_idx: self.idx,
         resolved_id: &self.resolved_id,
         options: &self.ctx.options,
         warnings: &mut warnings,

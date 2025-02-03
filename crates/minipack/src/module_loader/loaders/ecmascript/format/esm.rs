@@ -1,7 +1,7 @@
 use arcstr::ArcStr;
 use itertools::Itertools;
 use minipack_common::{ExportsKind, SourceJoiner, Specifier, WrapKind};
-use minipack_utils::{concat_string, ecmascript::is_validate_identifier_name};
+use minipack_utils::{concat_string, ecmascript::to_module_import_export_name};
 
 use crate::{
   module_loader::loaders::ecmascript::ecma_generator::RenderedModuleSources,
@@ -150,11 +150,7 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
                 default_alias.push(alias.as_str().into());
                 return None;
               }
-              let imported = if is_validate_identifier_name(imported) {
-                imported.clone()
-              } else {
-                format!("'{imported}'").into()
-              };
+              let imported = to_module_import_export_name(imported);
               Some(concat_string!(imported, " as ", alias))
             }
           }

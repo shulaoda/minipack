@@ -8,8 +8,12 @@ use oxc::ast::{
 
 use super::{AstScanner, IdentifierReferenceKind};
 
+pub(crate) enum CjsGlobalAssignmentType {
+  ModuleExportsAssignment,
+  ExportsAssignment,
+}
+
 impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
-  #[allow(clippy::too_many_lines)]
   pub fn cjs_ast_analyzer(&mut self, ty: &CjsGlobalAssignmentType) -> Option<()> {
     match ty {
       CjsGlobalAssignmentType::ModuleExportsAssignment => {
@@ -158,9 +162,4 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     }
     Some(call_expr.arguments.first()?.as_expression()?.as_string_literal().is_some())
   }
-}
-
-pub(crate) enum CjsGlobalAssignmentType {
-  ModuleExportsAssignment,
-  ExportsAssignment,
 }

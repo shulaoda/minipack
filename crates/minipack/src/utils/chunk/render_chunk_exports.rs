@@ -6,7 +6,7 @@ use minipack_common::{
 };
 use minipack_utils::{
   concat_string,
-  ecmascript::{is_validate_identifier_name, property_access_str},
+  ecmascript::{property_access_str, to_module_import_export_name},
   indexmap::FxIndexSet,
   rstr::Rstr,
 };
@@ -48,10 +48,12 @@ pub fn render_chunk_exports(
 
           if canonical_name == &exported_name {
             Cow::Borrowed(canonical_name.as_str())
-          } else if is_validate_identifier_name(&exported_name) {
-            Cow::Owned(concat_string!(canonical_name, " as ", exported_name))
           } else {
-            Cow::Owned(concat_string!(canonical_name, " as '", exported_name, "'"))
+            Cow::Owned(concat_string!(
+              canonical_name,
+              " as ",
+              to_module_import_export_name(&exported_name)
+            ))
           }
         })
         .collect::<Vec<_>>();

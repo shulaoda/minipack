@@ -1,6 +1,7 @@
 use minipack_common::{
   dynamic_import_usage::DynamicImportExportsUsage, generate_replace_this_expr_map,
   EcmaModuleAstUsage, ImportKind, ImportRecordMeta, StmtInfoMeta, ThisExprReplaceKind,
+  RUNTIME_MODULE_ID,
 };
 use minipack_utils::option_ext::OptionExt;
 use oxc::{
@@ -108,7 +109,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
         format = self.options.format
       ));
     }
-
     walk::walk_for_of_statement(self, it);
   }
 
@@ -262,7 +262,17 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
             self.cjs_ast_analyzer(&CjsGlobalAssignmentType::ExportsAssignment);
           }
           "require" => {
-            if let Some(AstKind::ExpressionStatement(_)) = self.visit_path.last() {
+            let is_dummy_record = match self.visit_path.last() {
+              Some(AstKind::CallExpression(call_expr)) => {
+                !self.process_global_require_call(call_expr)
+              }
+              Some(_) => true,
+              _ => false,
+            };
+
+            // TODO: the id should be `rolldown:runtime`
+            // should not replace require in `runtime` code
+            if is_dummy_record && self.id.as_ref() != RUNTIME_MODULE_ID {
               let import_rec_idx = self.add_import_record(
                 "",
                 ImportKind::Require,
@@ -312,33 +322,28 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     ident_ref: &IdentifierReference,
   ) -> Option<()> {
     let parent = self.visit_path.last()?;
-    if let AstKind::CallExpression(call_expr) = parent {
-      match ident_ref.name.as_str() {
-        "eval" => {
-          self.result.has_eval = true;
-          self.result.warnings.push(
-            anyhow::anyhow!("Use of eval in '{}' is strongly discouraged as it poses security risks and may cause issues with minification.", self.id.to_string())
-          );
-        }
-        "require" => {
-          self.process_global_require_call(call_expr);
-        }
-        _ => {}
+    if let AstKind::CallExpression(_) = parent {
+      if ident_ref.name == "eval" {
+        self.result.has_eval = true;
+        self.result.warnings.push(
+          anyhow::anyhow!("Use of eval in '{}' is strongly discouraged as it poses security risks and may cause issues with minification.", self.id.as_ref())
+        );
       }
     }
     None
   }
 
-  fn process_global_require_call(&mut self, expr: &ast::CallExpression<'ast>) {
+  /// return `bool` represent if it is a global require call
+  fn process_global_require_call(&mut self, expr: &ast::CallExpression<'ast>) -> bool {
     let (value, span) = match expr.arguments.first() {
       Some(ast::Argument::StringLiteral(request)) => {
         (std::borrow::Cow::Borrowed(request.value.as_str()), request.span)
       }
       Some(ast::Argument::TemplateLiteral(request)) => match request.to_js_string() {
         Some(value) => (value, request.span),
-        None => return,
+        None => return false,
       },
-      _ => return,
+      _ => return false,
     };
 
     let id = self.add_import_record(
@@ -385,5 +390,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       },
     );
     self.result.imports.insert(expr.span, id);
+    true
   }
 }

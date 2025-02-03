@@ -9,7 +9,7 @@ use minipack_utils::global_reference::{
 use oxc::ast::ast::{
   self, Argument, ArrayExpressionElement, AssignmentTarget, AssignmentTargetPattern,
   BindingPatternKind, CallExpression, ChainElement, Comment, Expression, IdentifierReference,
-  PropertyKey, VariableDeclarationKind,
+  PropertyKey, UnaryOperator, VariableDeclarationKind,
 };
 use oxc::ast::{match_expression, match_member_expression};
 use oxc::semantic::SymbolTable;
@@ -20,7 +20,6 @@ use utils::{
 
 use self::utils::{known_primitive_type, PrimitiveType};
 
-mod annotation;
 mod utils;
 
 /// Detect if a statement "may" have side effect.
@@ -72,7 +71,7 @@ impl<'a> SideEffectDetector<'a> {
   }
 
   /// ref: https://github.com/evanw/esbuild/blob/360d47230813e67d0312ad754cad2b6ee09b151b/internal/js_ast/js_ast_helpers.go#L2298-L2393
-  fn detect_side_effect_of_class(&mut self, cls: &ast::Class) -> bool {
+  fn detect_side_effect_of_class(&self, cls: &ast::Class) -> bool {
     use oxc::ast::ast::ClassElement;
     if !cls.decorators.is_empty() {
       return true;
@@ -147,7 +146,7 @@ impl<'a> SideEffectDetector<'a> {
     }
   }
 
-  fn detect_side_effect_of_call_expr(&mut self, expr: &CallExpression) -> bool {
+  fn detect_side_effect_of_call_expr(&self, expr: &CallExpression) -> bool {
     let is_pure = !self.ignore_annotations && self.is_pure_function_or_constructor_call(expr.span);
     if is_pure {
       expr.arguments.iter().any(|arg| match arg {
@@ -159,7 +158,7 @@ impl<'a> SideEffectDetector<'a> {
     }
   }
 
-  fn detect_side_effect_of_expr(&mut self, expr: &Expression) -> bool {
+  fn detect_side_effect_of_expr(&self, expr: &Expression) -> bool {
     match expr {
       Expression::BooleanLiteral(_)
       | Expression::NullLiteral(_)
@@ -307,7 +306,6 @@ impl<'a> SideEffectDetector<'a> {
           ) || self.detect_side_effect_of_expr(&binary_expr.left)
             || self.detect_side_effect_of_expr(&binary_expr.right)
         }
-
         _ => true,
       },
       Expression::PrivateInExpression(private_in_expr) => {
@@ -317,7 +315,6 @@ impl<'a> SideEffectDetector<'a> {
         Self::detect_side_effect_of_assignment_target(&expr.left)
           || self.detect_side_effect_of_expr(&expr.right)
       }
-
       Expression::ChainExpression(expr) => match &expr.expression {
         ChainElement::CallExpression(call_expr) => self.detect_side_effect_of_call_expr(call_expr),
         ChainElement::TSNonNullExpression(expr) => {
@@ -327,18 +324,15 @@ impl<'a> SideEffectDetector<'a> {
           self.detect_side_effect_of_member_expr(expr.expression.to_member_expression())
         }
       },
-
       Expression::Super(_)
       | Expression::AwaitExpression(_)
       | Expression::ImportExpression(_)
       | Expression::TaggedTemplateExpression(_)
       | Expression::UpdateExpression(_)
       | Expression::YieldExpression(_) => true,
-
       Expression::JSXElement(_) | Expression::JSXFragment(_) => {
         unreachable!("jsx should be transpiled")
       }
-
       Expression::ArrayExpression(expr) => self.detect_side_effect_of_array_expr(expr),
       Expression::NewExpression(expr) => {
         let is_pure =
@@ -357,7 +351,7 @@ impl<'a> SideEffectDetector<'a> {
     }
   }
 
-  fn detect_side_effect_of_array_expr(&mut self, expr: &ast::ArrayExpression<'_>) -> bool {
+  fn detect_side_effect_of_array_expr(&self, expr: &ast::ArrayExpression<'_>) -> bool {
     expr.elements.iter().any(|elem| match elem {
       ArrayExpressionElement::SpreadElement(ele) => {
         // https://github.com/evanw/esbuild/blob/d34e79e2a998c21bb71d57b92b0017ca11756912/internal/js_ast/js_ast_helpers.go#L2466-L2477
@@ -374,7 +368,7 @@ impl<'a> SideEffectDetector<'a> {
     })
   }
 
-  fn detect_side_effect_of_var_decl(&mut self, var_decl: &ast::VariableDeclaration) -> bool {
+  fn detect_side_effect_of_var_decl(&self, var_decl: &ast::VariableDeclaration) -> bool {
     match var_decl.kind {
       VariableDeclarationKind::AwaitUsing => true,
       VariableDeclarationKind::Using => {
@@ -418,7 +412,7 @@ impl<'a> SideEffectDetector<'a> {
     }
   }
 
-  fn detect_side_effect_of_decl(&mut self, decl: &ast::Declaration) -> bool {
+  fn detect_side_effect_of_decl(&self, decl: &ast::Declaration) -> bool {
     use oxc::ast::ast::Declaration;
     match decl {
       Declaration::VariableDeclaration(var_decl) => self.detect_side_effect_of_var_decl(var_decl),
@@ -440,8 +434,11 @@ impl<'a> SideEffectDetector<'a> {
       decl.init.as_ref().is_some_and(|init| match init {
         Expression::NullLiteral(_) => false,
         // Side effect detection of identifier is different with other position when as initialization of using declaration.
-        // Only global variable `undefined` is considered as side effect free.
+        // Global variable `undefined` is considered as side effect free.
         Expression::Identifier(id) => !(id.name == "undefined" && self.is_unresolved_reference(id)),
+        Expression::UnaryExpression(expr) if matches!(expr.operator, UnaryOperator::Void) => {
+          self.detect_side_effect_of_expr(&expr.argument)
+        }
         _ => true,
       })
     })
@@ -452,7 +449,7 @@ impl<'a> SideEffectDetector<'a> {
     self.is_unresolved_reference(ident_ref) && !is_global_ident_ref(&ident_ref.name)
   }
 
-  pub fn detect_side_effect_of_stmt(&mut self, stmt: &ast::Statement) -> bool {
+  pub fn detect_side_effect_of_stmt(&self, stmt: &ast::Statement) -> bool {
     use oxc::ast::ast::Statement;
     match stmt {
       oxc::ast::match_declaration!(Statement) => {
@@ -535,11 +532,9 @@ impl<'a> SideEffectDetector<'a> {
               || case.consequent.iter().any(|stmt| self.detect_side_effect_of_stmt(stmt))
           })
       }
-
       Statement::EmptyStatement(_)
       | Statement::ContinueStatement(_)
       | Statement::BreakStatement(_) => false,
-
       Statement::DebuggerStatement(_)
       | Statement::ForInStatement(_)
       | Statement::ForOfStatement(_)
@@ -549,7 +544,7 @@ impl<'a> SideEffectDetector<'a> {
     }
   }
 
-  fn detect_side_effect_of_block(&mut self, block: &ast::BlockStatement) -> bool {
+  fn detect_side_effect_of_block(&self, block: &ast::BlockStatement) -> bool {
     block.body.iter().any(|stmt| self.detect_side_effect_of_stmt(stmt))
   }
 }

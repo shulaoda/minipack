@@ -1,54 +1,21 @@
-use arcstr::ArcStr;
 use minipack_common::{
   side_effects::DeterminedSideEffects, EcmaRelated, EcmaView, EcmaViewMeta, ImportRecordIdx,
-  ModuleDefFormat, ModuleId, ModuleIdx, RawImportRecord, StrOrBytes,
+  ModuleId, RawImportRecord, StrOrBytes,
 };
-use minipack_ecmascript::EcmaAst;
 use minipack_error::BuildResult;
 use minipack_utils::{
   ecmascript::legitimize_identifier_name, indexmap::FxIndexSet, path_ext::PathExt,
 };
-use oxc::semantic::{ScopeTree, SymbolTable};
 use oxc_index::IndexVec;
 
 use sugar_path::SugarPath;
 
 use crate::{
   module_loader::ast_scanner::{AstScanResult, AstScanner},
-  types::{module_factory::CreateModuleContext, SharedOptions},
+  types::module_factory::CreateModuleContext,
   utils::parse_to_ecma_ast::{parse_to_ecma_ast, ParseToEcmaAstResult},
 };
 
-fn scan_ast(
-  module_idx: ModuleIdx,
-  id: &ArcStr,
-  ast: &mut EcmaAst,
-  scopes: ScopeTree,
-  symbols: SymbolTable,
-  module_def_format: ModuleDefFormat,
-  options: &SharedOptions,
-) -> BuildResult<AstScanResult> {
-  let module_id = ModuleId::new(id);
-
-  let repr_name = module_id.as_path().representative_file_name();
-  let repr_name = legitimize_identifier_name(&repr_name);
-
-  let scanner = AstScanner::new(
-    module_idx,
-    scopes,
-    symbols,
-    &repr_name,
-    module_def_format,
-    ast.source(),
-    &module_id,
-    ast.comments(),
-    options,
-  );
-
-  let scan_result = scanner.scan(ast.program())?;
-
-  Ok(scan_result)
-}
 pub struct CreateEcmaViewReturn {
   pub ecma_view: EcmaView,
   pub ecma_related: EcmaRelated,
@@ -59,20 +26,26 @@ pub async fn create_ecma_view(
   ctx: &mut CreateModuleContext<'_>,
   source: StrOrBytes,
 ) -> BuildResult<CreateEcmaViewReturn> {
-  let ParseToEcmaAstResult { mut ast, symbols, scopes, has_lazy_export, warning } =
+  let ParseToEcmaAstResult { ast, symbols, scopes, has_lazy_export, warning } =
     parse_to_ecma_ast(ctx, source)?;
 
   ctx.warnings.extend(warning);
 
-  let scan_result = scan_ast(
-    ctx.module_index,
-    &ctx.resolved_id.id,
-    &mut ast,
+  let module_id = ModuleId::new(&ctx.resolved_id.id);
+  let repr_name = module_id.as_path().representative_file_name();
+  let repr_name = legitimize_identifier_name(&repr_name);
+
+  let scanner = AstScanner::new(
+    ctx.module_idx,
     scopes,
     symbols,
+    &repr_name,
     ctx.resolved_id.module_def_format,
+    ast.source(),
+    &module_id,
+    ast.comments(),
     ctx.options,
-  )?;
+  );
 
   let AstScanResult {
     named_imports,
@@ -95,7 +68,7 @@ pub async fn create_ecma_view(
     dynamic_import_rec_exports_usage: dynamic_import_exports_usage,
     new_url_references: new_url_imports,
     this_expr_replace_map,
-  } = scan_result;
+  } = scanner.scan(ast.program())?;
 
   if !errors.is_empty() {
     return Err(errors.into());
@@ -126,8 +99,8 @@ pub async fn create_ecma_view(
     hashbang_range,
     meta: {
       let mut meta = EcmaViewMeta::default();
-      meta.set_included(false);
       meta.set_eval(has_eval);
+      meta.set_included(false);
       meta.set_has_lazy_export(has_lazy_export);
       meta.set_has_star_exports(has_star_exports);
       meta
