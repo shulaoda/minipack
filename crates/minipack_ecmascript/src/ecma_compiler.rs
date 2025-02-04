@@ -85,10 +85,11 @@ impl EcmaCompiler {
 
     let program =
       allocator.alloc(Parser::new(&allocator, source_text, source_type).parse().program);
-    let mangler = Minifier::new(MinifierOptions::default()).build(&allocator, program).mangler;
+    let symbol_table =
+      Minifier::new(MinifierOptions::default()).build(&allocator, program).symbol_table;
     let ret = Codegen::new()
       .with_options(CodegenOptions { minify: true, ..CodegenOptions::default() })
-      .with_mangler(mangler)
+      .with_symbol_table(symbol_table)
       .build(program);
 
     ret.code
