@@ -1,4 +1,6 @@
-use minipack_common::{ModuleIdx, NormalModule, RuntimeModuleBrief, SymbolRef, SymbolRefDb};
+use minipack_common::{
+  ChunkIdx, ModuleIdx, NormalModule, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
+};
 use minipack_utils::rstr::Rstr;
 use rustc_hash::FxHashMap;
 
@@ -12,6 +14,7 @@ use crate::{
 
 pub struct ScopeHoistingFinalizerContext<'me> {
   pub id: ModuleIdx,
+  pub chunk_id: ChunkIdx,
   pub module: &'me NormalModule,
   pub modules: &'me IndexModules,
   pub linking_info: &'me LinkingMetadata,
