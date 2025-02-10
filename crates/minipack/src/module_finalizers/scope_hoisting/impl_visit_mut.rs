@@ -1,6 +1,4 @@
-use minipack_common::{
-  EcmaModuleAstUsage, ExportsKind, Module, StmtInfoIdx, SymbolRef, ThisExprReplaceKind, WrapKind,
-};
+use minipack_common::{ExportsKind, Module, StmtInfoIdx, SymbolRef, ThisExprReplaceKind, WrapKind};
 use minipack_ecmascript_utils::{ExpressionExt, TakeIn};
 use oxc::{
   allocator::{self, IntoIn},
@@ -191,7 +189,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
             stmts_inside_closure,
             !self.ctx.options.minify,
             &self.ctx.module.stable_id,
-            self.ctx.module.ast_usage.contains(EcmaModuleAstUsage::TopLevelAwait),
+            self.ctx.linking_info.is_tla_or_contains_tla_dependency,
           ));
         }
         WrapKind::None => {}

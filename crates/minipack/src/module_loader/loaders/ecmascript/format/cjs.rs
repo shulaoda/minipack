@@ -1,4 +1,4 @@
-use minipack_common::{ExportsKind, OutputExports, SourceJoiner, WrapKind};
+use minipack_common::{ExportsKind, OutputExports, SourceJoiner};
 use minipack_error::BuildResult;
 use minipack_utils::concat_string;
 
@@ -8,7 +8,9 @@ use crate::{
   utils::chunk::{
     determine_export_mode::determine_export_mode,
     namespace_marker::render_namespace_markers,
-    render_chunk_exports::{get_chunk_export_names, render_chunk_exports},
+    render_chunk_exports::{
+      get_chunk_export_names, render_chunk_exports, render_wrapped_entry_chunk,
+    },
   },
 };
 
@@ -101,34 +103,8 @@ pub fn render_cjs<'code>(
     render_cjs_chunk_imports(ctx),
   );
 
-  if let Some(entry_id) = ctx.chunk.entry_module_idx() {
-    let entry_meta = &ctx.link_output.metadata[entry_id];
-    match entry_meta.wrap_kind {
-      WrapKind::Esm => {
-        let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
-        // init_xxx
-        let wrapper_ref_name = ctx.finalized_string_pattern_for_symbol_ref(
-          *wrapper_ref,
-          ctx.chunk_idx,
-          &ctx.chunk.canonical_names,
-        );
-        source_joiner.append_source(concat_string!(wrapper_ref_name, "();"));
-      }
-      WrapKind::Cjs => {
-        let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
-
-        // require_xxx
-        let wrapper_ref_name = ctx.finalized_string_pattern_for_symbol_ref(
-          *wrapper_ref,
-          ctx.chunk_idx,
-          &ctx.chunk.canonical_names,
-        );
-
-        // module.exports = require_xxx();
-        source_joiner.append_source(concat_string!("module.exports = ", wrapper_ref_name, "();\n"));
-      }
-      WrapKind::None => {}
-    }
+  if let Some(source) = render_wrapped_entry_chunk(ctx, export_mode.as_ref()) {
+    source_joiner.append_source(source);
   }
 
   if let Some(exports) = render_chunk_exports(ctx, export_mode.as_ref()) {

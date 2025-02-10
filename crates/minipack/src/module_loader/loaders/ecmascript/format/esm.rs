@@ -1,11 +1,12 @@
 use arcstr::ArcStr;
 use itertools::Itertools;
-use minipack_common::{ExportsKind, SourceJoiner, Specifier, WrapKind};
+use minipack_common::{ExportsKind, SourceJoiner, Specifier};
 use minipack_utils::{concat_string, ecmascript::to_module_import_export_name};
 
 use crate::{
   module_loader::loaders::ecmascript::ecma_generator::RenderedModuleSources,
-  types::generator::GenerateContext, utils::chunk::render_chunk_exports::render_chunk_exports,
+  types::generator::GenerateContext,
+  utils::chunk::render_chunk_exports::{render_chunk_exports, render_wrapped_entry_chunk},
 };
 
 pub fn render_esm<'code>(
@@ -45,35 +46,8 @@ pub fn render_esm<'code>(
     }
   });
 
-  if let Some(entry_id) = ctx.chunk.entry_module_idx() {
-    let entry_meta = &ctx.link_output.metadata[entry_id];
-    match entry_meta.wrap_kind {
-      WrapKind::Esm => {
-        // init_xxx()
-        let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
-        let wrapper_ref_name = ctx.finalized_string_pattern_for_symbol_ref(
-          *wrapper_ref,
-          ctx.chunk_idx,
-          &ctx.chunk.canonical_names,
-        );
-        source_joiner.append_source(concat_string!(wrapper_ref_name.as_str(), "();"));
-      }
-      WrapKind::Cjs => {
-        // "export default require_xxx();"
-        let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
-        let wrapper_ref_name = ctx.finalized_string_pattern_for_symbol_ref(
-          *wrapper_ref,
-          ctx.chunk_idx,
-          &ctx.chunk.canonical_names,
-        );
-        source_joiner.append_source(concat_string!(
-          "export default ",
-          wrapper_ref_name.as_str(),
-          "();\n"
-        ));
-      }
-      WrapKind::None => {}
-    }
+  if let Some(source) = render_wrapped_entry_chunk(ctx, None) {
+    source_joiner.append_source(source);
   }
 
   if let Some(exports) = render_chunk_exports(ctx, None) {

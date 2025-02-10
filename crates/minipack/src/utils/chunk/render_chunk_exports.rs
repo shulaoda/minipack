@@ -13,6 +13,60 @@ use minipack_utils::{
 
 use crate::{stages::link::LinkStageOutput, types::generator::GenerateContext};
 
+pub fn render_wrapped_entry_chunk(
+  ctx: &GenerateContext<'_>,
+  export_mode: Option<&OutputExports>,
+) -> Option<String> {
+  if let ChunkKind::EntryPoint { module: entry_id, .. } = ctx.chunk.kind {
+    let entry_meta = &ctx.link_output.metadata[entry_id];
+    return match entry_meta.wrap_kind {
+      WrapKind::Esm => {
+        // init_xxx()
+        let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
+        let wrapper_ref_name = ctx.finalized_string_pattern_for_symbol_ref(
+          *wrapper_ref,
+          ctx.chunk_idx,
+          &ctx.chunk.canonical_names,
+        );
+        if entry_meta.is_tla_or_contains_tla_dependency {
+          Some(concat_string!("await ", wrapper_ref_name, "();"))
+        } else {
+          Some(concat_string!(wrapper_ref_name, "();"))
+        }
+      }
+      WrapKind::Cjs => {
+        let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
+        let wrapper_ref_name = ctx.finalized_string_pattern_for_symbol_ref(
+          *wrapper_ref,
+          ctx.chunk_idx,
+          &ctx.chunk.canonical_names,
+        );
+
+        match ctx.options.format {
+          OutputFormat::Esm => {
+            // export default require_xxx();
+            Some(concat_string!("export default ", wrapper_ref_name.as_str(), "();\n"))
+          }
+          OutputFormat::Cjs => {
+            if matches!(&export_mode, Some(OutputExports::Named)) {
+              Some(render_object_define_property(
+                "default",
+                &concat_string!(wrapper_ref_name, "()"),
+              ))
+            } else {
+              // module.exports = require_xxx();
+              Some(concat_string!("module.exports = ", wrapper_ref_name, "();\n"))
+            }
+          }
+        }
+      }
+      WrapKind::None => None,
+    };
+  }
+
+  None
+}
+
 pub fn render_chunk_exports(
   ctx: &GenerateContext<'_>,
   export_mode: Option<&OutputExports>,

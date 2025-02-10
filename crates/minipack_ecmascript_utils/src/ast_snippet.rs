@@ -472,8 +472,7 @@ impl<'ast> AstSnippet<'ast> {
       esm_call_expr.arguments.push(ast::Argument::ArrowFunctionExpression(arrow_expr));
     };
 
-    // var init_foo = ...
-
+    // var init_foo = __esm(...)
     self.var_decl_stmt(
       binding_name,
       ast::Expression::CallExpression(esm_call_expr.into_in(self.alloc())),

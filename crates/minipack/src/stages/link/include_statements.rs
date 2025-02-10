@@ -1,6 +1,6 @@
 use minipack_common::{
-  side_effects::DeterminedSideEffects, Module, ModuleIdx, ModuleType, NormalModule, StmtInfoIdx,
-  SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
+  side_effects::DeterminedSideEffects, EcmaViewMeta, Module, ModuleIdx, ModuleType, NormalModule,
+  StmtInfoIdx, SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
 };
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
 use oxc_index::IndexVec;
@@ -167,7 +167,7 @@ impl LinkStage<'_> {
 
     self.modules.par_iter_mut().filter_map(Module::as_normal_mut).for_each(|module| {
       let idx = module.idx;
-      module.meta.set_included(is_module_included_vec[idx]);
+      module.meta.set(EcmaViewMeta::INCLUDED, is_module_included_vec[idx]);
       is_included_vec[module.idx].iter_enumerated().for_each(|(stmt_info_id, is_included)| {
         module.stmt_infos.get_mut(stmt_info_id).is_included = *is_included;
       });
