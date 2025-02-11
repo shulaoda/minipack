@@ -11,7 +11,7 @@ use minipack_utils::{
   rstr::Rstr,
 };
 
-use crate::{stages::link::LinkStageOutput, types::generator::GenerateContext};
+use crate::{link_stage::LinkStageOutput, types::generator::GenerateContext};
 
 pub fn render_wrapped_entry_chunk(
   ctx: &GenerateContext<'_>,

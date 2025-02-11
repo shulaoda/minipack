@@ -1,6 +1,5 @@
-use crate::module_loader::ast_scanner::side_effect_detector::utils::{
-  extract_member_expr_chain, is_primitive_literal,
-};
+mod utils;
+
 use minipack_common::AstScopes;
 use minipack_utils::global_reference::{
   is_global_ident_ref, is_side_effect_free_member_expr_of_len_three,
@@ -17,10 +16,9 @@ use utils::{
   can_change_strict_to_loose, is_side_effect_free_unbound_identifier_ref,
   maybe_side_effect_free_global_constructor,
 };
+use utils::{extract_member_expr_chain, is_primitive_literal};
 
 use self::utils::{known_primitive_type, PrimitiveType};
-
-mod utils;
 
 /// Detect if a statement "may" have side effect.
 pub struct SideEffectDetector<'a> {

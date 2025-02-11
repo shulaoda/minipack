@@ -1,10 +1,13 @@
+pub mod module_loader;
+
+use module_loader::{ModuleLoader, ModuleLoaderOutput};
+
 use arcstr::ArcStr;
 use minipack_common::{ImportKind, ResolvedId};
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 
 use crate::{
-  module_loader::{ModuleLoader, ModuleLoaderOutput},
   types::{SharedOptions, SharedResolver},
   utils::resolve_id::resolve_id,
 };

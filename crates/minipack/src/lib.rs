@@ -1,7 +1,8 @@
 mod bundler;
+mod generate_stage;
 mod graph;
-mod module_loader;
-mod stages;
+mod link_stage;
+mod scan_stage;
 mod types;
 mod utils;
 

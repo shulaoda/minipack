@@ -15,8 +15,7 @@ use minipack_common::{
 use minipack_common::{ModuleDefFormat, ModuleId, ModuleLoaderMsg};
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 
-use crate::module_loader::ast_scanner::pre_processor::PreProcessor;
-use crate::module_loader::ast_scanner::{AstScanResult, AstScanner};
+use super::ast_scanner::{pre_processor::PreProcessor, AstScanResult, AstScanner};
 use crate::types::SharedNormalizedBundlerOptions;
 
 pub struct RuntimeModuleTask {

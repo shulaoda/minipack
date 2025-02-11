@@ -28,7 +28,7 @@ use crate::{
   },
 };
 
-use super::link::LinkStageOutput;
+use super::link_stage::LinkStageOutput;
 
 pub struct GenerateStage<'a> {
   link_output: &'a mut LinkStageOutput,

@@ -6,7 +6,7 @@ use minipack_error::BuildResult;
 use minipack_utils::{ecmascript::property_access_str, option_ext::OptionExt, rstr::Rstr};
 use rustc_hash::FxHashMap;
 
-use crate::{graph::ChunkGraph, stages::link::LinkStageOutput};
+use crate::{graph::ChunkGraph, link_stage::LinkStageOutput};
 
 pub struct GenerateContext<'a> {
   pub chunk_idx: ChunkIdx,

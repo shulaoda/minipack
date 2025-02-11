@@ -21,7 +21,7 @@ use crate::types::{
   IndexAstScope, IndexEcmaAst, IndexModules, SharedOptions,
 };
 
-use super::scan::ScanStageOutput;
+use super::scan_stage::ScanStageOutput;
 
 #[derive(Debug)]
 pub struct LinkStageOutput {

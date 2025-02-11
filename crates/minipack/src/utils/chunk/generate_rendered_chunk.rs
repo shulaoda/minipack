@@ -3,7 +3,7 @@ use minipack_common::{
 };
 use rustc_hash::FxHashMap;
 
-use crate::{graph::ChunkGraph, stages::link::LinkStageOutput};
+use crate::{graph::ChunkGraph, link_stage::LinkStageOutput};
 
 use super::render_chunk_exports::get_chunk_export_names;
 

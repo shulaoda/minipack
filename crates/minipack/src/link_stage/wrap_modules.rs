@@ -2,7 +2,7 @@ use minipack_common::{ExportsKind, Module, ModuleIdx, WrapKind};
 use oxc_index::IndexVec;
 
 use crate::{
-  stages::link::create_exports_for_ecma_modules::create_wrapper,
+  link_stage::create_exports_for_ecma_modules::create_wrapper,
   types::{linking_metadata::LinkingMetadataVec, IndexModules},
 };
 

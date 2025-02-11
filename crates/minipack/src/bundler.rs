@@ -1,7 +1,9 @@
 use std::sync::Arc;
 
 use crate::{
-  stages::{generate::GenerateStage, link::LinkStage, scan::ScanStage},
+  generate_stage::GenerateStage,
+  link_stage::LinkStage,
+  scan_stage::ScanStage,
   types::{bundle_output::BundleOutput, SharedOptions, SharedResolver},
   utils::normalize_options::{normalize_options, NormalizeOptionsReturn},
 };

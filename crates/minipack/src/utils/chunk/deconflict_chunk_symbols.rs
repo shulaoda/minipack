@@ -6,7 +6,7 @@ use minipack_common::{Chunk, ChunkIdx, ChunkKind, GetLocalDb, OutputFormat};
 use minipack_utils::{ecmascript::legitimize_identifier_name, rstr::ToRstr};
 use rustc_hash::FxHashMap;
 
-use crate::{stages::link::LinkStageOutput, utils::renamer::Renamer};
+use crate::{link_stage::LinkStageOutput, utils::renamer::Renamer};
 
 pub fn deconflict_chunk_symbols(
   chunk: &mut Chunk,
