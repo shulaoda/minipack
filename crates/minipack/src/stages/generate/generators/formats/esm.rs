@@ -4,7 +4,7 @@ use minipack_common::{ExportsKind, SourceJoiner, Specifier};
 use minipack_utils::{concat_string, ecmascript::to_module_import_export_name};
 
 use crate::{
-  module_loader::loaders::ecmascript::ecma_generator::RenderedModuleSources,
+  stages::generate::generators::ecmascript::RenderedModuleSources,
   types::generator::GenerateContext,
   utils::chunk::render_chunk_exports::{render_chunk_exports, render_wrapped_entry_chunk},
 };

@@ -55,6 +55,7 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
       self.visit_statement(stmt);
       self.result.stmt_infos.add_stmt_info(std::mem::take(&mut self.current_stmt_info));
     }
+
     self.result.hashbang_range = program.hashbang.as_ref().map(GetSpan::span);
     self.result.dynamic_import_rec_exports_usage =
       std::mem::take(&mut self.dynamic_import_usage_info.dynamic_import_exports_usage);
@@ -100,7 +101,7 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   }
 
   fn visit_for_of_statement(&mut self, it: &ast::ForOfStatement<'ast>) {
-    let is_top_level_await = it.r#await && self.is_top_level();
+    let is_top_level_await = it.r#await && self.is_valid_tla_scope();
     if is_top_level_await && !self.options.format.keep_esm_import_export_syntax() {
       self.result.errors.push(anyhow::anyhow!(
         "Top-level await is currently not supported with the '{format}' output format",
@@ -114,7 +115,7 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   }
 
   fn visit_await_expression(&mut self, it: &ast::AwaitExpression<'ast>) {
-    let is_top_level_await = self.is_top_level();
+    let is_top_level_await = self.is_valid_tla_scope();
     if !self.options.format.keep_esm_import_export_syntax() && is_top_level_await {
       self.result.errors.push(anyhow::anyhow!(
         "Top-level await is currently not supported with the '{format}' output format",

@@ -43,14 +43,14 @@ impl RuntimeModuleTask {
   fn run_inner(&mut self) -> BuildResult<()> {
     let source = if self.options.is_esm_format_with_node_platform() {
       arcstr::literal!(concat!(
-        include_str!("../runtime/runtime-head-node.js"),
-        include_str!("../runtime/runtime-base.js"),
-        include_str!("../runtime/runtime-tail-node.js"),
+        include_str!("./runtime/runtime-head-node.js"),
+        include_str!("./runtime/runtime-base.js"),
+        include_str!("./runtime/runtime-tail-node.js"),
       ))
     } else {
       arcstr::literal!(concat!(
-        include_str!("../runtime/runtime-base.js"),
-        include_str!("../runtime/runtime-tail.js"),
+        include_str!("./runtime/runtime-base.js"),
+        include_str!("./runtime/runtime-tail.js"),
       ))
     };
 

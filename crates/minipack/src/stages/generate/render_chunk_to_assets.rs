@@ -10,12 +10,10 @@ use minipack_utils::{
 };
 use oxc_index::{index_vec, IndexVec};
 
+use super::generators::{asset::AssetGenerator, css::CssGenerator, ecmascript::EcmaGenerator};
+
 use crate::{
   graph::ChunkGraph,
-  module_loader::loaders::{
-    asset::asset_generator::AssetGenerator, css::css_generator::CssGenerator,
-    ecmascript::ecma_generator::EcmaGenerator,
-  },
   types::{
     bundle_output::BundleOutput,
     generator::{GenerateContext, Generator},

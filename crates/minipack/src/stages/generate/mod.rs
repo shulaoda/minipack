@@ -1,7 +1,15 @@
 mod code_splitting;
 mod compute_cross_chunk_links;
 mod generate_chunk_name_and_preliminary_filenames;
+mod module_finalizers;
 mod render_chunk_to_assets;
+
+pub mod generators;
+
+use module_finalizers::{
+  isolating::{IsolatingModuleFinalizer, IsolatingModuleFinalizerContext},
+  scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext},
+};
 
 use arcstr::ArcStr;
 use minipack_common::{CssAssetNameReplacer, ImportMetaRolldownAssetReplacer, Module};
@@ -13,10 +21,6 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   graph::ChunkGraph,
-  module_finalizers::{
-    isolating::{IsolatingModuleFinalizer, IsolatingModuleFinalizerContext},
-    scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext},
-  },
   types::{bundle_output::BundleOutput, SharedOptions},
   utils::chunk::{
     deconflict_chunk_symbols::deconflict_chunk_symbols,

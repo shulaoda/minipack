@@ -1,5 +1,3 @@
-pub mod css_generator;
-
 use arcstr::ArcStr;
 
 use minipack_common::{

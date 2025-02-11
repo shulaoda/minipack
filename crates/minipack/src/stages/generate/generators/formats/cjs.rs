@@ -3,7 +3,7 @@ use minipack_error::BuildResult;
 use minipack_utils::concat_string;
 
 use crate::{
-  module_loader::loaders::ecmascript::ecma_generator::RenderedModuleSources,
+  stages::generate::generators::ecmascript::RenderedModuleSources,
   types::generator::GenerateContext,
   utils::chunk::{
     determine_export_mode::determine_export_mode,

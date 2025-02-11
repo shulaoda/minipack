@@ -11,15 +11,13 @@ use oxc_index::IndexVec;
 use std::sync::Arc;
 use sugar_path::SugarPath;
 
-use crate::{
-  module_loader::loaders::{
-    asset::create_asset_view,
-    css::create_css_view,
-    ecmascript::ecma_module_view_factory::{create_ecma_view, CreateEcmaViewReturn},
-  },
-  types::module_factory::CreateModuleContext,
-  utils::resolve_id::resolve_id,
+use super::loaders::{
+  asset::create_asset_view,
+  css::create_css_view,
+  ecmascript::{create_ecma_view, CreateEcmaViewReturn},
 };
+
+use crate::{types::module_factory::CreateModuleContext, utils::resolve_id::resolve_id};
 
 use super::task_context::TaskContext;
 

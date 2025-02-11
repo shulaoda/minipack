@@ -14,7 +14,7 @@ use minipack_error::BuildResult;
 use minipack_utils::rayon::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 use rustc_hash::FxHashMap;
 
-use super::format::{cjs::render_cjs, esm::render_esm};
+use super::formats::{cjs::render_cjs, esm::render_esm};
 
 pub type RenderedModuleSources =
   Vec<(ModuleIdx, ModuleId, Option<Arc<[Box<dyn Source + Send + Sync>]>>)>;
