@@ -11,7 +11,7 @@ use oxc_index::IndexVec;
 use sugar_path::SugarPath;
 
 use crate::{
-  scan_stage::module_loader::ast_scanner::{AstScanResult, AstScanner},
+  scan_stage::ast_scanner::{AstScanResult, AstScanner},
   types::module_factory::CreateModuleContext,
   utils::parse_to_ecma_ast::{parse_to_ecma_ast, ParseToEcmaAstResult},
 };

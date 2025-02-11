@@ -1,10 +1,3 @@
-pub mod ast_scanner;
-pub mod loaders;
-pub mod task_context;
-
-mod module_task;
-mod runtime_module_task;
-
 use std::sync::Arc;
 
 use arcstr::ArcStr;
@@ -18,13 +11,14 @@ use minipack_common::{
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 use minipack_utils::{ecmascript::legitimize_identifier_name, rustc_hash::FxHashSetExt};
-use module_task::{ModuleTask, ModuleTaskOwner};
 use oxc::semantic::{ScopeId, SymbolTable};
 use oxc_index::IndexVec;
-use runtime_module_task::RuntimeModuleTask;
 use rustc_hash::{FxHashMap, FxHashSet};
-use task_context::TaskContext;
 use tokio::sync::mpsc::Receiver;
+
+use super::module_task::{ModuleTask, ModuleTaskOwner};
+use super::runtime_module_task::RuntimeModuleTask;
+use super::task_context::TaskContext;
 
 use crate::types::{
   DynImportUsageMap, IndexAstScope, IndexEcmaAst, IndexModules, SharedOptions, SharedResolver,

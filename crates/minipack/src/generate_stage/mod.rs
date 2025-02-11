@@ -1,12 +1,12 @@
 mod code_splitting;
 mod compute_cross_chunk_links;
+mod finalizers;
 mod generate_chunk_name_and_preliminary_filenames;
-mod module_finalizers;
 mod render_chunk_to_assets;
 
 pub mod generators;
 
-use module_finalizers::{
+use finalizers::{
   isolating::{IsolatingModuleFinalizer, IsolatingModuleFinalizerContext},
   scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext},
 };
