@@ -8,19 +8,12 @@ mod module_loader;
 mod types;
 
 pub use bundler_options::{
-  es_target::ESTarget,
-  filename_template::{FileNameRenderOptions, FilenameTemplate},
-  input_item::InputItem,
-  module_type::ModuleType,
-  normalized_bundler_options::NormalizedBundlerOptions,
-  output_exports::OutputExports,
-  output_format::OutputFormat,
-  platform::Platform,
-  resolve_options::ResolveOptions,
-  BundlerOptions,
+  es_target::ESTarget, filename_template::FilenameTemplate, input_item::InputItem,
+  module_type::ModuleType, normalized_bundler_options::NormalizedBundlerOptions,
+  output_exports::OutputExports, output_format::OutputFormat, platform::Platform,
+  resolve_options::ResolveOptions, BundlerOptions,
 };
 
-// We don't want internal position adjustment of files affect users, so all items are exported in the root.
 pub use crate::{
   asset::AssetView,
   chunk::{

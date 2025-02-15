@@ -1,13 +1,10 @@
 use std::collections::hash_map::Entry;
 
 use arcstr::ArcStr;
-use minipack_common::{
-  ChunkIdx, ChunkKind, FileNameRenderOptions, FilenameTemplate, PreliminaryFilename,
-};
+use minipack_common::{ChunkIdx, ChunkKind, FilenameTemplate, PreliminaryFilename};
 use minipack_error::BuildResult;
 use minipack_utils::{
   concat_string,
-  extract_hash_pattern::extract_hash_pattern,
   hash_placeholder::HashPlaceholderGenerator,
   option_ext::OptionExt,
   path_buf_ext::PathBufExt,
@@ -121,9 +118,6 @@ impl GenerateStage<'_> {
       index_chunk_id_to_name.insert(*chunk_id, pre_generated_chunk_name.clone());
       let pre_rendered_chunk = generate_pre_rendered_chunk(chunk, self.link_output);
 
-      let asset_filename_template = FilenameTemplate::new(self.options.asset_filenames.clone());
-      let extracted_asset_hash_pattern = extract_hash_pattern(asset_filename_template.template());
-
       let preliminary_filename = chunk.generate_preliminary_filename(
         self.options,
         pre_generated_chunk_name,
@@ -140,18 +134,26 @@ impl GenerateStage<'_> {
 
       chunk.modules.iter().copied().filter_map(|idx| modules[idx].as_normal()).for_each(|module| {
         if module.asset_view.is_some() {
-          let hash_placeholder = extracted_asset_hash_pattern
-            .as_ref()
-            .map(|p| hash_placeholder_generator.generate(p.len.unwrap_or(8)));
+          let asset_filename_template = FilenameTemplate::new(self.options.asset_filenames.clone());
+
+          let has_hash_pattern = asset_filename_template.has_hash_pattern();
+
           let name = module.id.as_path().file_stem().and_then(|s| s.to_str()).unpack();
-          let preliminary = PreliminaryFilename::new(
-            asset_filename_template.render(&FileNameRenderOptions {
-              name: Some(name),
-              hash: hash_placeholder.as_deref(),
-              ext: module.id.as_path().extension().and_then(|s| s.to_str()),
-            }),
-            hash_placeholder,
-          );
+          let extension = module.id.as_path().extension().and_then(|s| s.to_str());
+
+          let mut hash_placeholder = has_hash_pattern.then_some(vec![]);
+          let hash_replacer = has_hash_pattern.then_some({
+            |len: Option<usize>| {
+              let hash = hash_placeholder_generator.generate(len.unwrap_or(8));
+              if let Some(hash_placeholder) = hash_placeholder.as_mut() {
+                hash_placeholder.push(hash.clone());
+              }
+              hash
+            }
+          });
+
+          let filename = asset_filename_template.render(Some(name), extension, hash_replacer);
+          let preliminary = PreliminaryFilename::new(filename, hash_placeholder);
 
           chunk.asset_absolute_preliminary_filenames.insert(
             module.idx,
