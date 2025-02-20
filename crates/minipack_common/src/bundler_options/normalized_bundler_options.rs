@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use oxc::transformer::TransformOptions;
+
 use crate::{ESTarget, InputItem, OutputExports, OutputFormat, Platform};
 
 // Using raw booleans is more clear in this case
@@ -26,6 +28,7 @@ pub struct NormalizedBundlerOptions {
   pub target: ESTarget,
   pub shim_missing_exports: bool,
   pub inline_dynamic_imports: bool,
+  pub base_transform_options: TransformOptions,
 }
 
 impl NormalizedBundlerOptions {

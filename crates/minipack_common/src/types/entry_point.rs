@@ -1,12 +1,14 @@
 use arcstr::ArcStr;
 
-use crate::ModuleIdx;
+use crate::{ModuleIdx, StmtInfoIdx};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct EntryPoint {
   pub id: ModuleIdx,
   pub name: Option<ArcStr>,
   pub kind: EntryPointKind,
+  /// which stmts create this entry point
+  pub related_stmt_infos: Vec<(ModuleIdx, StmtInfoIdx)>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]

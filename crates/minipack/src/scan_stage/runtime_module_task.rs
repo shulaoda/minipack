@@ -168,7 +168,7 @@ impl RuntimeModuleTask {
       self.idx,
       scopes,
       symbol_table,
-      "rolldown_runtime",
+      "minipack_runtime",
       ModuleDefFormat::EsmMjs,
       source,
       &facade_path,

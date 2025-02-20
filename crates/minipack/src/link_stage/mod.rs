@@ -10,8 +10,8 @@ mod sort_modules;
 mod wrap_modules;
 
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, EcmaModuleAstUsage, EntryPoint, ImportKind,
-  Module, ModuleIdx, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
+  dynamic_import_usage::DynamicImportExportsUsage, EcmaModuleAstUsage, EntryPoint, EntryPointKind,
+  ImportKind, Module, ModuleIdx, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
 };
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -36,6 +36,7 @@ pub struct LinkStageOutput {
   pub ast_scope_table: IndexAstScope,
   pub used_symbol_refs: FxHashSet<SymbolRef>,
   pub dyn_import_usage_map: FxHashMap<ModuleIdx, DynamicImportExportsUsage>,
+  pub lived_entry_points: FxHashSet<ModuleIdx>,
 }
 
 #[derive(Debug)]
@@ -74,10 +75,17 @@ impl<'a> LinkStage<'a> {
         let dependencies = module
           .import_records()
           .iter()
-          .filter(|&rec| {
-            !matches!(rec.kind, ImportKind::DynamicImport) || options.inline_dynamic_imports
+          .filter_map(|rec| match rec.kind {
+            ImportKind::DynamicImport => {
+              if options.inline_dynamic_imports {
+                Some(rec.resolved_module)
+              } else {
+                None
+              }
+            }
+            ImportKind::Require => None,
+            _ => Some(rec.resolved_module),
           })
-          .map(|rec| rec.resolved_module)
           .collect();
 
         let star_exports_from_external_modules =
@@ -124,6 +132,7 @@ impl<'a> LinkStage<'a> {
     self.patch_module_dependencies();
 
     LinkStageOutput {
+      lived_entry_points: self.get_lived_entry(),
       modules: self.modules,
       entry_points: self.entry_points,
       metadata: self.metadata,
@@ -136,6 +145,32 @@ impl<'a> LinkStage<'a> {
       dyn_import_usage_map: self.dyn_import_usage_map,
       ast_scope_table: self.ast_scope_table,
     }
+  }
+
+  #[inline]
+  fn get_lived_entry(&self) -> FxHashSet<ModuleIdx> {
+    self
+      .entry_points
+      .iter()
+      .filter_map(|item| match item.kind {
+        EntryPointKind::UserDefined => Some(item.id),
+        EntryPointKind::DynamicImport => {
+          // At least one statement that create this entry is included
+          let lived = item
+            .related_stmt_infos
+            .iter()
+            .filter(|(module_idx, stmt_idx)| {
+              let module =
+                &self.modules[*module_idx].as_normal().expect("should be a normal module");
+              let stmt_info = &module.stmt_infos[*stmt_idx];
+              stmt_info.is_included
+            })
+            .count()
+            > 0;
+          lived.then_some(item.id)
+        }
+      })
+      .collect::<FxHashSet<ModuleIdx>>()
   }
 
   fn compute_tla(&mut self) {

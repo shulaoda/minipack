@@ -10,7 +10,8 @@ use sugar_path::SugarPath;
 
 use oxc_resolver::{
   EnforceExtension, FsCache, PackageJsonSerde as OxcPackageJson, PackageType, Resolution,
-  ResolveError, ResolveOptions as OxcResolverOptions, ResolverGeneric, TsconfigOptions,
+  ResolveError, ResolveOptions as OxcResolverOptions, ResolverGeneric, TsConfigSerde,
+  TsconfigOptions,
 };
 
 use minipack_common::{ImportKind, ModuleDefFormat, PackageJson, Platform, ResolveOptions};
@@ -19,6 +20,7 @@ use minipack_fs::{FileSystem, OsFileSystem};
 #[derive(Debug)]
 pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
   cwd: PathBuf,
+  default_resolver: ResolverGeneric<FsCache<T>>,
   // Resolver for `import '...'` and `import(...)`
   import_resolver: ResolverGeneric<FsCache<T>>,
   // Resolver for `require('...')`
@@ -154,6 +156,7 @@ impl<F: FileSystem + Default> Resolver<F> {
 
     Self {
       cwd,
+      default_resolver,
       import_resolver,
       require_resolver,
       css_resolver,
@@ -164,6 +167,13 @@ impl<F: FileSystem + Default> Resolver<F> {
 
   pub fn cwd(&self) -> &PathBuf {
     &self.cwd
+  }
+
+  pub fn resolve_tsconfig<T: AsRef<Path>>(
+    &self,
+    path: &T,
+  ) -> Result<Arc<TsConfigSerde>, ResolveError> {
+    self.default_resolver.resolve_tsconfig(path)
   }
 }
 

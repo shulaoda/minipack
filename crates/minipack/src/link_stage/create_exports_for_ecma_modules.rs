@@ -63,6 +63,7 @@ pub fn create_wrapper(
         side_effect: true,
         is_included: false,
         import_records: Vec::new(),
+        #[cfg(debug_assertions)]
         debug_label: None,
         meta: StmtInfoMeta::default(),
       };
@@ -93,6 +94,7 @@ pub fn create_wrapper(
         side_effect: false,
         is_included: false,
         import_records: Vec::new(),
+        #[cfg(debug_assertions)]
         debug_label: None,
         meta: StmtInfoMeta::default(),
       };
@@ -123,6 +125,7 @@ impl LinkStage<'_> {
           side_effect: false,
           is_included: false,
           import_records: Vec::new(),
+          #[cfg(debug_assertions)]
           debug_label: None,
           meta: StmtInfoMeta::default(),
         };
@@ -166,6 +169,7 @@ impl LinkStage<'_> {
           side_effect: false,
           is_included: false,
           import_records: Vec::new(),
+          #[cfg(debug_assertions)]
           debug_label: None,
           meta: StmtInfoMeta::default(),
         };

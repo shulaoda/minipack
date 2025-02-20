@@ -53,6 +53,7 @@ impl GenerateStage<'_> {
           bit: count,
           module: entry_point.id,
         },
+        self.link_output.lived_entry_points.contains(&entry_point.id),
       ));
       bits_to_chunk.insert(bits, chunk);
       entry_module_to_entry_chunk.insert(entry_point.id, chunk);
@@ -92,7 +93,7 @@ impl GenerateStage<'_> {
       if let Some(chunk_id) = bits_to_chunk.get(bits).copied() {
         chunk_graph.add_module_to_chunk(normal_module.idx, chunk_id);
       } else {
-        let chunk = Chunk::new(None, bits.clone(), vec![], ChunkKind::Common);
+        let chunk = Chunk::new(None, bits.clone(), vec![], ChunkKind::Common, true);
         let chunk_id = chunk_graph.add_chunk(chunk);
         chunk_graph.add_module_to_chunk(normal_module.idx, chunk_id);
         bits_to_chunk.insert(bits.clone(), chunk_id);

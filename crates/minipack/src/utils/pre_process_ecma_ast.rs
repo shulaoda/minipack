@@ -7,7 +7,7 @@ use oxc::ast::VisitMut;
 use oxc::diagnostics::Severity as OxcSeverity;
 use oxc::minifier::{CompressOptions, Compressor};
 use oxc::semantic::{SemanticBuilder, Stats};
-use oxc::transformer::{ESTarget as OxcESTarget, TransformOptions, Transformer};
+use oxc::transformer::Transformer;
 
 use super::ecma_visitors::EnsureSpanUniqueness;
 use super::parse_to_ecma_ast::ParseToEcmaAstResult;
@@ -55,10 +55,11 @@ impl PreProcessEcmaAst {
       || !matches!(bundle_options.target, ESTarget::EsNext)
     {
       let ret = ast.program.with_mut(|fields| {
-        let target: OxcESTarget = bundle_options.target.into();
-        let mut transformer_options = TransformOptions::from(target);
-
-        transformer_options.jsx.jsx_plugin = false;
+        let mut transformer_options = bundle_options.base_transform_options.clone();
+        // Auto enable jsx_plugin
+        if matches!(parsed_type, OxcParseType::Tsx | OxcParseType::Jsx) {
+          transformer_options.jsx.jsx_plugin = true;
+        }
         Transformer::new(fields.allocator, source_path, &transformer_options)
           .build_with_symbols_and_scopes(symbols, scopes, fields.program)
       });

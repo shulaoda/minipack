@@ -3,6 +3,7 @@ use std::path::Path;
 use minipack_common::{
   BundlerOptions, NormalizedBundlerOptions, OutputExports, OutputFormat, Platform, ResolveOptions,
 };
+use oxc::transformer::{ESTarget, TransformOptions};
 
 pub struct NormalizeOptionsReturn {
   pub options: NormalizedBundlerOptions,
@@ -31,6 +32,9 @@ pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsRet
     },
   );
 
+  let target = raw_options.target.unwrap_or_default();
+  let base_transform_options = TransformOptions::from(ESTarget::from(target));
+
   let options = NormalizedBundlerOptions {
     // --- Input
     cwd,
@@ -54,9 +58,10 @@ pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsRet
       .unwrap_or_else(|| "[name]-[hash].css".to_string()),
     // --- Enhance
     minify: raw_options.minify.unwrap_or_default(),
-    target: raw_options.target.unwrap_or_default(),
+    target,
     shim_missing_exports: raw_options.shim_missing_exports.unwrap_or_default(),
     inline_dynamic_imports: raw_options.inline_dynamic_imports.unwrap_or_default(),
+    base_transform_options,
   };
 
   NormalizeOptionsReturn { options, resolve_options }

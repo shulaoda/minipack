@@ -253,11 +253,20 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     let namespace_ref: SymbolRef =
       self.result.symbols.create_facade_root_symbol_ref(&concat_string!(
         "#LOCAL_NAMESPACE_IN_",
-        itoa::Buffer::new().format(self.current_stmt_info.stmt_idx.unwrap_or_default()),
+        itoa::Buffer::new().format(self.current_stmt_info.stmt_idx.unwrap_or_default().raw()),
         "#"
       ));
-    let rec = RawImportRecord::new(Rstr::from(module_request), kind, namespace_ref, span, None)
-      .with_meta(init_meta);
+    let rec = RawImportRecord::new(
+      Rstr::from(module_request),
+      kind,
+      namespace_ref,
+      span,
+      None,
+      // The first index stmt is reserved for the facade statement that constructs Module Namespace
+      // Object
+      self.current_stmt_info.stmt_idx.map(|idx| idx + 1),
+    )
+    .with_meta(init_meta);
 
     let id = self.result.import_records.push(rec);
     self.current_stmt_info.import_records.push(id);
@@ -498,7 +507,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     let ref_id = id_ref.reference_id.get().unwrap_or_else(|| {
       panic!(
         "{id_ref:#?} must have reference id in code```\n{}\n```\n",
-        self.current_stmt_info.debug_label.as_deref().unwrap_or("<None>")
+        self.current_stmt_info.unwrap_debug_label()
       )
     });
     self.result.scopes.symbol_id_for(ref_id, &self.result.symbols)

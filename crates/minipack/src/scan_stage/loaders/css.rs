@@ -26,6 +26,7 @@ pub fn create_css_view(
           SymbolRef::default(),
           Span::new(range.start, range.end),
           None,
+          None,
         ));
 
         record_idx_to_span.push(Span::new(range.start, range.end));
@@ -57,6 +58,7 @@ pub fn create_css_view(
           ImportKind::UrlImport,
           SymbolRef::default(),
           span,
+          None,
           None,
         ));
         record_idx_to_span.push(span);
