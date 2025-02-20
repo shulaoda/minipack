@@ -5,6 +5,7 @@ use super::{source::Source, source_joiner::SourceJoiner};
 #[derive(Clone, Default)]
 pub struct RenderedModule {
   inner: Option<Arc<[Box<dyn Source + Send + Sync>]>>,
+  pub exec_order: u32,
 }
 
 impl Debug for RenderedModule {
@@ -14,8 +15,8 @@ impl Debug for RenderedModule {
 }
 
 impl RenderedModule {
-  pub fn new(sources: Option<Arc<[Box<dyn Source + Send + Sync>]>>) -> Self {
-    Self { inner: sources }
+  pub fn new(sources: Option<Arc<[Box<dyn Source + Send + Sync>]>>, exec_order: u32) -> Self {
+    Self { inner: sources, exec_order }
   }
 
   pub fn code(&self) -> Option<String> {

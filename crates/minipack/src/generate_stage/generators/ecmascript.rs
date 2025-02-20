@@ -16,9 +16,25 @@ use rustc_hash::FxHashMap;
 
 use super::formats::{cjs::render_cjs, esm::render_esm};
 
-pub type RenderedModuleSources =
-  Vec<(ModuleIdx, ModuleId, Option<Arc<[Box<dyn Source + Send + Sync>]>>)>;
+pub type RenderedModuleSources = Vec<RenderedModuleSource>;
 
+pub struct RenderedModuleSource {
+  pub module_idx: ModuleIdx,
+  pub module_id: ModuleId,
+  pub exec_order: u32,
+  pub sources: Option<Arc<[Box<dyn Source + Send + Sync>]>>,
+}
+
+impl RenderedModuleSource {
+  pub fn new(
+    module_idx: ModuleIdx,
+    module_id: ModuleId,
+    exec_order: u32,
+    sources: Option<Arc<[Box<dyn Source + Send + Sync>]>>,
+  ) -> Self {
+    Self { module_idx, module_id, exec_order, sources }
+  }
+}
 pub struct EcmaGenerator;
 
 impl Generator for EcmaGenerator {
@@ -36,11 +52,19 @@ impl Generator for EcmaGenerator {
           .as_normal()
           .map(|m| (m, codegen_ret.expect("should have codegen_ret")))
       })
-      .map(|(m, codegen_ret)| (m.idx, m.id.clone(), render_ecma_module(m, codegen_ret)))
+      .map(|(m, codegen_ret)| {
+        RenderedModuleSource::new(
+          m.idx,
+          m.id.clone(),
+          m.exec_order,
+          render_ecma_module(m, codegen_ret),
+        )
+      })
       .collect::<Vec<_>>();
 
-    rendered_module_sources.iter().for_each(|(_, module_id, sources)| {
-      rendered_modules.insert(module_id.clone(), RenderedModule::new(sources.clone()));
+    rendered_module_sources.iter().for_each(|rendered_module_source| {
+      let RenderedModuleSource { module_id, exec_order, sources, .. } = rendered_module_source;
+      rendered_modules.insert(module_id.clone(), RenderedModule::new(sources.clone(), *exec_order));
     });
 
     let rendered_chunk = generate_rendered_chunk(

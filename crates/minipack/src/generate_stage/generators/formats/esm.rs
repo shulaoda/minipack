@@ -4,7 +4,7 @@ use minipack_common::{ExportsKind, SourceJoiner, Specifier};
 use minipack_utils::{concat_string, ecmascript::to_module_import_export_name};
 
 use crate::{
-  generate_stage::generators::ecmascript::RenderedModuleSources,
+  generate_stage::generators::ecmascript::{RenderedModuleSource, RenderedModuleSources},
   types::generator::GenerateContext,
   utils::chunk::render_chunk_exports::{render_chunk_exports, render_wrapped_entry_chunk},
 };
@@ -38,13 +38,15 @@ pub fn render_esm<'code>(
   }
 
   // chunk content
-  module_sources.iter().for_each(|(_, _, module_render_output)| {
-    if let Some(emitted_sources) = module_render_output {
-      for source in emitted_sources.as_ref() {
-        source_joiner.append_source(source);
+  module_sources.iter().for_each(
+    |RenderedModuleSource { sources: module_render_output, .. }| {
+      if let Some(emitted_sources) = module_render_output {
+        for source in emitted_sources.as_ref() {
+          source_joiner.append_source(source);
+        }
       }
-    }
-  });
+    },
+  );
 
   if let Some(source) = render_wrapped_entry_chunk(ctx, None) {
     source_joiner.append_source(source);

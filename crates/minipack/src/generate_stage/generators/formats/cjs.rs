@@ -3,7 +3,7 @@ use minipack_error::BuildResult;
 use minipack_utils::concat_string;
 
 use crate::{
-  generate_stage::generators::ecmascript::RenderedModuleSources,
+  generate_stage::generators::ecmascript::{RenderedModuleSource, RenderedModuleSources},
   types::generator::GenerateContext,
   utils::chunk::{
     determine_export_mode::determine_export_mode,
@@ -22,8 +22,10 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
 ) {
   let mut module_sources_peekable = module_sources.iter().peekable();
   match module_sources_peekable.peek() {
-    Some((id, _, _)) if *id == ctx.link_output.runtime_module.id() => {
-      if let (_, _module_id, Some(emitted_sources)) =
+    Some(RenderedModuleSource { module_idx, .. })
+      if *module_idx == ctx.link_output.runtime_module.id() =>
+    {
+      if let RenderedModuleSource { sources: Some(emitted_sources), .. } =
         module_sources_peekable.next().expect("Must have module")
       {
         for source in emitted_sources.iter() {
@@ -37,13 +39,15 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
   source_joiner.append_source(import_code);
 
   // chunk content
-  module_sources_peekable.for_each(|(_, _, module_render_output)| {
-    if let Some(emitted_sources) = module_render_output {
-      for source in emitted_sources.as_ref() {
-        source_joiner.append_source(source);
+  module_sources_peekable.for_each(
+    |RenderedModuleSource { sources: module_render_output, .. }| {
+      if let Some(emitted_sources) = module_render_output {
+        for source in emitted_sources.as_ref() {
+          source_joiner.append_source(source);
+        }
       }
-    }
-  });
+    },
+  );
 }
 
 pub fn render_cjs<'code>(
