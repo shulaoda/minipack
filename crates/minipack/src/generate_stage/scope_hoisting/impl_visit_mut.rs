@@ -1,5 +1,5 @@
-use minipack_common::{ExportsKind, Module, StmtInfoIdx, SymbolRef, ThisExprReplaceKind, WrapKind};
-use minipack_ecmascript_utils::{ExpressionExt, TakeIn};
+use minipack_common::{Module, StmtInfoIdx, SymbolRef};
+use minipack_ecmascript_utils::ExpressionExt;
 use oxc::{
   allocator::{self, IntoIn},
   ast::{
@@ -8,7 +8,7 @@ use oxc::{
     visit::walk_mut,
     VisitMut,
   },
-  span::{Span, SPAN},
+  span::Span,
 };
 use rustc_hash::FxHashSet;
 
@@ -31,11 +31,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       .filter_map(|(symbol_ref, v)| {
         let rec_id = v.record_id;
         let importee_idx = self.ctx.module.ecma_view.import_records[rec_id].resolved_module;
-        // bailout if the importee is a external module
-        // see rollup/test/function/samples/side-effects-only-default-exports/ as an
-        // example
-        // TODO: maybe we could relex the restriction if `platform: node` and the external module
-        // is a node builtin module
         self.ctx.modules[importee_idx].as_normal()?;
         self.ctx.symbol_db.get(*symbol_ref).namespace_alias.as_ref().and_then(|alias| {
           (alias.property_name.as_str() == "default").then_some(symbol_ref.symbol)
@@ -43,34 +38,21 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       })
       .collect::<FxHashSet<_>>();
 
-    let is_namespace_referenced = matches!(self.ctx.module.exports_kind, ExportsKind::Esm)
-      && self.ctx.module.stmt_infos[StmtInfoIdx::new(0)].is_included;
+    let is_namespace_referenced = self.ctx.module.stmt_infos[StmtInfoIdx::new(0)].is_included;
 
     self.remove_unused_top_level_stmt(program);
-
-    // check if we need to add wrapper
-    let needs_wrapper = self
-      .ctx
-      .linking_info
-      .wrapper_stmt_info
-      .is_some_and(|idx| self.ctx.module.stmt_infos[idx].is_included);
 
     // the order should be
     // 1. module namespace object declaration
     // 2. shimmed_exports
     // 3. hoisted_names
     // 4. wrapped module declaration
-    let declaration_of_module_namespace_object = if is_namespace_referenced {
+    if is_namespace_referenced {
       let stmts = self.generate_declaration_of_module_namespace_object();
-      if needs_wrapper {
-        stmts
-      } else {
-        program.body.splice(0..0, stmts);
-        vec![]
-      }
-    } else {
-      vec![]
-    };
+      program.body.splice(0..0, stmts);
+    }
+
+    let declaration_of_module_namespace_object = vec![];
 
     let mut shimmed_exports =
       self.ctx.linking_info.shimmed_missing_exports.iter().collect::<Vec<_>>();
@@ -91,112 +73,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
     });
     walk_mut::walk_program(self, program);
 
-    if needs_wrapper {
-      match self.ctx.linking_info.wrap_kind {
-        WrapKind::Cjs => {
-          let wrap_ref_name = self.canonical_name_for(self.ctx.linking_info.wrapper_ref.unwrap());
-          let commonjs_ref = if !self.ctx.options.minify {
-            self.canonical_ref_for_runtime("__commonJS")
-          } else {
-            self.canonical_ref_for_runtime("__commonJSMin")
-          };
-
-          let commonjs_ref_expr = self.finalized_expr_for_symbol_ref(commonjs_ref, false, None);
-
-          let var_init_stmts = self.generate_esm_namespace_in_cjs();
-
-          let mut stmts_inside_closure = allocator::Vec::new_in(self.alloc);
-          stmts_inside_closure.append(&mut program.body);
-
-          program.body.push(self.snippet.commonjs_wrapper_stmt(
-            wrap_ref_name,
-            commonjs_ref_expr,
-            stmts_inside_closure,
-            self.ctx.module.ast_usage,
-            !self.ctx.options.minify,
-            &self.ctx.module.stable_id,
-          ));
-          program.body.extend(var_init_stmts);
-        }
-        WrapKind::Esm => {
-          use ast::Statement;
-          let wrap_ref_name = self.canonical_name_for(self.ctx.linking_info.wrapper_ref.unwrap());
-          let esm_ref = if !self.ctx.options.minify {
-            self.canonical_ref_for_runtime("__esm")
-          } else {
-            self.canonical_ref_for_runtime("__esmMin")
-          };
-          let esm_ref_expr = self.finalized_expr_for_symbol_ref(esm_ref, false, None);
-          let old_body = program.body.take_in(self.alloc);
-
-          let mut fn_stmts = allocator::Vec::new_in(self.alloc);
-          let mut hoisted_names = vec![];
-          let mut stmts_inside_closure = allocator::Vec::new_in(self.alloc);
-
-          // Hoist all top-level "var" and "function" declarations out of the closure
-          old_body.into_iter().for_each(|mut stmt| match &mut stmt {
-            ast::Statement::VariableDeclaration(_) => {
-              if let Some(converted) =
-                self.convert_decl_to_assignment(stmt.to_declaration_mut(), &mut hoisted_names)
-              {
-                stmts_inside_closure.push(converted);
-              }
-            }
-            ast::Statement::FunctionDeclaration(_) => {
-              fn_stmts.push(stmt);
-            }
-            ast::match_module_declaration!(Statement) => {
-              if stmt.is_typescript_syntax() {
-                unreachable!(
-                  "At this point, typescript module declarations should have been removed or transformed"
-                )
-              }
-              program.body.push(stmt);
-            }
-            _ => {
-              stmts_inside_closure.push(stmt);
-            }
-          });
-          program.body.extend(declaration_of_module_namespace_object);
-          program.body.extend(fn_stmts);
-          if !hoisted_names.is_empty() {
-            let mut declarators = allocator::Vec::new_in(self.alloc);
-            declarators.reserve_exact(hoisted_names.len());
-            hoisted_names.into_iter().for_each(|var_name| {
-              declarators.push(ast::VariableDeclarator {
-                id: ast::BindingPattern {
-                  kind: ast::BindingPatternKind::BindingIdentifier(
-                    self.snippet.id(&var_name, SPAN).into_in(self.alloc),
-                  ),
-                  ..TakeIn::dummy(self.alloc)
-                },
-                kind: ast::VariableDeclarationKind::Var,
-                ..TakeIn::dummy(self.alloc)
-              });
-            });
-            program.body.push(ast::Statement::VariableDeclaration(
-              ast::VariableDeclaration {
-                declarations: declarators,
-                kind: ast::VariableDeclarationKind::Var,
-                ..TakeIn::dummy(self.alloc)
-              }
-              .into_in(self.alloc),
-            ));
-          }
-          program.body.push(self.snippet.esm_wrapper_stmt(
-            wrap_ref_name,
-            esm_ref_expr,
-            stmts_inside_closure,
-            !self.ctx.options.minify,
-            &self.ctx.module.stable_id,
-            self.ctx.linking_info.is_tla_or_contains_tla_dependency,
-          ));
-        }
-        WrapKind::None => {}
-      }
-    } else {
-      program.body.extend(declaration_of_module_namespace_object);
-    }
+    program.body.extend(declaration_of_module_namespace_object);
   }
 
   fn visit_binding_identifier(&mut self, ident: &mut ast::BindingIdentifier<'ast>) {
@@ -259,11 +136,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
 
   fn visit_expression(&mut self, expr: &mut ast::Expression<'ast>) {
     match expr {
-      ast::Expression::CallExpression(call_expr) => {
-        if let Some(new_expr) = self.try_rewrite_global_require_call(call_expr) {
-          *expr = new_expr;
-        }
-      }
       // inline dynamic import
       ast::Expression::ImportExpression(import_expr) => {
         if let Some(new_expr) = self.try_rewrite_inline_dynamic_import_expr(import_expr) {
@@ -279,15 +151,8 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
         }
       }
       ast::Expression::ThisExpression(this_expr) => {
-        if let Some(kind) = self.ctx.module.ecma_view.this_expr_replace_map.get(&this_expr.span) {
-          match kind {
-            ThisExprReplaceKind::Exports => {
-              *expr = self.snippet.builder.expression_identifier(SPAN, "exports");
-            }
-            ThisExprReplaceKind::Undefined => {
-              *expr = self.snippet.void_zero();
-            }
-          }
+        if self.ctx.module.ecma_view.this_expr_replace_map.contains(&this_expr.span) {
+          *expr = self.snippet.void_zero();
         }
       }
       _ => {

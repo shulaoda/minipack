@@ -9,12 +9,11 @@ use itertools::Itertools;
 use sugar_path::SugarPath;
 
 use oxc_resolver::{
-  EnforceExtension, FsCache, PackageJsonSerde as OxcPackageJson, PackageType, Resolution,
-  ResolveError, ResolveOptions as OxcResolverOptions, ResolverGeneric, TsConfigSerde,
-  TsconfigOptions,
+  EnforceExtension, FsCache, PackageJsonSerde as OxcPackageJson, PackageType, ResolveError,
+  ResolveOptions as OxcResolverOptions, ResolverGeneric, TsConfigSerde, TsconfigOptions,
 };
 
-use minipack_common::{ImportKind, ModuleDefFormat, PackageJson, Platform, ResolveOptions};
+use minipack_common::{ImportKind, PackageJson, Platform, ResolveOptions};
 use minipack_fs::{FileSystem, OsFileSystem};
 
 #[derive(Debug)]
@@ -23,8 +22,6 @@ pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
   default_resolver: ResolverGeneric<FsCache<T>>,
   // Resolver for `import '...'` and `import(...)`
   import_resolver: ResolverGeneric<FsCache<T>>,
-  // Resolver for `require('...')`
-  require_resolver: ResolverGeneric<FsCache<T>>,
   // Resolver for `@import '...'` and `url('...')`
   css_resolver: ResolverGeneric<FsCache<T>>,
   // Resolver for `new URL(..., import.meta.url)`
@@ -37,7 +34,6 @@ impl<F: FileSystem + Default> Resolver<F> {
   pub fn new(raw_resolve: ResolveOptions, platform: Platform, cwd: PathBuf, fs: F) -> Self {
     let mut default_conditions = vec!["default".to_string()];
     let mut import_conditions = vec!["import".to_string()];
-    let mut require_conditions = vec!["require".to_string()];
 
     default_conditions.extend(raw_resolve.condition_names.clone().unwrap_or_default());
 
@@ -54,10 +50,8 @@ impl<F: FileSystem + Default> Resolver<F> {
     default_conditions = default_conditions.into_iter().unique().collect();
 
     import_conditions.extend(default_conditions.clone());
-    require_conditions.extend(default_conditions.clone());
 
     import_conditions = import_conditions.into_iter().unique().collect();
-    require_conditions = require_conditions.into_iter().unique().collect();
 
     let main_fields = raw_resolve.main_fields.clone().unwrap_or_else(|| match platform {
       Platform::Node => {
@@ -127,11 +121,6 @@ impl<F: FileSystem + Default> Resolver<F> {
       ..resolve_options_with_default_conditions.clone()
     };
 
-    let resolve_options_with_require_conditions = OxcResolverOptions {
-      condition_names: require_conditions,
-      ..resolve_options_with_default_conditions.clone()
-    };
-
     let resolve_options_for_css = OxcResolverOptions {
       prefer_relative: true,
       ..resolve_options_with_default_conditions.clone()
@@ -149,8 +138,6 @@ impl<F: FileSystem + Default> Resolver<F> {
 
     let import_resolver =
       default_resolver.clone_with_options(resolve_options_with_import_conditions);
-    let require_resolver =
-      default_resolver.clone_with_options(resolve_options_with_require_conditions);
     let css_resolver = default_resolver.clone_with_options(resolve_options_for_css);
     let new_url_resolver = default_resolver.clone_with_options(resolve_options_for_new_url);
 
@@ -158,7 +145,6 @@ impl<F: FileSystem + Default> Resolver<F> {
       cwd,
       default_resolver,
       import_resolver,
-      require_resolver,
       css_resolver,
       new_url_resolver,
       package_json_cache: DashMap::default(),
@@ -180,27 +166,7 @@ impl<F: FileSystem + Default> Resolver<F> {
 #[derive(Debug)]
 pub struct ResolveReturn {
   pub path: ArcStr,
-  pub module_def_format: ModuleDefFormat,
   pub package_json: Option<Arc<PackageJson>>,
-}
-
-fn infer_module_def_format<F: FileSystem + Default>(
-  info: &Resolution<FsCache<F>>,
-) -> ModuleDefFormat {
-  let fmt = ModuleDefFormat::from_path(info.path());
-
-  if !matches!(fmt, ModuleDefFormat::Unknown) {
-    return fmt;
-  }
-
-  if let Some(package_json) = info.package_json() {
-    return match package_json.r#type {
-      Some(PackageType::CommonJs) => ModuleDefFormat::CjsPackageJson,
-      Some(PackageType::Module) => ModuleDefFormat::EsmPackageJson,
-      _ => ModuleDefFormat::Unknown,
-    };
-  }
-  ModuleDefFormat::Unknown
 }
 
 impl<F: FileSystem + Default> Resolver<F> {
@@ -213,7 +179,6 @@ impl<F: FileSystem + Default> Resolver<F> {
   ) -> Result<ResolveReturn, ResolveError> {
     let resolver = match import_kind {
       ImportKind::NewUrl => &self.new_url_resolver,
-      ImportKind::Require => &self.require_resolver,
       ImportKind::AtImport | ImportKind::UrlImport => &self.css_resolver,
       ImportKind::Import | ImportKind::DynamicImport => &self.import_resolver,
     };
@@ -225,7 +190,7 @@ impl<F: FileSystem + Default> Resolver<F> {
 
     let mut resolution = resolver.resolve(dir, specifier);
 
-    // Handle `{ input: 'main' }` -> `<CWD>/main.{js,mjs,cjs}`
+    // Handle `{ input: 'main' }` -> `<CWD>/main.{js,mjs}`
     if resolution.is_err() && is_user_defined_entry {
       let is_specifier_path_like = specifier.starts_with('.') || specifier.starts_with('/');
       let need_rollup_resolve_compat = !is_specifier_path_like;
@@ -242,24 +207,25 @@ impl<F: FileSystem + Default> Resolver<F> {
     resolution.map(|info| {
       let path = info.full_path().to_str().expect("Should be valid utf8").to_string().into();
       let package_json = info.package_json().map(|p| self.cached_package_json(p));
-      ResolveReturn { path, package_json, module_def_format: infer_module_def_format(&info) }
+      ResolveReturn { path, package_json }
     })
   }
 
   fn cached_package_json(&self, oxc_pkg_json: &OxcPackageJson) -> Arc<PackageJson> {
-    if let Some(v) = self.package_json_cache.get(&oxc_pkg_json.realpath) {
-      Arc::clone(v.value())
-    } else {
-      let pkg_json = Arc::new(
-        PackageJson::new(oxc_pkg_json.path.clone())
-          .with_type(oxc_pkg_json.r#type.map(|t| match t {
-            PackageType::CommonJs => "commonjs",
-            PackageType::Module => "module",
-          }))
-          .with_side_effects(oxc_pkg_json.side_effects.as_ref()),
-      );
-      self.package_json_cache.insert(oxc_pkg_json.realpath.clone(), Arc::clone(&pkg_json));
-      pkg_json
-    }
+    self.package_json_cache.get(&oxc_pkg_json.realpath).map_or_else(
+      || {
+        let pkg_json = Arc::new(
+          PackageJson::new(oxc_pkg_json.path.clone())
+            .with_type(oxc_pkg_json.r#type.map(|t| match t {
+              PackageType::CommonJs => "commonjs",
+              PackageType::Module => "module",
+            }))
+            .with_side_effects(oxc_pkg_json.side_effects.as_ref()),
+        );
+        self.package_json_cache.insert(oxc_pkg_json.realpath.clone(), Arc::clone(&pkg_json));
+        pkg_json
+      },
+      |v| Arc::clone(v.value()),
+    )
   }
 }

@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use arcstr::ArcStr;
 
-use crate::{ModuleDefFormat, PackageJson};
+use crate::PackageJson;
 
 use super::module_id::stabilize_module_id;
 
@@ -11,7 +11,6 @@ pub struct ResolvedId {
   pub id: ArcStr,
   // https://github.com/defunctzombie/package-browser-field-spec/blob/8c4869f6a5cb0de26d208de804ad0a62473f5a03/README.md?plain=1#L62-L77
   pub ignored: bool,
-  pub module_def_format: ModuleDefFormat,
   pub is_external: bool,
   pub package_json: Option<Arc<PackageJson>>,
   pub is_external_without_side_effects: bool,
@@ -24,7 +23,6 @@ impl ResolvedId {
     Self {
       id: ArcStr::from(""),
       ignored: false,
-      module_def_format: ModuleDefFormat::Unknown,
       is_external: false,
       package_json: None,
       is_external_without_side_effects: false,

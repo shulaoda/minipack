@@ -12,13 +12,14 @@ use minipack_common::{
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
+use minipack_utils::rstr::Rstr;
 use minipack_utils::{ecmascript::legitimize_identifier_name, rustc_hash::FxHashSetExt};
 use oxc::semantic::{ScopeId, SymbolTable};
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::Receiver;
 
-use super::module_task::{ModuleTask, ModuleTaskOwner};
+use super::module_task::ModuleTask;
 use super::runtime_module_task::RuntimeModuleTask;
 use super::task_context::TaskContext;
 
@@ -38,8 +39,8 @@ impl IntermediateNormalModules {
     Self {
       modules: IndexVec::new(),
       importers: IndexVec::new(),
-      index_ecma_ast: IndexVec::default(),
-      index_ast_scope: IndexVec::default(),
+      index_ecma_ast: IndexVec::new(),
+      index_ast_scope: IndexVec::new(),
     }
   }
 
@@ -52,7 +53,6 @@ impl IntermediateNormalModules {
 pub struct ModuleLoader {
   rx: Receiver<ModuleLoaderMsg>,
   remaining: u32,
-  options: SharedOptions,
   shared_context: Arc<TaskContext>,
   runtime_idx: ModuleIdx,
   symbols: SymbolRefDb,
@@ -98,7 +98,7 @@ impl ModuleLoader {
 
     tokio::spawn(async { task.run() });
 
-    Ok(Self { rx, remaining: 1, options, shared_context, runtime_idx, symbols, inm, visited })
+    Ok(Self { rx, remaining: 1, shared_context, runtime_idx, symbols, inm, visited })
   }
 
   pub async fn fetch_all_modules(
@@ -162,7 +162,7 @@ impl ModuleLoader {
                 return raw_rec.into_resolved(DUMMY_MODULE_IDX);
               }
               let normal_module = module.as_normal().unwrap();
-              let owner = ModuleTaskOwner::new(normal_module.stable_id.as_str().into());
+              let owner = normal_module.stable_id.as_str().into();
               let id = self.try_spawn_new_task(
                 info,
                 Some(owner),
@@ -322,15 +322,12 @@ impl ModuleLoader {
       })
       .collect();
 
-    // if `inline_dynamic_imports` is set to be true, here we should not put dynamic imports to entries
-    if !self.options.inline_dynamic_imports {
-      let mut dynamic_import_entry_ids = dynamic_import_entry_ids.into_iter().collect::<Vec<_>>();
-      dynamic_import_entry_ids.sort_unstable_by_key(|(id, _)| modules[*id].stable_id());
+    let mut dynamic_import_entry_ids = dynamic_import_entry_ids.into_iter().collect::<Vec<_>>();
+    dynamic_import_entry_ids.sort_unstable_by_key(|(id, _)| modules[*id].stable_id());
 
-      entry_points.extend(dynamic_import_entry_ids.into_iter().map(|(id, related_stmt_infos)| {
-        EntryPoint { name: None, id, kind: EntryPointKind::DynamicImport, related_stmt_infos }
-      }));
-    }
+    entry_points.extend(dynamic_import_entry_ids.into_iter().map(|(id, related_stmt_infos)| {
+      EntryPoint { name: None, id, kind: EntryPointKind::DynamicImport, related_stmt_infos }
+    }));
 
     let runtime_module =
       runtime_module.expect("Failed to find runtime module. This should not happen");
@@ -350,7 +347,7 @@ impl ModuleLoader {
   fn try_spawn_new_task(
     &mut self,
     resolved_id: ResolvedId,
-    owner: Option<ModuleTaskOwner>,
+    owner: Option<Rstr>,
     is_user_defined_entry: bool,
     assert_module_type: Option<ModuleType>,
   ) -> ModuleIdx {

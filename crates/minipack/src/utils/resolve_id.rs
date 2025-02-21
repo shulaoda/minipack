@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use minipack_common::{is_existing_node_builtin_modules, ImportKind, ModuleDefFormat, ResolvedId};
+use minipack_common::{is_existing_node_builtin_modules, ImportKind, ResolvedId};
 use minipack_error::BuildResult;
 use minipack_resolver::{ResolveError, Resolver};
 
@@ -25,7 +25,6 @@ pub fn resolve_id(
   if is_http_url(request) || is_data_url(request) {
     return Ok(ResolvedId {
       id: request.to_string().into(),
-      module_def_format: ModuleDefFormat::Unknown,
       ignored: false,
       is_external: true,
       package_json: None,
@@ -40,7 +39,6 @@ pub fn resolve_id(
     Ok(resolved) => Ok(ResolvedId {
       id: resolved.path,
       ignored: false,
-      module_def_format: resolved.module_def_format,
       is_external: false,
       package_json: resolved.package_json,
       is_external_without_side_effects: false,
@@ -57,14 +55,12 @@ pub fn resolve_id(
         },
         ignored: false,
         is_external: true,
-        module_def_format: ModuleDefFormat::Unknown,
         package_json: None,
       }),
       ResolveError::Ignored(p) => Ok(ResolvedId {
         id: p.to_str().expect("Should be valid utf8").into(),
         ignored: true,
         is_external: false,
-        module_def_format: ModuleDefFormat::Unknown,
         package_json: None,
         is_external_without_side_effects: false,
       }),

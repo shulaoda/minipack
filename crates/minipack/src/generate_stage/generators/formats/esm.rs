@@ -1,12 +1,12 @@
 use arcstr::ArcStr;
 use itertools::Itertools;
-use minipack_common::{ExportsKind, SourceJoiner, Specifier};
+use minipack_common::{SourceJoiner, Specifier};
 use minipack_utils::{concat_string, ecmascript::to_module_import_export_name};
 
 use crate::{
   generate_stage::generators::ecmascript::{RenderedModuleSource, RenderedModuleSources},
   types::generator::GenerateContext,
-  utils::chunk::render_chunk_exports::{render_chunk_exports, render_wrapped_entry_chunk},
+  utils::chunk::render_chunk_exports::render_chunk_exports,
 };
 
 pub fn render_esm<'code>(
@@ -23,18 +23,16 @@ pub fn render_esm<'code>(
   source_joiner.append_source(render_esm_chunk_imports(ctx));
 
   if let Some(entry_module) = ctx.chunk.entry_module(&ctx.link_output.modules) {
-    if matches!(entry_module.exports_kind, ExportsKind::Esm) {
-      entry_module
-        .star_export_module_ids()
-        .filter_map(|importee| {
-          let importee = &ctx.link_output.modules[importee];
-          importee.as_external().map(|m| &m.name)
-        })
-        .dedup()
-        .for_each(|ext_name| {
-          source_joiner.append_source(concat_string!("export * from \"", ext_name, "\"\n"));
-        });
-    }
+    entry_module
+      .star_export_module_ids()
+      .filter_map(|importee| {
+        let importee = &ctx.link_output.modules[importee];
+        importee.as_external().map(|m| &m.name)
+      })
+      .dedup()
+      .for_each(|ext_name| {
+        source_joiner.append_source(concat_string!("export * from \"", ext_name, "\"\n"));
+      });
   }
 
   // chunk content
@@ -47,10 +45,6 @@ pub fn render_esm<'code>(
       }
     },
   );
-
-  if let Some(source) = render_wrapped_entry_chunk(ctx, None) {
-    source_joiner.append_source(source);
-  }
 
   if let Some(exports) = render_chunk_exports(ctx, None) {
     if !exports.is_empty() {

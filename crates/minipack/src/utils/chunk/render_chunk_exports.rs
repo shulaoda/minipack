@@ -1,8 +1,7 @@
 use std::borrow::Cow;
 
 use minipack_common::{
-  Chunk, ChunkKind, EntryPointKind, ExportsKind, ModuleIdx, OutputExports, OutputFormat, SymbolRef,
-  SymbolRefDb, WrapKind,
+  Chunk, ChunkKind, EntryPointKind, ModuleIdx, OutputExports, OutputFormat, SymbolRef, SymbolRefDb,
 };
 use minipack_utils::{
   concat_string,
@@ -12,60 +11,6 @@ use minipack_utils::{
 };
 
 use crate::{link_stage::LinkStageOutput, types::generator::GenerateContext};
-
-pub fn render_wrapped_entry_chunk(
-  ctx: &GenerateContext<'_>,
-  export_mode: Option<&OutputExports>,
-) -> Option<String> {
-  if let ChunkKind::EntryPoint { module: entry_id, .. } = ctx.chunk.kind {
-    let entry_meta = &ctx.link_output.metadata[entry_id];
-    return match entry_meta.wrap_kind {
-      WrapKind::Esm => {
-        // init_xxx()
-        let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
-        let wrapper_ref_name = ctx.finalized_string_pattern_for_symbol_ref(
-          *wrapper_ref,
-          ctx.chunk_idx,
-          &ctx.chunk.canonical_names,
-        );
-        if entry_meta.is_tla_or_contains_tla_dependency {
-          Some(concat_string!("await ", wrapper_ref_name, "();"))
-        } else {
-          Some(concat_string!(wrapper_ref_name, "();"))
-        }
-      }
-      WrapKind::Cjs => {
-        let wrapper_ref = entry_meta.wrapper_ref.as_ref().unwrap();
-        let wrapper_ref_name = ctx.finalized_string_pattern_for_symbol_ref(
-          *wrapper_ref,
-          ctx.chunk_idx,
-          &ctx.chunk.canonical_names,
-        );
-
-        match ctx.options.format {
-          OutputFormat::Esm => {
-            // export default require_xxx();
-            Some(concat_string!("export default ", wrapper_ref_name.as_str(), "();\n"))
-          }
-          OutputFormat::Cjs => {
-            if matches!(&export_mode, Some(OutputExports::Named)) {
-              Some(render_object_define_property(
-                "default",
-                &concat_string!(wrapper_ref_name, "()"),
-              ))
-            } else {
-              // module.exports = require_xxx();
-              Some(concat_string!("module.exports = ", wrapper_ref_name, "();\n"))
-            }
-          }
-        }
-      }
-      WrapKind::None => None,
-    };
-  }
-
-  None
-}
 
 pub fn render_chunk_exports(
   ctx: &GenerateContext<'_>,
@@ -119,64 +64,63 @@ pub fn render_chunk_exports(
       match chunk.kind {
         ChunkKind::EntryPoint { module, .. } => {
           let module = &link_output.modules[module].as_normal().expect("should be normal module");
-          if matches!(module.exports_kind, ExportsKind::Esm) {
-            let rendered_items = export_items
-              .into_iter()
-              .map(|(exported_name, export_ref)| {
-                let canonical_ref = link_output.symbols.canonical_ref_for(export_ref);
-                let symbol = link_output.symbols.get(canonical_ref);
-                let mut canonical_name = Cow::Borrowed(&chunk.canonical_names[&canonical_ref]);
-                let exported_value = if let Some(ns_alias) = &symbol.namespace_alias {
-                  let canonical_ns_name = &chunk.canonical_names[&ns_alias.namespace_ref];
-                  let property_name = &ns_alias.property_name;
-                  Cow::Owned(property_access_str(canonical_ns_name, property_name).into())
-                } else if link_output.modules[canonical_ref.owner].is_external() {
-                  let namespace = &chunk.canonical_names[&canonical_ref];
-                  Cow::Owned(namespace.as_str().into())
-                } else {
-                  let cur_chunk_idx = ctx.chunk_idx;
-                  let canonical_ref_owner_chunk_idx =
-                    link_output.symbols.get(canonical_ref).chunk_id.unwrap();
-                  let is_this_symbol_point_to_other_chunk =
-                    cur_chunk_idx != canonical_ref_owner_chunk_idx;
-                  if is_this_symbol_point_to_other_chunk {
-                    let require_binding = &ctx.chunk.require_binding_names_for_other_chunks
-                      [&canonical_ref_owner_chunk_idx];
-                    canonical_name = Cow::Owned(Rstr::new(&concat_string!(
-                      require_binding,
-                      ".",
-                      canonical_name.as_str()
-                    )));
-                  };
-                  canonical_name.clone()
-                };
 
-                match export_mode {
-                  Some(OutputExports::Named) => {
-                    if must_keep_live_binding(export_ref, &link_output.symbols) {
-                      render_object_define_property(&exported_name, &exported_value)
-                    } else {
-                      concat_string!(
-                        property_access_str("exports", exported_name.as_str()),
-                        " = ",
-                        exported_value.as_str()
-                      )
-                    }
+          let rendered_items = export_items
+            .into_iter()
+            .map(|(exported_name, export_ref)| {
+              let canonical_ref = link_output.symbols.canonical_ref_for(export_ref);
+              let symbol = link_output.symbols.get(canonical_ref);
+              let mut canonical_name = Cow::Borrowed(&chunk.canonical_names[&canonical_ref]);
+              let exported_value = if let Some(ns_alias) = &symbol.namespace_alias {
+                let canonical_ns_name = &chunk.canonical_names[&ns_alias.namespace_ref];
+                let property_name = &ns_alias.property_name;
+                Cow::Owned(property_access_str(canonical_ns_name, property_name).into())
+              } else if link_output.modules[canonical_ref.owner].is_external() {
+                let namespace = &chunk.canonical_names[&canonical_ref];
+                Cow::Owned(namespace.as_str().into())
+              } else {
+                let cur_chunk_idx = ctx.chunk_idx;
+                let canonical_ref_owner_chunk_idx =
+                  link_output.symbols.get(canonical_ref).chunk_id.unwrap();
+                let is_this_symbol_point_to_other_chunk =
+                  cur_chunk_idx != canonical_ref_owner_chunk_idx;
+                if is_this_symbol_point_to_other_chunk {
+                  let require_binding = &ctx.chunk.require_binding_names_for_other_chunks
+                    [&canonical_ref_owner_chunk_idx];
+                  canonical_name = Cow::Owned(Rstr::new(&concat_string!(
+                    require_binding,
+                    ".",
+                    canonical_name.as_str()
+                  )));
+                };
+                canonical_name.clone()
+              };
+
+              match export_mode {
+                Some(OutputExports::Named) => {
+                  if must_keep_live_binding(export_ref, &link_output.symbols) {
+                    render_object_define_property(&exported_name, &exported_value)
+                  } else {
+                    concat_string!(
+                      property_access_str("exports", exported_name.as_str()),
+                      " = ",
+                      exported_value.as_str()
+                    )
                   }
-                  Some(OutputExports::Default) => {
-                    if matches!(options.format, OutputFormat::Cjs) {
-                      concat_string!("module.exports = ", exported_value.as_str(), ";")
-                    } else {
-                      concat_string!("return ", exported_value.as_str(), ";")
-                    }
-                  }
-                  Some(OutputExports::None) => String::new(),
-                  _ => unreachable!(),
                 }
-              })
-              .collect::<Vec<_>>();
-            s.push_str(&rendered_items.join("\n"));
-          }
+                Some(OutputExports::Default) => {
+                  if matches!(options.format, OutputFormat::Cjs) {
+                    concat_string!("module.exports = ", exported_value.as_str(), ";")
+                  } else {
+                    concat_string!("return ", exported_value.as_str(), ";")
+                  }
+                }
+                Some(OutputExports::None) => String::new(),
+                _ => unreachable!(),
+              }
+            })
+            .collect::<Vec<_>>();
+          s.push_str(&rendered_items.join("\n"));
 
           let meta = &ctx.link_output.metadata[module.idx];
           let external_modules = meta
@@ -272,13 +216,6 @@ pub fn get_export_items(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<(Rstr, Sy
 }
 
 pub fn get_chunk_export_names(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<Rstr> {
-  if let ChunkKind::EntryPoint { module: entry_id, .. } = &chunk.kind {
-    let entry_meta = &graph.metadata[*entry_id];
-    if matches!(entry_meta.wrap_kind, WrapKind::Cjs) {
-      return vec![Rstr::new("default")];
-    }
-  }
-
   get_export_items(chunk, graph)
     .into_iter()
     .map(|(exported_name, _)| exported_name)

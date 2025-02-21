@@ -1,8 +1,7 @@
 use arcstr::ArcStr;
 use minipack_common::{
-  ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleDefFormat, ModuleId, ModuleIdx,
-  ModuleLoaderMsg, ModuleType, NormalModule, NormalModuleTaskResult, ResolvedId, StrOrBytes,
-  RUNTIME_MODULE_ID,
+  ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
+  ModuleType, NormalModule, NormalModuleTaskResult, ResolvedId, StrOrBytes, RUNTIME_MODULE_ID,
 };
 use minipack_error::BuildResult;
 use minipack_fs::FileSystem;
@@ -21,20 +20,10 @@ use crate::{types::module_factory::CreateModuleContext, utils::resolve_id::resol
 
 use super::task_context::TaskContext;
 
-pub struct ModuleTaskOwner {
-  importer_id: Rstr,
-}
-
-impl ModuleTaskOwner {
-  pub fn new(importer_id: Rstr) -> Self {
-    ModuleTaskOwner { importer_id }
-  }
-}
-
 pub struct ModuleTask {
   ctx: Arc<TaskContext>,
   idx: ModuleIdx,
-  owner: Option<ModuleTaskOwner>,
+  owner: Option<Rstr>,
   resolved_id: ResolvedId,
   is_user_defined_entry: bool,
   /// The module is asserted to be this specific module type.
@@ -45,7 +34,7 @@ impl ModuleTask {
   pub fn new(
     ctx: Arc<TaskContext>,
     idx: ModuleIdx,
-    owner: Option<ModuleTaskOwner>,
+    owner: Option<Rstr>,
     resolved_id: ResolvedId,
     is_user_defined_entry: bool,
     asserted_module_type: Option<ModuleType>,
@@ -64,11 +53,7 @@ impl ModuleTask {
       anyhow::anyhow!(
         "Could not load {}{} - {}.",
         self.resolved_id.debug_id(self.ctx.options.cwd.as_path()),
-        self
-          .owner
-          .as_ref()
-          .map(|owner| format!(" (imported by {})", owner.importer_id))
-          .unwrap_or_default(),
+        self.owner.as_ref().map(|owner| format!(" (imported by {})", owner)).unwrap_or_default(),
         err,
       )
     })?;
@@ -133,7 +118,6 @@ impl ModuleTask {
           return Ok(ResolvedId {
             id: item.module_request.to_string().into(),
             ignored: false,
-            module_def_format: ModuleDefFormat::EsmMjs,
             is_external: false,
             package_json: None,
             is_external_without_side_effects: false,
@@ -147,7 +131,7 @@ impl ModuleTask {
     if css_view.is_none() {
       for (record, info) in raw_import_records.iter().zip(&resolved_deps) {
         match record.kind {
-          ImportKind::Import | ImportKind::Require | ImportKind::NewUrl => {
+          ImportKind::Import | ImportKind::NewUrl => {
             ecma_view.imported_ids.insert(ArcStr::clone(&info.id).into());
           }
           ImportKind::DynamicImport => {
@@ -202,8 +186,8 @@ impl ModuleTask {
     let ext = id.rsplit('.').next().filter(|ext| *ext != id).unwrap_or("");
 
     let module_type = match ext {
-      "js" | "mjs" | "cjs" => ModuleType::Js,
-      "ts" | "mts" | "cts" => ModuleType::Ts,
+      "js" | "mjs" => ModuleType::Js,
+      "ts" | "mts" => ModuleType::Ts,
       "jsx" => ModuleType::Jsx,
       "tsx" => ModuleType::Tsx,
       "json" => ModuleType::Json,

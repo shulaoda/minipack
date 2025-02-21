@@ -5,14 +5,14 @@ use minipack_utils::indexmap::FxIndexSet;
 use oxc::ast::VisitMut;
 use oxc::span::SourceType;
 use oxc_index::IndexVec;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 use tokio::sync::mpsc::Sender;
 
 use minipack_common::{
-  EcmaView, EcmaViewMeta, ExportsKind, ModuleIdx, ModuleType, NormalModule, ResolvedId,
-  RuntimeModuleBrief, RuntimeModuleTaskResult, RUNTIME_MODULE_ID,
+  EcmaView, EcmaViewMeta, ModuleIdx, ModuleType, NormalModule, ResolvedId, RuntimeModuleBrief,
+  RuntimeModuleTaskResult, RUNTIME_MODULE_ID,
 };
-use minipack_common::{ModuleDefFormat, ModuleId, ModuleLoaderMsg};
+use minipack_common::{ModuleId, ModuleLoaderMsg};
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 
 use super::ast_scanner::{pre_processor::PreProcessor, AstScanResult, AstScanner};
@@ -40,18 +40,7 @@ impl RuntimeModuleTask {
   }
 
   fn run_inner(&mut self) -> BuildResult<()> {
-    let source = if self.options.is_esm_format_with_node_platform() {
-      arcstr::literal!(concat!(
-        include_str!("./runtime/runtime-head-node.js"),
-        include_str!("./runtime/runtime-base.js"),
-        include_str!("./runtime/runtime-tail-node.js"),
-      ))
-    } else {
-      arcstr::literal!(concat!(
-        include_str!("./runtime/runtime-base.js"),
-        include_str!("./runtime/runtime-tail.js"),
-      ))
-    };
+    let source = arcstr::literal!(concat!(include_str!("./runtime/index.js")));
 
     let (ast, scan_result) = self.make_ecma_ast(&source)?;
 
@@ -61,7 +50,7 @@ impl RuntimeModuleTask {
       stmt_infos,
       default_export_ref,
       namespace_object_ref,
-      ast_usage,
+      has_top_level_await,
       scopes,
       symbols,
       imports,
@@ -97,10 +86,8 @@ impl RuntimeModuleTask {
         imports,
         default_export_ref,
         ast_scope_idx: None,
-        exports_kind: ExportsKind::Esm,
         namespace_object_ref,
-        def_format: ModuleDefFormat::EsmMjs,
-        ast_usage,
+        has_top_level_await,
         self_referenced_class_decl_symbol_ids: FxHashSet::default(),
         hashbang_range: None,
         meta: {
@@ -111,9 +98,7 @@ impl RuntimeModuleTask {
         },
         mutations: vec![],
         new_url_references,
-        this_expr_replace_map: FxHashMap::default(),
-        esm_namespace_in_cjs: None,
-        esm_namespace_in_cjs_node_mode: None,
+        this_expr_replace_map: FxHashSet::default(),
       },
       css_view: None,
       asset_view: None,
@@ -127,7 +112,6 @@ impl RuntimeModuleTask {
         ResolvedId {
           id,
           ignored: false,
-          module_def_format: ModuleDefFormat::Unknown,
           is_external: true,
           package_json: None,
           is_external_without_side_effects: true,
@@ -169,7 +153,6 @@ impl RuntimeModuleTask {
       scopes,
       symbol_table,
       "minipack_runtime",
-      ModuleDefFormat::EsmMjs,
       source,
       &facade_path,
       ast.comments(),

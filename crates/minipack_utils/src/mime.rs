@@ -2,10 +2,6 @@ use crate::light_guess::{self, RawMimeExt};
 use mime::Mime;
 use std::{fmt::Display, path::Path, str::FromStr};
 
-fn is_valid_utf8(data: &[u8]) -> bool {
-  simdutf8::basic::from_utf8(data).is_ok()
-}
-
 #[derive(Debug)]
 pub struct MimeExt {
   pub mime: Mime,
@@ -31,7 +27,7 @@ impl From<(Mime, bool)> for MimeExt {
 impl TryFrom<RawMimeExt> for MimeExt {
   fn try_from(raw_mime_ext: RawMimeExt) -> Result<Self, Self::Error> {
     let mime = Mime::from_str(raw_mime_ext.mime_str)?;
-    Ok(MimeExt { mime, is_utf8_encoded: raw_mime_ext.is_utf8_encoded })
+    Ok(Self { mime, is_utf8_encoded: raw_mime_ext.is_utf8_encoded })
   }
 
   type Error = anyhow::Error;
@@ -47,7 +43,7 @@ pub fn guess_mime(path: &Path, data: &[u8]) -> anyhow::Result<MimeExt> {
     return Ok((Mime::from_str(inferred.mime_type())?, false).into());
   }
 
-  if is_valid_utf8(data) || data.is_empty() {
+  if simdutf8::basic::from_utf8(data).is_ok() || data.is_empty() {
     return Ok((mime::TEXT_PLAIN, true).into());
   }
 

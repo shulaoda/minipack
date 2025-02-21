@@ -27,7 +27,6 @@ pub struct NormalizedBundlerOptions {
   pub minify: bool,
   pub target: ESTarget,
   pub shim_missing_exports: bool,
-  pub inline_dynamic_imports: bool,
   pub base_transform_options: TransformOptions,
 }
 

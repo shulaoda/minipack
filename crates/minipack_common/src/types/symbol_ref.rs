@@ -63,11 +63,11 @@ impl SymbolRef {
   }
 
   #[must_use]
-  pub fn canonical_ref(&self, db: &SymbolRefDb) -> SymbolRef {
+  pub fn canonical_ref(&self, db: &SymbolRefDb) -> Self {
     db.canonical_ref_for(*self)
   }
 
-  pub fn set_canonical_ref(&self, db: &mut SymbolRefDb, canonical_ref: SymbolRef) {
+  pub fn set_canonical_ref(&self, db: &mut SymbolRefDb, canonical_ref: Self) {
     db.link(*self, canonical_ref);
   }
 

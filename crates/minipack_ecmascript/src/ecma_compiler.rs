@@ -20,20 +20,19 @@ impl EcmaCompiler {
   pub fn parse(source: impl Into<ArcStr>, source_type: SourceType) -> BuildResult<EcmaAst> {
     let source: ArcStr = source.into();
     let allocator = oxc::allocator::Allocator::default();
-    let program =
-      ProgramCell::try_new(ProgramCellOwner { source: source.clone(), allocator }, |owner| {
-        let parser =
-          Parser::new(&owner.allocator, &owner.source, source_type).with_options(ParseOptions {
-            allow_return_outside_function: true,
-            ..ParseOptions::default()
-          });
-        let ret = parser.parse();
-        if ret.panicked || !ret.errors.is_empty() {
-          Err(anyhow::anyhow!("{:?}", ret.errors))
-        } else {
-          Ok(ProgramCellDependent { program: ret.program })
-        }
-      })?;
+    let program = ProgramCell::try_new(ProgramCellOwner { source, allocator }, |owner| {
+      let parser =
+        Parser::new(&owner.allocator, &owner.source, source_type).with_options(ParseOptions {
+          allow_return_outside_function: true,
+          ..ParseOptions::default()
+        });
+      let ret = parser.parse();
+      if ret.panicked || !ret.errors.is_empty() {
+        Err(anyhow::anyhow!("{:?}", ret.errors))
+      } else {
+        Ok(ProgramCellDependent { program: ret.program })
+      }
+    })?;
 
     Ok(EcmaAst { program, source_type, contains_use_strict: false })
   }
@@ -44,27 +43,26 @@ impl EcmaCompiler {
   ) -> anyhow::Result<EcmaAst> {
     let source: ArcStr = source.into();
     let allocator = oxc::allocator::Allocator::default();
-    let program =
-      ProgramCell::try_new(ProgramCellOwner { source: source.clone(), allocator }, |owner| {
-        let parser = Parser::new(&owner.allocator, &owner.source, source_type);
-        let ret = parser.parse_expression();
-        match ret {
-          Ok(expr) => {
-            let builder = AstBuilder::new(&owner.allocator);
-            let program = builder.program(
-              SPAN,
-              SourceType::default().with_module(true),
-              owner.source.as_str(),
-              builder.vec(),
-              None,
-              builder.vec(),
-              builder.vec1(builder.statement_expression(SPAN, expr)),
-            );
-            Ok(ProgramCellDependent { program })
-          }
-          Err(errors) => Err(anyhow::anyhow!("{:?}", errors)),
+    let program = ProgramCell::try_new(ProgramCellOwner { source, allocator }, |owner| {
+      let parser = Parser::new(&owner.allocator, &owner.source, source_type);
+      let ret = parser.parse_expression();
+      match ret {
+        Ok(expr) => {
+          let builder = AstBuilder::new(&owner.allocator);
+          let program = builder.program(
+            SPAN,
+            SourceType::default().with_module(true),
+            owner.source.as_str(),
+            builder.vec(),
+            None,
+            builder.vec(),
+            builder.vec1(builder.statement_expression(SPAN, expr)),
+          );
+          Ok(ProgramCellDependent { program })
         }
-      })?;
+        Err(errors) => Err(anyhow::anyhow!("{:?}", errors)),
+      }
+    })?;
 
     Ok(EcmaAst { program, source_type, contains_use_strict: false })
   }

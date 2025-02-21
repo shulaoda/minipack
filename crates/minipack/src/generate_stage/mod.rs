@@ -1,15 +1,12 @@
 mod code_splitting;
 mod compute_cross_chunk_links;
-mod finalizers;
 mod generate_chunk_name_and_preliminary_filenames;
 mod render_chunk_to_assets;
+mod scope_hoisting;
 
 pub mod generators;
 
-use finalizers::{
-  isolating::{IsolatingModuleFinalizer, IsolatingModuleFinalizerContext},
-  scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext},
-};
+use scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext};
 
 use arcstr::ArcStr;
 use minipack_common::{CssAssetNameReplacer, ImportMetaRolldownAssetReplacer, Module};
@@ -79,54 +76,34 @@ impl<'a> GenerateStage<'a> {
         let chunk_id = chunk_graph.module_to_chunk[module.idx].unwrap();
         let chunk = &chunk_graph.chunk_table[chunk_id];
         let linking_info = &self.link_output.metadata[module.idx];
-        if self.options.format.requires_scope_hoisting() {
-          ast.program.with_mut(|fields| {
-            let (oxc_program, alloc) = (fields.program, fields.allocator);
-            let mut finalizer = ScopeHoistingFinalizer {
-              alloc,
-              ctx: ScopeHoistingFinalizerContext {
-                canonical_names: &chunk.canonical_names,
-                id: module.idx,
-                chunk_id,
-                symbol_db: &self.link_output.symbols,
-                linking_info,
-                module,
-                modules: &self.link_output.modules,
-                linking_infos: &self.link_output.metadata,
-                runtime: &self.link_output.runtime_module,
-                chunk_graph: &chunk_graph,
-                options: self.options,
-                cur_stmt_index: 0,
-                keep_name_statement_to_insert: Vec::new(),
-              },
-              scope: ast_scope,
-              snippet: AstSnippet::new(alloc),
-              comments: oxc_program.comments.take_in(alloc),
-              namespace_alias_symbol_id: FxHashSet::default(),
-              interested_namespace_alias_ref_id: FxHashSet::default(),
-            };
-            finalizer.visit_program(oxc_program);
-            oxc_program.comments = finalizer.comments.take_in(alloc);
-          });
-        } else {
-          ast.program.with_mut(|fields| {
-            let (oxc_program, alloc) = (fields.program, fields.allocator);
-            let mut finalizer = IsolatingModuleFinalizer {
-              alloc,
-              scope: ast_scope,
-              ctx: &IsolatingModuleFinalizerContext {
-                module,
-                modules: &self.link_output.modules,
-                symbol_db: &self.link_output.symbols,
-              },
-              snippet: AstSnippet::new(alloc),
-              generated_imports_set: FxHashSet::default(),
-              generated_imports: oxc::allocator::Vec::new_in(alloc),
-              generated_exports: oxc::allocator::Vec::new_in(alloc),
-            };
-            finalizer.visit_program(oxc_program);
-          });
-        }
+        ast.program.with_mut(|fields| {
+          let (oxc_program, alloc) = (fields.program, fields.allocator);
+          let mut finalizer = ScopeHoistingFinalizer {
+            alloc,
+            ctx: ScopeHoistingFinalizerContext {
+              canonical_names: &chunk.canonical_names,
+              id: module.idx,
+              chunk_id,
+              symbol_db: &self.link_output.symbols,
+              linking_info,
+              module,
+              modules: &self.link_output.modules,
+              linking_infos: &self.link_output.metadata,
+              runtime: &self.link_output.runtime_module,
+              chunk_graph: &chunk_graph,
+              options: self.options,
+              cur_stmt_index: 0,
+              keep_name_statement_to_insert: Vec::new(),
+            },
+            scope: ast_scope,
+            snippet: AstSnippet::new(alloc),
+            comments: oxc_program.comments.take_in(alloc),
+            namespace_alias_symbol_id: FxHashSet::default(),
+            interested_namespace_alias_ref_id: FxHashSet::default(),
+          };
+          finalizer.visit_program(oxc_program);
+          oxc_program.comments = finalizer.comments.take_in(alloc);
+        });
       });
 
     self.render_chunk_to_assets(&mut chunk_graph).await

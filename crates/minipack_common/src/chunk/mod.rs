@@ -78,7 +78,7 @@ impl Chunk {
     true
   }
 
-  pub fn import_path_for(&self, importee: &Chunk) -> String {
+  pub fn import_path_for(&self, importee: &Self) -> String {
     let importee_filename = importee
       .absolute_preliminary_filename
       .as_ref()

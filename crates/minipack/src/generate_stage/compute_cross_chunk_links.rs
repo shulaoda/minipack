@@ -7,8 +7,8 @@ use super::GenerateStage;
 
 use itertools::{multizip, Itertools};
 use minipack_common::{
-  ChunkIdx, ChunkKind, CrossChunkImportItem, ExportsKind, ImportKind, ImportRecordMeta, Module,
-  ModuleIdx, NamedImport, OutputFormat, SymbolOrMemberExprRef, SymbolRef, WrapKind,
+  ChunkIdx, ChunkKind, CrossChunkImportItem, ImportKind, ImportRecordMeta, Module, ModuleIdx,
+  NamedImport, OutputFormat, SymbolOrMemberExprRef, SymbolRef,
 };
 use minipack_utils::{
   concat_string,
@@ -240,25 +240,16 @@ impl GenerateStage<'_> {
           let entry = &self.link_output.modules[*entry_id].as_normal().unwrap();
           let entry_meta = &self.link_output.metadata[entry.idx];
 
-          if !matches!(entry_meta.wrap_kind, WrapKind::Cjs) {
-            for export_ref in entry_meta.resolved_exports.values() {
-              let mut canonical_ref = symbols.canonical_ref_for(export_ref.symbol_ref);
-              let symbol = symbols.get(canonical_ref);
-              if let Some(ns_alias) = &symbol.namespace_alias {
-                canonical_ref = ns_alias.namespace_ref;
-              }
-              depended_symbols.insert(canonical_ref);
+          for export_ref in entry_meta.resolved_exports.values() {
+            let mut canonical_ref = symbols.canonical_ref_for(export_ref.symbol_ref);
+            let symbol = symbols.get(canonical_ref);
+            if let Some(ns_alias) = &symbol.namespace_alias {
+              canonical_ref = ns_alias.namespace_ref;
             }
+            depended_symbols.insert(canonical_ref);
           }
 
-          if !matches!(entry_meta.wrap_kind, WrapKind::None) {
-            depended_symbols
-              .insert(entry_meta.wrapper_ref.expect("cjs should be wrapped in esm output"));
-          }
-
-          if matches!(self.options.format, OutputFormat::Cjs)
-            && matches!(entry.exports_kind, ExportsKind::Esm)
-          {
+          if matches!(self.options.format, OutputFormat::Cjs) {
             depended_symbols.insert(self.link_output.runtime_module.resolve_symbol("__toCommonJS"));
             depended_symbols.insert(entry.namespace_object_ref);
           }

@@ -1,22 +1,18 @@
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, generate_replace_this_expr_map,
-  EcmaModuleAstUsage, ImportKind, ImportRecordMeta, StmtInfoMeta, ThisExprReplaceKind,
-  RUNTIME_MODULE_ID,
+  dynamic_import_usage::DynamicImportExportsUsage, ImportKind, ImportRecordMeta, StmtInfoMeta,
 };
 use minipack_utils::option_ext::OptionExt;
 use oxc::{
   ast::{
-    ast::{self, BindingPatternKind, Expression, IdentifierReference},
+    ast::{self, BindingPatternKind, IdentifierReference},
     visit::walk,
     AstKind, Visit,
   },
   semantic::SymbolId,
-  span::{GetSpan, Span},
+  span::GetSpan,
 };
 
-use super::{
-  cjs_ast_analyzer::CjsGlobalAssignmentType, side_effect_detector::SideEffectDetector, AstScanner,
-};
+use super::{side_effect_detector::SideEffectDetector, AstScanner};
 
 impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   fn enter_scope(
@@ -64,32 +60,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
         *usage = DynamicImportExportsUsage::Complete;
       }
     }
-
-    // https://github.com/evanw/esbuild/blob/d34e79e2a998c21bb71d57b92b0017ca11756912/internal/js_parser/js_parser.go#L12551-L12604
-    // Since AstScan is immutable, we defer transformation in module finalizer
-    if !self.top_level_this_expr_set.is_empty() {
-      if self.esm_export_keyword.is_none() {
-        self.ast_usage.insert(EcmaModuleAstUsage::ExportsRef);
-        self.result.this_expr_replace_map = generate_replace_this_expr_map(
-          &self.top_level_this_expr_set,
-          ThisExprReplaceKind::Exports,
-        );
-      } else {
-        self.result.this_expr_replace_map = generate_replace_this_expr_map(
-          &self.top_level_this_expr_set,
-          ThisExprReplaceKind::Undefined,
-        );
-      }
-    }
-
-    // check if the module is a reexport cjs module e.g.
-    // module.exports = require('a');
-    // normalize ast usage flag
-    if self.ast_usage.contains(EcmaModuleAstUsage::ModuleRef)
-      || !self.ast_usage.contains(EcmaModuleAstUsage::ExportsRef)
-    {
-      self.ast_usage.remove(EcmaModuleAstUsage::AllStaticExportPropertyAccess);
-    }
   }
 
   fn visit_binding_identifier(&mut self, ident: &ast::BindingIdentifier) {
@@ -101,28 +71,28 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
 
   fn visit_for_of_statement(&mut self, it: &ast::ForOfStatement<'ast>) {
     let is_top_level_await = it.r#await && self.is_valid_tla_scope();
-    if is_top_level_await && !self.options.format.keep_esm_import_export_syntax() {
+    if is_top_level_await && !self.options.format.is_esm() {
       self.result.errors.push(anyhow::anyhow!(
         "Top-level await is currently not supported with the '{format}' output format",
         format = self.options.format
       ));
     }
     if is_top_level_await {
-      self.ast_usage.insert(EcmaModuleAstUsage::TopLevelAwait);
+      self.result.has_top_level_await = true
     }
     walk::walk_for_of_statement(self, it);
   }
 
   fn visit_await_expression(&mut self, it: &ast::AwaitExpression<'ast>) {
     let is_top_level_await = self.is_valid_tla_scope();
-    if !self.options.format.keep_esm_import_export_syntax() && is_top_level_await {
+    if !self.options.format.is_esm() && is_top_level_await {
       self.result.errors.push(anyhow::anyhow!(
         "Top-level await is currently not supported with the '{format}' output format",
         format = self.options.format
       ));
     }
     if is_top_level_await {
-      self.ast_usage.insert(EcmaModuleAstUsage::TopLevelAwait);
+      self.result.has_top_level_await = true;
     }
     walk::walk_await_expression(self, it);
   }
@@ -158,40 +128,9 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
     walk::walk_import_expression(self, expr);
   }
 
-  fn visit_assignment_expression(&mut self, node: &ast::AssignmentExpression<'ast>) {
-    if let ast::AssignmentTarget::StaticMemberExpression(member_expr) = &node.left {
-      match member_expr.object {
-        Expression::Identifier(ref id) => {
-          if id.name == "module"
-            && self.is_global_identifier_reference(id)
-            && member_expr.property.name == "exports"
-          {
-            self.cjs_module_ident.get_or_insert(Span::new(id.span.start, id.span.start + 6));
-          }
-          if id.name == "exports" && self.is_global_identifier_reference(id) {
-            self.cjs_exports_ident.get_or_insert(Span::new(id.span.start, id.span.start + 7));
-          }
-        }
-        // `module.exports.test` is also considered as commonjs keyword
-        Expression::StaticMemberExpression(ref member_expr) => {
-          if let Expression::Identifier(ref id) = member_expr.object {
-            if id.name == "module"
-              && self.is_global_identifier_reference(id)
-              && member_expr.property.name == "exports"
-            {
-              self.cjs_module_ident.get_or_insert(Span::new(id.span.start, id.span.start + 6));
-            }
-          }
-        }
-        _ => {}
-      }
-    }
-    walk::walk_assignment_expression(self, node);
-  }
-
   fn visit_this_expression(&mut self, it: &ast::ThisExpression) {
     if !self.is_this_nested() {
-      self.top_level_this_expr_set.insert(it.span);
+      self.result.this_expr_replace_map.insert(it.span);
     }
     walk::walk_this_expression(self, it);
   }
@@ -261,36 +200,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   fn process_identifier_ref_by_scope(&mut self, ident_ref: &IdentifierReference) {
     match self.resolve_identifier_reference(ident_ref) {
       super::IdentifierReferenceKind::Global => {
-        match ident_ref.name.as_str() {
-          "module" => {
-            self.cjs_ast_analyzer(&CjsGlobalAssignmentType::ModuleExportsAssignment);
-          }
-          "exports" => {
-            self.cjs_ast_analyzer(&CjsGlobalAssignmentType::ExportsAssignment);
-          }
-          "require" => {
-            let is_dummy_record = match self.visit_path.last() {
-              Some(AstKind::CallExpression(call_expr)) => {
-                !self.process_global_require_call(call_expr)
-              }
-              Some(_) => true,
-              _ => false,
-            };
-
-            // should not replace require in `runtime` code
-            if is_dummy_record && self.id.as_ref() != RUNTIME_MODULE_ID {
-              let import_rec_idx = self.add_import_record(
-                "",
-                ImportKind::Require,
-                ident_ref.span,
-                ImportRecordMeta::IS_DUMMY,
-              );
-
-              self.result.imports.insert(ident_ref.span, import_rec_idx);
-            }
-          }
-          _ => {}
-        }
         self.process_global_identifier_ref_by_ancestor(ident_ref);
       }
       super::IdentifierReferenceKind::Root(root_symbol_id) => {
@@ -337,61 +246,5 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       }
     }
     None
-  }
-
-  /// return `bool` represent if it is a global require call
-  fn process_global_require_call(&mut self, expr: &ast::CallExpression<'ast>) -> bool {
-    let (value, span) = match expr.arguments.first() {
-      Some(ast::Argument::StringLiteral(request)) => (request.value, request.span),
-      Some(ast::Argument::TemplateLiteral(request)) if request.is_no_substitution_template() => {
-        match request.quasi() {
-          Some(value) => (value, request.span),
-          None => return false,
-        }
-      }
-      _ => return false,
-    };
-
-    let init_meta = if span.is_empty() {
-      ImportRecordMeta::IS_UNSPANNED_IMPORT
-    } else {
-      let mut is_require_used = true;
-      let mut meta = ImportRecordMeta::empty();
-      // traverse nearest ExpressionStatement and check if there are potential used
-      // skip one for CallExpression it self
-      for ancestor in self.visit_path.iter().rev().skip(1) {
-        match ancestor {
-          AstKind::ParenthesizedExpression(_) => {}
-          AstKind::ExpressionStatement(_) => {
-            meta.insert(ImportRecordMeta::IS_REQUIRE_UNUSED);
-            break;
-          }
-          AstKind::SequenceExpression(seq_expr) => {
-            // the child node has require and it is potential used
-            // the state may changed according to the child node position
-            // 1. `1, 2, (1, require('a'))` => since the last child contains `require`, and
-            //    in the last position, it is still used if it meant any other astKind
-            // 2. `1, 2, (1, require('a')), 1` => since the last child contains `require`, but it is
-            //    not in the last position, the state should change to unused
-            let last = seq_expr.expressions.last().expect("should have at least one child");
-
-            if !last.span().is_empty() && !expr.span.is_empty() {
-              is_require_used = last.span().contains_inclusive(expr.span);
-            } else {
-              is_require_used = true;
-            }
-          }
-          _ => {
-            if is_require_used {
-              break;
-            }
-          }
-        }
-      }
-      meta
-    };
-    let id = self.add_import_record(value.as_ref(), ImportKind::Require, span, init_meta);
-    self.result.imports.insert(expr.span, id);
-    true
   }
 }

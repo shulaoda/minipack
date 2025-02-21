@@ -59,7 +59,4 @@ pub struct EnhanceArgs {
 
   #[clap(long)]
   pub shim_missing_exports: Option<bool>,
-
-  #[clap(long)]
-  pub inline_dynamic_imports: Option<bool>,
 }

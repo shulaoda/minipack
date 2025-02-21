@@ -36,34 +36,34 @@ impl DynamicImportExportsUsage {
     match (&mut *self, other) {
       (Self::Complete, _) => {}
       (_, Self::Complete) => {
-        *self = DynamicImportExportsUsage::Complete;
+        *self = Self::Complete;
       }
       (Self::Partial(lhs), rhs) => {
         match rhs {
-          DynamicImportExportsUsage::Complete => unreachable!(),
-          DynamicImportExportsUsage::Partial(rhs) => {
+          Self::Complete => unreachable!(),
+          Self::Partial(rhs) => {
             lhs.extend(rhs);
           }
-          DynamicImportExportsUsage::Single(name) => {
+          Self::Single(name) => {
             lhs.insert(name);
           }
         };
       }
       (Self::Single(name), rhs) => {
         let set = match rhs {
-          DynamicImportExportsUsage::Complete => unreachable!(),
-          DynamicImportExportsUsage::Partial(mut rhs) => {
+          Self::Complete => unreachable!(),
+          Self::Partial(mut rhs) => {
             rhs.insert(name.clone());
             rhs
           }
-          DynamicImportExportsUsage::Single(rhs) => {
+          Self::Single(rhs) => {
             let mut set = FxHashSet::default();
             set.insert(rhs);
             set.insert(name.clone());
             set
           }
         };
-        *self = DynamicImportExportsUsage::Partial(set);
+        *self = Self::Partial(set);
       }
     };
   }

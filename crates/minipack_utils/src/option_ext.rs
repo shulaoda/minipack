@@ -20,13 +20,15 @@ impl<T> OptionExt<T> for Option<T> {
   /// ```
   #[track_caller]
   fn unpack(self) -> T {
-    match self {
-      Some(v) => v,
-      None => panic!(
-        "Got `None` value when calling `OptionExt::unpack()` on `{type_name}`",
-        type_name = pretty_type_name::<Self>()
-      ),
-    }
+    self.map_or_else(
+      || {
+        panic!(
+          "Got `None` value when calling `OptionExt::unpack()` on `{type_name}`",
+          type_name = pretty_type_name::<Self>()
+        )
+      },
+      |v| v,
+    )
   }
 
   /// Shorthand for `self.as_ref().unpack()`.

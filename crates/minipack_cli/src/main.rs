@@ -108,7 +108,6 @@ async fn main() {
     minify: args.enhance.minify,
     target: args.enhance.target.map(Into::into),
     shim_missing_exports: args.enhance.shim_missing_exports,
-    inline_dynamic_imports: args.enhance.inline_dynamic_imports,
     resolve: None,
   };
 

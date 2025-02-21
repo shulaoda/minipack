@@ -13,7 +13,6 @@ const HASH_PLACEHOLDER_OVERHEAD: usize = HASH_PLACEHOLDER_LEFT.len() + HASH_PLAC
 
 // This is the size of a 128-bit xxhash with `base_encode::to_string`
 const MAX_HASH_SIZE: usize = 21;
-// const DEFAULT_HASH_SIZE: usize = 8;
 
 static REPLACER_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   let pattern = "!~\\{[0-9a-zA-Z_$]{1,17}\\}~";
@@ -51,6 +50,8 @@ impl HashPlaceholderGenerator {
     debug_assert!((HASH_PLACEHOLDER_OVERHEAD..=MAX_HASH_SIZE).contains(&len));
 
     let allow_middle_len = len - HASH_PLACEHOLDER_OVERHEAD;
+
+    // to_base64
     let seed_base64 = to_base64(self.seed);
 
     assert!(seed_base64.len() <= allow_middle_len, "seed is too large");

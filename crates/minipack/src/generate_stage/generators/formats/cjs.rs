@@ -1,4 +1,4 @@
-use minipack_common::{ExportsKind, OutputExports, SourceJoiner};
+use minipack_common::{OutputExports, SourceJoiner};
 use minipack_error::BuildResult;
 use minipack_utils::concat_string;
 
@@ -8,9 +8,7 @@ use crate::{
   utils::chunk::{
     determine_export_mode::determine_export_mode,
     namespace_marker::render_namespace_markers,
-    render_chunk_exports::{
-      get_chunk_export_names, render_chunk_exports, render_wrapped_entry_chunk,
-    },
+    render_chunk_exports::{get_chunk_export_names, render_chunk_exports},
   },
 };
 
@@ -63,11 +61,7 @@ pub fn render_cjs<'code>(
   }
 
   let mut modules = ctx.renderable_ecma_modules().peekable();
-  let is_strict = modules.peek().is_some()
-    && modules.all(|ecma_module| {
-      ecma_module.exports_kind.is_esm()
-        || ctx.link_output.index_ecma_ast[ecma_module.ecma_ast_idx()].0.contains_use_strict
-    });
+  let is_strict = modules.peek().is_some();
 
   if is_strict {
     source_joiner.append_source("\"use strict\";");
@@ -78,21 +72,16 @@ pub fn render_cjs<'code>(
   // So we determine the export mode (from auto) here and use it in the following code.
   let export_mode =
     if let Some(entry_module) = ctx.chunk.user_defined_entry_module(&ctx.link_output.modules) {
-      if matches!(entry_module.exports_kind, ExportsKind::Esm) {
-        let export_names = get_chunk_export_names(ctx.chunk, ctx.link_output);
-        let has_default_export = export_names.iter().any(|name| name.as_str() == "default");
-        let export_mode = determine_export_mode(warnings, ctx, entry_module, &export_names)?;
-        // Only `named` export can we render the namespace markers.
-        if matches!(&export_mode, OutputExports::Named) {
-          if let Some(marker) = render_namespace_markers(has_default_export, false) {
-            source_joiner.append_source(marker.to_string());
-          }
+      let export_names = get_chunk_export_names(ctx.chunk, ctx.link_output);
+      let has_default_export = export_names.iter().any(|name| name.as_str() == "default");
+      let export_mode = determine_export_mode(warnings, ctx, entry_module, &export_names)?;
+      // Only `named` export can we render the namespace markers.
+      if matches!(&export_mode, OutputExports::Named) {
+        if let Some(marker) = render_namespace_markers(has_default_export, false) {
+          source_joiner.append_source(marker.to_string());
         }
-        Some(export_mode)
-      } else {
-        // The entry module which non-ESM export kind should be `named`.
-        Some(OutputExports::Named)
       }
+      Some(export_mode)
     } else {
       // The common chunks should be `named`.
       Some(OutputExports::Named)
@@ -106,10 +95,6 @@ pub fn render_cjs<'code>(
     module_sources,
     render_cjs_chunk_imports(ctx),
   );
-
-  if let Some(source) = render_wrapped_entry_chunk(ctx, export_mode.as_ref()) {
-    source_joiner.append_source(source);
-  }
 
   if let Some(exports) = render_chunk_exports(ctx, export_mode.as_ref()) {
     source_joiner.append_source(exports);

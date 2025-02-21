@@ -26,18 +26,11 @@ pub use crate::{
   ecmascript::{
     dynamic_import_usage,
     ecma_ast_idx::EcmaAstIdx,
-    ecma_view::{
-      generate_replace_this_expr_map, EcmaModuleAstUsage, EcmaView, EcmaViewMeta,
-      ImportMetaRolldownAssetReplacer, ThisExprReplaceKind,
-    },
+    ecma_view::{EcmaModuleAstUsage, EcmaView, EcmaViewMeta, ImportMetaRolldownAssetReplacer},
     module_idx::{ModuleIdx, DUMMY_MODULE_IDX},
     node_builtin_modules::is_existing_node_builtin_modules,
   },
-  module::{
-    external_module::ExternalModule,
-    normal_module::{ModuleRenderArgs, NormalModule},
-    Module,
-  },
+  module::{external_module::ExternalModule, normal_module::NormalModule, Module},
   module_loader::{
     runtime_module_brief::{RuntimeModuleBrief, RUNTIME_MODULE_ID},
     runtime_task_result::RuntimeModuleTaskResult,
@@ -58,9 +51,7 @@ pub use crate::{
     import_record::{ImportRecordIdx, ImportRecordMeta, RawImportRecord, ResolvedImportRecord},
     importer_record::ImporterRecord,
     instantiated_chunk::InstantiatedChunk,
-    interop::Interop,
     member_expr_ref::MemberExprRef,
-    module_def_format::ModuleDefFormat,
     module_id::ModuleId,
     module_info::ModuleInfo,
     named_export::LocalExport,
@@ -84,6 +75,5 @@ pub use crate::{
     symbol_or_member_expr_ref::SymbolOrMemberExprRef,
     symbol_ref::SymbolRef,
     symbol_ref_db::{GetLocalDb, SymbolRefDb, SymbolRefDbForModule, SymbolRefFlags},
-    wrap_kind::WrapKind,
   },
 };

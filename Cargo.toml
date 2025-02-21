@@ -32,6 +32,7 @@ unnecessary_safety_comment      = "deny"
 
 # --- pedantic #https://doc.rust-lang.org/clippy/usage.html#clippypedantic
 # To write the best rust code, pedantic group is enabled by default.
+nursery  = { level = "deny", priority = -1 }
 pedantic = { level = "deny", priority = -1 }
 
 # Wizards, naming is too hard.
@@ -103,9 +104,9 @@ xxhash-rust       = { version = "0.8.15" }
 
 # oxc crates share the same version
 # Please update with `cargo update oxc_resolver oxc_index`
-oxc            = { version = "0.51.0", features = ["transformer", "minifier", "semantic", "codegen", "serialize"] }
-oxc_index      = { version = "2", features = ["rayon"] }
-oxc_resolver   = { version = "4" }
+oxc          = { version = "0.51.0", features = ["transformer", "minifier", "semantic", "codegen", "serialize"] }
+oxc_index    = { version = "2", features = ["rayon"] }
+oxc_resolver = { version = "4" }
 
 [profile.release]
 codegen-units = 1

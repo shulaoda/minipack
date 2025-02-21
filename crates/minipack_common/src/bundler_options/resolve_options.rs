@@ -1,5 +1,3 @@
-/// A simple wrapper around `oxc_resolver::ResolveOptions` to make it easier to use in the `rolldown_resolver` crate.
-/// See [oxc_resolver::ResolveOptions](https://docs.rs/oxc_resolver/latest/oxc_resolver/struct.ResolveOptions.html) for more information.
 #[derive(Debug, Default, Clone)]
 pub struct ResolveOptions {
   pub alias: Option<Vec<(String, Vec<String>)>>,

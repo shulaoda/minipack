@@ -1,8 +1,7 @@
 use indexmap::map::Entry;
 use minipack_common::{
-  AstScopes, ESTarget, EcmaAstIdx, EcmaModuleAstUsage, ExportsKind, LocalExport, Module, ModuleIdx,
-  ModuleType, NormalModule, StmtInfo, StmtInfoIdx, SymbolOrMemberExprRef, SymbolRef,
-  SymbolRefDbForModule,
+  AstScopes, ESTarget, EcmaAstIdx, LocalExport, Module, ModuleIdx, ModuleType, NormalModule,
+  StmtInfo, StmtInfoIdx, SymbolOrMemberExprRef, SymbolRef, SymbolRefDbForModule,
 };
 use minipack_ecmascript_utils::{AstSnippet, TakeIn};
 use minipack_utils::{
@@ -32,38 +31,16 @@ impl LinkStage<'_> {
       }
       let default_symbol_ref = module.default_export_ref;
       let is_json = matches!(module.module_type, ModuleType::Json);
-      if !is_json || module.exports_kind == ExportsKind::CommonJs {
+      if !is_json {
         update_module_default_export_info(module, default_symbol_ref, 1.into());
       }
-      module_idx_to_exports_kind.push((module.ecma_ast_idx(), module.exports_kind, is_json));
-
-      // generate `module.exports = expr`
-      if module.exports_kind == ExportsKind::CommonJs {
-        // since the wrap arguments are generate on demand, we need to insert the module ref usage here.
-        module.stmt_infos.infos[StmtInfoIdx::new(1)].side_effect = true;
-        module.ecma_view.ast_usage.insert(EcmaModuleAstUsage::ModuleRef);
-      }
+      module_idx_to_exports_kind.push((module.ecma_ast_idx(), is_json));
     });
 
-    for (ast_idx, exports_kind, is_json_module) in module_idx_to_exports_kind {
-      let Some((ecma_ast, module_idx)) = self.index_ecma_ast.get_mut(ast_idx) else {
-        unreachable!()
-      };
+    for (ast_idx, is_json_module) in module_idx_to_exports_kind {
+      let Some((_, module_idx)) = self.index_ecma_ast.get_mut(ast_idx) else { unreachable!() };
       let module_idx = *module_idx;
-      if matches!(exports_kind, ExportsKind::CommonJs) {
-        ecma_ast.program.with_mut(|fields| {
-          let snippet = AstSnippet::new(fields.allocator);
-          let Some(stmt) = fields.program.body.first_mut() else { unreachable!() };
-          let expr = match stmt {
-            ast::Statement::ExpressionStatement(stmt) => stmt.expression.take_in(snippet.alloc()),
-            _ => {
-              unreachable!()
-            }
-          };
-          *stmt = snippet.module_exports_expr_stmt(expr);
-        });
-        continue;
-      }
+
       // ExportsKind == Esm && ModuleType == Json
       if is_json_module {
         if json_object_expr_to_esm(self, module_idx, ast_idx) {
@@ -259,7 +236,6 @@ fn json_object_expr_to_esm(
     .insert("default".into(), LocalExport { span: SPAN, referenced: default_export_ref });
 
   // declare namespace object statement
-  module.exports_kind = ExportsKind::Esm;
   module.stmt_infos.replace_namespace_stmt_info(
     StmtInfo::default()
       .with_declared_symbols(vec![namespace_object_ref])

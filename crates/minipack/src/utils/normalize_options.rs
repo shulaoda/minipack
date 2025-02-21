@@ -60,7 +60,6 @@ pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsRet
     minify: raw_options.minify.unwrap_or_default(),
     target,
     shim_missing_exports: raw_options.shim_missing_exports.unwrap_or_default(),
-    inline_dynamic_imports: raw_options.inline_dynamic_imports.unwrap_or_default(),
     base_transform_options,
   };
 

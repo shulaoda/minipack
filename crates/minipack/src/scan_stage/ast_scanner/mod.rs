@@ -1,4 +1,3 @@
-mod cjs_ast_analyzer;
 mod dynamic_import;
 mod impl_visit;
 mod import_assign_analyzer;
@@ -10,10 +9,9 @@ use std::borrow::Cow;
 use arcstr::ArcStr;
 use minipack_common::{
   dynamic_import_usage::{DynamicImportExportsUsage, DynamicImportUsageInfo},
-  AstScopes, EcmaModuleAstUsage, ExportsKind, ImportKind, ImportRecordIdx, ImportRecordMeta,
-  LocalExport, MemberExprRef, ModuleDefFormat, ModuleId, ModuleIdx, NamedImport, RawImportRecord,
-  Specifier, StmtInfo, StmtInfos, SymbolRef, SymbolRefDbForModule, SymbolRefFlags,
-  ThisExprReplaceKind,
+  AstScopes, ImportKind, ImportRecordIdx, ImportRecordMeta, LocalExport, MemberExprRef, ModuleId,
+  ModuleIdx, NamedImport, RawImportRecord, Specifier, StmtInfo, StmtInfos, SymbolRef,
+  SymbolRefDbForModule, SymbolRefFlags,
 };
 use minipack_ecmascript_utils::{BindingIdentifierExt, BindingPatternExt};
 use minipack_error::BuildResult;
@@ -47,11 +45,10 @@ pub struct AstScanResult {
   /// Represents [Module Namespace Object](https://tc39.es/ecma262/#sec-module-namespace-exotic-objects)
   pub namespace_object_ref: SymbolRef,
   pub imports: FxHashMap<Span, ImportRecordIdx>,
-  pub exports_kind: ExportsKind,
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
   pub has_eval: bool,
-  pub ast_usage: EcmaModuleAstUsage,
+  pub has_top_level_await: bool,
   pub scopes: AstScopes,
   pub symbols: SymbolRefDbForModule,
   /// https://github.com/evanw/esbuild/blob/d34e79e2a998c21bb71d57b92b0017ca11756912/internal/js_parser/js_parser_lower_class.go#L2277-L2283
@@ -68,35 +65,23 @@ pub struct AstScanResult {
   pub dynamic_import_rec_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
   /// `new URL('...', import.meta.url)`
   pub new_url_references: FxHashMap<Span, ImportRecordIdx>,
-  pub this_expr_replace_map: FxHashMap<Span, ThisExprReplaceKind>,
+  pub this_expr_replace_map: FxHashSet<Span>,
 }
 
 pub struct AstScanner<'me, 'ast> {
   idx: ModuleIdx,
   source: &'me ArcStr,
-  module_type: ModuleDefFormat,
   id: &'me ModuleId,
   comments: &'me oxc::allocator::Vec<'me, Comment>,
   current_stmt_info: StmtInfo,
   result: AstScanResult,
   esm_export_keyword: Option<Span>,
   esm_import_keyword: Option<Span>,
-  /// Cjs ident span used for emit `commonjs_variable_in_esm` warning
-  cjs_module_ident: Option<Span>,
-  cjs_exports_ident: Option<Span>,
-  /// Whether the module is a commonjs module
-  /// The reason why we can't reuse `cjs_exports_ident` and `cjs_module_ident` is that
-  /// any `module` or `exports` in the top-level scope should be treated as a commonjs module.
-  /// `cjs_exports_ident` and `cjs_module_ident` only only recorded when they are appear in
-  /// lhs of AssignmentExpression
-  ast_usage: EcmaModuleAstUsage,
   cur_class_decl: Option<SymbolId>,
   visit_path: Vec<AstKind<'ast>>,
   scope_stack: Vec<Option<ScopeId>>,
   options: &'me SharedOptions,
   dynamic_import_usage_info: DynamicImportUsageInfo,
-  /// "top level" `this` AstNode range in source code
-  top_level_this_expr_set: FxHashSet<Span>,
   /// A flag to resolve `this` appear with propertyKey in class
   is_nested_this_inside_class: bool,
 }
@@ -108,7 +93,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     scopes: ScopeTree,
     symbols: SymbolTable,
     repr_name: &'me str,
-    module_type: ModuleDefFormat,
     source: &'me ArcStr,
     file_path: &'me ModuleId,
     comments: &'me oxc::allocator::Vec<'me, Comment>,
@@ -139,20 +123,19 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       import_records: IndexVec::new(),
       default_export_ref,
       imports: FxHashMap::default(),
-      exports_kind: ExportsKind::None,
       warnings: Vec::new(),
       has_eval: false,
       errors: Vec::new(),
-      ast_usage: EcmaModuleAstUsage::empty(),
       scopes,
       symbols,
       namespace_object_ref,
       self_referenced_class_decl_symbol_ids: FxHashSet::default(),
       hashbang_range: None,
       has_star_exports: false,
+      has_top_level_await: false,
       dynamic_import_rec_exports_usage: FxHashMap::default(),
       new_url_references: FxHashMap::default(),
-      this_expr_replace_map: FxHashMap::default(),
+      this_expr_replace_map: FxHashSet::default(),
     };
 
     Self {
@@ -161,20 +144,14 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       result,
       esm_export_keyword: None,
       esm_import_keyword: None,
-      module_type,
-      cjs_module_ident: None,
-      cjs_exports_ident: None,
       source,
       id: file_path,
       comments,
-      ast_usage: EcmaModuleAstUsage::empty()
-        .union(EcmaModuleAstUsage::AllStaticExportPropertyAccess),
       cur_class_decl: None,
       visit_path: vec![],
       options,
       scope_stack: vec![],
       dynamic_import_usage_info: DynamicImportUsageInfo::default(),
-      top_level_this_expr_set: FxHashSet::default(),
       is_nested_this_inside_class: false,
     }
   }
@@ -189,41 +166,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
 
   pub fn scan(mut self, program: &Program<'ast>) -> BuildResult<AstScanResult> {
     self.visit_program(program);
-    let mut exports_kind = ExportsKind::None;
-
-    if self.esm_export_keyword.is_some() {
-      exports_kind = ExportsKind::Esm;
-      if self.cjs_module_ident.is_some() {
-        self.result.warnings.push(
-          anyhow::anyhow!("The CommonJS module variable is treated as a global variable in an ECMAScript module and may not work as expected")
-        );
-      }
-      if self.cjs_exports_ident.is_some() {
-        self.result.warnings.push(
-          anyhow::anyhow!("The CommonJS exports variable is treated as a global variable in an ECMAScript module and may not work as expected")
-        );
-      }
-    } else if self.ast_usage.intersects(EcmaModuleAstUsage::ModuleOrExports) {
-      exports_kind = ExportsKind::CommonJs;
-    } else {
-      match self.module_type {
-        ModuleDefFormat::CJS | ModuleDefFormat::CjsPackageJson | ModuleDefFormat::Cts => {
-          exports_kind = ExportsKind::CommonJs;
-        }
-        ModuleDefFormat::EsmMjs | ModuleDefFormat::EsmPackageJson | ModuleDefFormat::EsmMts => {
-          exports_kind = ExportsKind::Esm;
-        }
-        ModuleDefFormat::Unknown => {
-          if self.esm_import_keyword.is_some() {
-            exports_kind = ExportsKind::Esm;
-          }
-        }
-      }
-    }
-
-    self.result.ast_usage = self.ast_usage;
-    self.result.exports_kind = exports_kind;
-
     Ok(self.result)
   }
 
@@ -677,12 +619,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       }
     }
     (!props.is_empty()).then_some((span, props))
-  }
-
-  // `console` in `console.log` is a global reference
-  pub fn is_global_identifier_reference(&self, ident: &IdentifierReference) -> bool {
-    let symbol_id = self.resolve_symbol_from_reference(ident);
-    symbol_id.is_none()
   }
 
   /// If it is not a top level `this` reference visit position

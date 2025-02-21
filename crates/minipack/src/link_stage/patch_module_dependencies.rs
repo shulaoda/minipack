@@ -37,9 +37,6 @@ impl LinkStage<'_> {
                 if let Some(ns) = &symbol.namespace_alias {
                   meta.dependencies.insert(ns.namespace_ref.owner);
                 }
-              } else {
-                // `None` means the member expression resolve to a ambiguous export, which means it actually resolve to nothing.
-                // It would be rewrite to `undefined` in the final code, so we don't need to include anything to make `undefined` work.
               }
             }
           };

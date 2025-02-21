@@ -10,6 +10,6 @@ pub enum InstantiationKind {
 
 impl From<RollupRenderedChunk> for InstantiationKind {
   fn from(rendered_chunk: RollupRenderedChunk) -> Self {
-    InstantiationKind::Ecma(Box::new(rendered_chunk))
+    Self::Ecma(Box::new(rendered_chunk))
   }
 }

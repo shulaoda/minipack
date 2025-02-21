@@ -1,6 +1,5 @@
 mod bind_imports_and_exports;
 mod create_exports_for_ecma_modules;
-mod determine_module_exports_kind;
 mod determine_side_effects;
 mod generate_lazy_export;
 mod include_statements;
@@ -10,8 +9,8 @@ mod sort_modules;
 mod wrap_modules;
 
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, EcmaModuleAstUsage, EntryPoint, EntryPointKind,
-  ImportKind, Module, ModuleIdx, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
+  dynamic_import_usage::DynamicImportExportsUsage, EntryPoint, EntryPointKind, ImportKind, Module,
+  ModuleIdx, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
 };
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -76,14 +75,7 @@ impl<'a> LinkStage<'a> {
           .import_records()
           .iter()
           .filter_map(|rec| match rec.kind {
-            ImportKind::DynamicImport => {
-              if options.inline_dynamic_imports {
-                Some(rec.resolved_module)
-              } else {
-                None
-              }
-            }
-            ImportKind::Require => None,
+            ImportKind::DynamicImport => None,
             _ => Some(rec.resolved_module),
           })
           .collect();
@@ -121,7 +113,6 @@ impl<'a> LinkStage<'a> {
   pub fn link(mut self) -> LinkStageOutput {
     self.sort_modules();
     self.compute_tla();
-    self.determine_module_exports_kind();
     self.wrap_modules();
     self.generate_lazy_export();
     self.determine_side_effects();
@@ -185,9 +176,7 @@ impl<'a> LinkStage<'a> {
       } else {
         visited_map.insert(module_idx, None);
         let module = &module_table[module_idx];
-        let is_self_tla = module
-          .as_normal()
-          .is_some_and(|module| module.ast_usage.contains(EcmaModuleAstUsage::TopLevelAwait));
+        let is_self_tla = module.as_normal().is_some_and(|module| module.has_top_level_await);
         if is_self_tla {
           // If the module itself contains top-level await, then it is TLA.
           visited_map.insert(module_idx, Some(true));

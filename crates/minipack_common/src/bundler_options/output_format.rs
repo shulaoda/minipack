@@ -8,17 +8,7 @@ pub enum OutputFormat {
 
 impl OutputFormat {
   #[inline]
-  pub fn requires_scope_hoisting(&self) -> bool {
-    matches!(self, Self::Esm | Self::Cjs)
-  }
-
-  #[inline]
-  pub fn should_call_runtime_require(&self) -> bool {
-    !matches!(self, Self::Cjs)
-  }
-
-  #[inline]
-  pub fn keep_esm_import_export_syntax(&self) -> bool {
+  pub fn is_esm(&self) -> bool {
     matches!(self, Self::Esm)
   }
 }

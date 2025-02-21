@@ -8,8 +8,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use crate::{
   side_effects::DeterminedSideEffects,
   types::{ast_scope_idx::AstScopeIdx, source_mutation::BoxedSourceMutation},
-  EcmaAstIdx, ExportsKind, ImportRecordIdx, LocalExport, ModuleDefFormat, ModuleId, NamedImport,
-  ResolvedImportRecord, SourceMutation, StmtInfoIdx, StmtInfos, SymbolRef,
+  EcmaAstIdx, ImportRecordIdx, LocalExport, ModuleId, NamedImport, ResolvedImportRecord,
+  SourceMutation, StmtInfos, SymbolRef,
 };
 
 bitflags! {
@@ -20,21 +20,6 @@ bitflags! {
         const HAS_LAZY_EXPORT = 1 << 2;
         const HAS_STAR_EXPORT = 1 << 3;
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ThisExprReplaceKind {
-  Undefined,
-  Exports,
-}
-
-#[inline]
-#[allow(clippy::implicit_hasher)]
-pub fn generate_replace_this_expr_map(
-  set: &FxHashSet<Span>,
-  kind: ThisExprReplaceKind,
-) -> FxHashMap<Span, ThisExprReplaceKind> {
-  set.iter().map(|span| (*span, kind)).collect()
 }
 
 impl EcmaViewMeta {
@@ -63,7 +48,6 @@ impl EcmaViewMeta {
 pub struct EcmaView {
   pub source: ArcStr,
   pub ecma_ast_idx: Option<EcmaAstIdx>,
-  pub def_format: ModuleDefFormat,
   /// Represents [Module Namespace Object](https://tc39.es/ecma262/#sec-module-namespace-exotic-objects)
   pub namespace_object_ref: SymbolRef,
   pub named_imports: FxHashMap<SymbolRef, NamedImport>,
@@ -74,7 +58,6 @@ pub struct EcmaView {
   /// The key is the `Span` of `ImportDeclaration`, `ImportExpression`, `ExportNamedDeclaration`, `ExportAllDeclaration`
   /// and `CallExpression`(only when the callee is `require`).
   pub imports: FxHashMap<Span, ImportRecordIdx>,
-  pub exports_kind: ExportsKind,
   pub ast_scope_idx: Option<AstScopeIdx>,
   pub default_export_ref: SymbolRef,
   // the ids of all modules that statically import this module
@@ -86,7 +69,7 @@ pub struct EcmaView {
   // the module ids imported by this module via dynamic import()
   pub dynamically_imported_ids: FxIndexSet<ModuleId>,
   pub side_effects: DeterminedSideEffects,
-  pub ast_usage: EcmaModuleAstUsage,
+  pub has_top_level_await: bool,
   pub self_referenced_class_decl_symbol_ids: FxHashSet<SymbolId>,
   // the range of hashbang in source
   pub hashbang_range: Option<Span>,
@@ -94,26 +77,13 @@ pub struct EcmaView {
   pub mutations: Vec<BoxedSourceMutation>,
   /// `Span` of `new URL('path', import.meta.url)` -> `ImportRecordIdx`
   pub new_url_references: FxHashMap<Span, ImportRecordIdx>,
-  pub this_expr_replace_map: FxHashMap<Span, ThisExprReplaceKind>,
-  /// - Represents the `import_xxx` in `const import_xxx = __toESM(require_xxx());`
-  /// - Only exist when this module is a cjs module and get imported by static `import` statement.
-  pub esm_namespace_in_cjs: Option<EsmNamespaceInCjs>,
-  /// - Represents the `import_xxx` in `const import_xxx = __toESM(require_xxx(), 1);`
-  /// - Only exist when this module is a cjs module and get imported by static `import` statement.
-  pub esm_namespace_in_cjs_node_mode: Option<EsmNamespaceInCjs>,
+  pub this_expr_replace_map: FxHashSet<Span>,
 }
 
 bitflags! {
     #[derive(Debug, Clone, Copy)]
     pub struct EcmaModuleAstUsage: u8 {
-      const ModuleRef = 1;
-      const ExportsRef = 1 << 1;
-      const EsModuleFlag = 1 << 2;
-      const AllStaticExportPropertyAccess = 1 << 3;
-      /// module.exports = require('mod');
-      const IsCjsReexport = 1 << 4;
-      const TopLevelAwait = 1 << 5;
-      const ModuleOrExports = Self::ModuleRef.bits() | Self::ExportsRef.bits();
+      const TopLevelAwait = 1;
     }
 }
 
@@ -127,10 +97,4 @@ impl SourceMutation for ImportMetaRolldownAssetReplacer {
     magic_string
       .replace_all("import.meta.__ROLLDOWN_ASSET_FILENAME", format!("\"{}\"", self.asset_filename));
   }
-}
-
-#[derive(Debug)]
-pub struct EsmNamespaceInCjs {
-  pub namespace_ref: SymbolRef,
-  pub stmt_info_idx: StmtInfoIdx,
 }

@@ -5,7 +5,6 @@ use oxc::{
     AstKind,
   },
   semantic::{SymbolFlags, SymbolId},
-  span::Span,
 };
 
 use super::AstScanner;
@@ -19,7 +18,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         .get(&(self.idx, symbol_id).into())
         .is_some_and(|import| matches!(import.imported, Specifier::Star));
       if is_namespace {
-        if let Some((_, name)) = self.get_span_if_namespace_specifier_updated() {
+        if let Some(name) = self.get_span_if_namespace_specifier_updated() {
           self.result.errors.push(anyhow::anyhow!("Cannot assign to import '{}'", name));
           return;
         }
@@ -30,7 +29,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     }
   }
 
-  pub fn get_span_if_namespace_specifier_updated(&mut self) -> Option<(Span, &'ast str)> {
+  fn get_span_if_namespace_specifier_updated(&mut self) -> Option<&'ast str> {
     let ancestor_cursor = self.visit_path.len() - 1;
     let parent_node = self.visit_path.get(ancestor_cursor)?;
     if let AstKind::MemberExpression(expr) = parent_node {
@@ -45,7 +44,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
           is_unary_expression_with_delete_operator(*item)
         }))
       {
-        return expr.static_property_info();
+        return expr.static_property_name();
       }
     }
     None

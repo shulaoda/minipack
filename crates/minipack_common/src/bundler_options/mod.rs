@@ -34,7 +34,6 @@ pub struct BundlerOptions {
   pub minify: Option<bool>,
   pub target: Option<ESTarget>,
   pub shim_missing_exports: Option<bool>,
-  pub inline_dynamic_imports: Option<bool>,
 
   // --- Resolve
   pub resolve: Option<ResolveOptions>,

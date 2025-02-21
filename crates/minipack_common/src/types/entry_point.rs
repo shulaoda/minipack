@@ -19,6 +19,6 @@ pub enum EntryPointKind {
 
 impl EntryPointKind {
   pub fn is_user_defined(&self) -> bool {
-    matches!(self, EntryPointKind::UserDefined)
+    matches!(self, Self::UserDefined)
   }
 }

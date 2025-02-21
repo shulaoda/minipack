@@ -41,20 +41,20 @@ impl FromStr for ESTarget {
 }
 
 impl From<ESTarget> for OxcEstarget {
-  fn from(value: ESTarget) -> OxcEstarget {
+  fn from(value: ESTarget) -> Self {
     match value {
-      ESTarget::Es5 => OxcEstarget::ES5,
-      ESTarget::Es2015 => OxcEstarget::ES2015,
-      ESTarget::Es2016 => OxcEstarget::ES2016,
-      ESTarget::Es2017 => OxcEstarget::ES2017,
-      ESTarget::Es2018 => OxcEstarget::ES2018,
-      ESTarget::Es2019 => OxcEstarget::ES2019,
-      ESTarget::Es2020 => OxcEstarget::ES2020,
-      ESTarget::Es2021 => OxcEstarget::ES2021,
-      ESTarget::Es2022 => OxcEstarget::ES2022,
-      ESTarget::Es2023 => OxcEstarget::ES2023,
-      ESTarget::Es2024 => OxcEstarget::ES2024,
-      ESTarget::EsNext => OxcEstarget::ESNext,
+      ESTarget::Es5 => Self::ES5,
+      ESTarget::Es2015 => Self::ES2015,
+      ESTarget::Es2016 => Self::ES2016,
+      ESTarget::Es2017 => Self::ES2017,
+      ESTarget::Es2018 => Self::ES2018,
+      ESTarget::Es2019 => Self::ES2019,
+      ESTarget::Es2020 => Self::ES2020,
+      ESTarget::Es2021 => Self::ES2021,
+      ESTarget::Es2022 => Self::ES2022,
+      ESTarget::Es2023 => Self::ES2023,
+      ESTarget::Es2024 => Self::ES2024,
+      ESTarget::EsNext => Self::ESNext,
     }
   }
 }

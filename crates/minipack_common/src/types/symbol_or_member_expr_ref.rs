@@ -14,8 +14,8 @@ impl SymbolOrMemberExprRef {
   /// for identifier, it will return itself
   pub fn symbol_ref(&self) -> &SymbolRef {
     match self {
-      SymbolOrMemberExprRef::Symbol(s) => s,
-      SymbolOrMemberExprRef::MemberExpr(expr) => &expr.object_ref,
+      Self::Symbol(s) => s,
+      Self::MemberExpr(expr) => &expr.object_ref,
     }
   }
 }

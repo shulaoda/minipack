@@ -1,7 +1,5 @@
 use futures::future::try_join_all;
-use minipack_common::{
-  Asset, InstantiationKind, ModuleRenderArgs, Output, OutputAsset, OutputChunk,
-};
+use minipack_common::{Asset, InstantiationKind, Output, OutputAsset, OutputChunk};
 use minipack_ecmascript::EcmaCompiler;
 use minipack_error::BuildResult;
 use minipack_utils::{
@@ -180,8 +178,7 @@ impl GenerateStage<'_> {
           .par_iter()
           .map(|&module_idx| {
             if let Some(module) = self.link_output.modules[module_idx].as_normal() {
-              let ast = &self.link_output.index_ecma_ast[module.ecma_ast_idx()].0;
-              module.render(&ModuleRenderArgs::Ecma { ast })
+              module.render(&self.link_output.index_ecma_ast[module.ecma_ast_idx()].0)
             } else {
               None
             }

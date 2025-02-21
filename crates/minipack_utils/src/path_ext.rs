@@ -1,4 +1,4 @@
-use std::{borrow::Cow, ffi::OsStr, path::Path};
+use std::{borrow::Cow, ffi::OsStr};
 
 use sugar_path::SugarPath;
 
@@ -32,15 +32,11 @@ impl PathExt for std::path::Path {
     let file_name = match &*file_name {
       // "index": Node.js use `index` as a special name for directory import.
       // "mod": https://docs.deno.com/runtime/manual/references/contributing/style_guide#do-not-use-the-filename-indextsindexjs.
-      "index" | "mod" => {
-        if let Some(parent_dir_name) =
-          self.parent().and_then(Path::file_stem).map(OsStr::to_string_lossy)
-        {
-          parent_dir_name
-        } else {
-          file_name
-        }
-      }
+      "index" | "mod" => self
+        .parent()
+        .and_then(Self::file_stem)
+        .map(OsStr::to_string_lossy)
+        .map_or(file_name, |parent_dir_name| parent_dir_name),
       _ => file_name,
     };
 
@@ -50,6 +46,8 @@ impl PathExt for std::path::Path {
 
 #[test]
 fn test_representative_file_name() {
+  use std::path::Path;
+
   let cwd = Path::new(".").join("project");
   let path = cwd.join("src").join("vue.js");
   assert_eq!(path.representative_file_name(), "vue");
