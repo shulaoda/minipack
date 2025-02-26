@@ -3,7 +3,7 @@ use oxc_index::IndexVec;
 
 use crate::{
   link_stage::create_exports_for_ecma_modules::create_wrapper,
-  types::{linking_metadata::LinkingMetadataVec, IndexModules},
+  types::{IndexModules, linking_metadata::LinkingMetadataVec},
 };
 
 use super::LinkStage;

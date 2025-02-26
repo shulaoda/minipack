@@ -41,10 +41,6 @@ impl ResolvedId {
 
     let stable = stabilize_module_id(&self.id, cwd.as_ref());
 
-    if self.ignored {
-      format!("(ignored) {stable}")
-    } else {
-      stable
-    }
+    if self.ignored { format!("(ignored) {stable}") } else { stable }
   }
 }

@@ -5,7 +5,7 @@ use crate::graph::ChunkGraph;
 
 use super::GenerateStage;
 
-use itertools::{multizip, Itertools};
+use itertools::{Itertools, multizip};
 use minipack_common::{
   ChunkIdx, ChunkKind, CrossChunkImportItem, ExportsKind, ImportKind, ImportRecordMeta, Module,
   ModuleIdx, NamedImport, OutputFormat, SymbolOrMemberExprRef, SymbolRef, WrapKind,
@@ -17,7 +17,7 @@ use minipack_utils::{
   rstr::{Rstr, ToRstr},
   rustc_hash::FxHashMapExt,
 };
-use oxc_index::{index_vec, IndexVec};
+use oxc_index::{IndexVec, index_vec};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 type IndexChunkDependedSymbols = IndexVec<ChunkIdx, FxIndexSet<SymbolRef>>;

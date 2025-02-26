@@ -1,6 +1,6 @@
 use minipack_common::{
-  side_effects::DeterminedSideEffects, EcmaRelated, EcmaView, EcmaViewMeta, ImportRecordIdx,
-  ModuleId, RawImportRecord, StrOrBytes,
+  EcmaRelated, EcmaView, EcmaViewMeta, ImportRecordIdx, ModuleId, RawImportRecord, StrOrBytes,
+  side_effects::DeterminedSideEffects,
 };
 use minipack_error::BuildResult;
 use minipack_utils::{
@@ -13,7 +13,7 @@ use sugar_path::SugarPath;
 use crate::{
   scan_stage::ast_scanner::{AstScanResult, AstScanner},
   types::module_factory::CreateModuleContext,
-  utils::parse_to_ecma_ast::{parse_to_ecma_ast, ParseToEcmaAstResult},
+  utils::parse_to_ecma_ast::{ParseToEcmaAstResult, parse_to_ecma_ast},
 };
 
 pub struct CreateEcmaViewReturn {

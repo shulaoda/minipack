@@ -3,12 +3,12 @@ use minipack_ecmascript_utils::{ExpressionExt, TakeIn};
 use oxc::{
   allocator::{self, IntoIn},
   ast::{
+    VisitMut,
     ast::{self, Expression, SimpleAssignmentTarget},
     match_member_expression,
     visit::walk_mut,
-    VisitMut,
   },
-  span::{Span, SPAN},
+  span::{SPAN, Span},
 };
 use rustc_hash::FxHashSet;
 

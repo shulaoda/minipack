@@ -2,8 +2,8 @@ use minipack_common::EcmaModuleAstUsage;
 use minipack_ecmascript_utils::ExpressionExt;
 use oxc::allocator::GetAddress;
 use oxc::ast::{
-  ast::{self, Expression, PropertyKey},
   AstKind,
+  ast::{self, Expression, PropertyKey},
 };
 
 use super::{AstScanner, IdentifierReferenceKind};

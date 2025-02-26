@@ -8,41 +8,41 @@ mod module_loader;
 mod types;
 
 pub use bundler_options::{
-  es_target::ESTarget, filename_template::FilenameTemplate, input_item::InputItem,
+  BundlerOptions, es_target::ESTarget, filename_template::FilenameTemplate, input_item::InputItem,
   module_type::ModuleType, normalized_bundler_options::NormalizedBundlerOptions,
   output_exports::OutputExports, output_format::OutputFormat, platform::Platform,
-  resolve_options::ResolveOptions, BundlerOptions,
+  resolve_options::ResolveOptions,
 };
 
 pub use crate::{
   asset::AssetView,
   chunk::{
+    Chunk,
     types::{
       cross_chunk_import_item::CrossChunkImportItem, preliminary_filename::PreliminaryFilename,
     },
-    Chunk,
   },
   css::{CssAssetNameReplacer, CssRenderer, CssView},
   ecmascript::{
     dynamic_import_usage,
     ecma_ast_idx::EcmaAstIdx,
     ecma_view::{
-      generate_replace_this_expr_map, EcmaModuleAstUsage, EcmaView, EcmaViewMeta,
-      ImportMetaRolldownAssetReplacer, ThisExprReplaceKind,
+      EcmaModuleAstUsage, EcmaView, EcmaViewMeta, ImportMetaRolldownAssetReplacer,
+      ThisExprReplaceKind, generate_replace_this_expr_map,
     },
-    module_idx::{ModuleIdx, DUMMY_MODULE_IDX},
+    module_idx::{DUMMY_MODULE_IDX, ModuleIdx},
     node_builtin_modules::is_existing_node_builtin_modules,
   },
   module::{
+    Module,
     external_module::ExternalModule,
     normal_module::{ModuleRenderArgs, NormalModule},
-    Module,
   },
   module_loader::{
-    runtime_module_brief::{RuntimeModuleBrief, RUNTIME_MODULE_ID},
+    ModuleLoaderMsg,
+    runtime_module_brief::{RUNTIME_MODULE_ID, RuntimeModuleBrief},
     runtime_task_result::RuntimeModuleTaskResult,
     task_result::{EcmaRelated, NormalModuleTaskResult},
-    ModuleLoaderMsg,
   },
   types::{
     asset::Asset,

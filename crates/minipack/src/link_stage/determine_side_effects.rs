@@ -1,4 +1,4 @@
-use minipack_common::{side_effects::DeterminedSideEffects, Module, ModuleIdx};
+use minipack_common::{Module, ModuleIdx, side_effects::DeterminedSideEffects};
 use oxc_index::IndexVec;
 
 use crate::types::IndexModules;

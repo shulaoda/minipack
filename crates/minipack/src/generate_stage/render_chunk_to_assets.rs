@@ -8,16 +8,16 @@ use minipack_utils::{
   indexmap::FxIndexSet,
   rayon::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator},
 };
-use oxc_index::{index_vec, IndexVec};
+use oxc_index::{IndexVec, index_vec};
 
 use super::generators::{asset::AssetGenerator, css::CssGenerator, ecmascript::EcmaGenerator};
 
 use crate::{
   graph::ChunkGraph,
   types::{
+    IndexAssets, IndexChunkToAssets, IndexInstantiatedChunks,
     bundle_output::BundleOutput,
     generator::{GenerateContext, Generator},
-    IndexAssets, IndexChunkToAssets, IndexInstantiatedChunks,
   },
   utils::chunk::finalize_chunks::finalize_assets,
 };
@@ -197,7 +197,8 @@ impl GenerateStage<'_> {
       assets.par_iter_mut().try_for_each(|asset| -> anyhow::Result<()> {
         match asset.meta {
           InstantiationKind::Ecma(_) => {
-            let minified_content = EcmaCompiler::minify(asset.content.try_as_inner_str()?);
+            let minified_content =
+              EcmaCompiler::minify(asset.content.try_as_inner_str()?, self.options.target.into());
             asset.content = minified_content.into();
           }
           InstantiationKind::None => {}

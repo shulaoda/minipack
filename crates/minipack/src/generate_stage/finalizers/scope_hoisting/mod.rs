@@ -17,11 +17,11 @@ use minipack_utils::{
 use oxc::{
   allocator::{Allocator, CloneIn, IntoIn},
   ast::{
+    Comment, NONE,
     ast::{
       self, Expression, IdentifierReference, ImportExpression, MemberExpression, Statement,
       VariableDeclarationKind,
     },
-    Comment, NONE,
   },
   semantic::{ReferenceId, SymbolId},
   span::{Atom, GetSpan, SPAN},

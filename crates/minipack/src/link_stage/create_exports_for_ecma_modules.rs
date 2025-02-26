@@ -1,7 +1,7 @@
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, EntryPoint, ExportsKind, ModuleIdx,
-  NormalModule, NormalizedBundlerOptions, OutputFormat, RuntimeModuleBrief, StmtInfo, StmtInfoMeta,
-  SymbolRefDb, WrapKind,
+  EntryPoint, ExportsKind, ModuleIdx, NormalModule, NormalizedBundlerOptions, OutputFormat,
+  RuntimeModuleBrief, StmtInfo, StmtInfoMeta, SymbolRefDb, WrapKind,
+  dynamic_import_usage::DynamicImportExportsUsage,
 };
 use rustc_hash::FxHashMap;
 

@@ -4,14 +4,15 @@ use oxc::{
   allocator::Allocator,
   ast::AstBuilder,
   codegen::{CodeGenerator, Codegen, CodegenOptions, CodegenReturn, LegalComment},
-  minifier::{Minifier, MinifierOptions},
+  minifier::{CompressOptions, MangleOptions, Minifier, MinifierOptions},
   parser::{ParseOptions, Parser},
-  span::{SourceType, SPAN},
+  span::{SPAN, SourceType},
+  transformer::ESTarget,
 };
 
 use crate::ecma_ast::{
-  program_cell::{ProgramCell, ProgramCellDependent, ProgramCellOwner},
   EcmaAst,
+  program_cell::{ProgramCell, ProgramCellDependent, ProgramCellOwner},
 };
 
 pub struct EcmaCompiler;
@@ -79,14 +80,18 @@ impl EcmaCompiler {
       .build(ast.program())
   }
 
-  pub fn minify(source_text: &str) -> String {
+  pub fn minify(source_text: &str, target: ESTarget) -> String {
     let allocator = Allocator::default();
     let source_type = SourceType::default();
 
     let program =
       allocator.alloc(Parser::new(&allocator, source_text, source_type).parse().program);
-    let symbol_table =
-      Minifier::new(MinifierOptions::default()).build(&allocator, program).symbol_table;
+    let symbol_table = Minifier::new(MinifierOptions {
+      mangle: Some(MangleOptions::default()),
+      compress: Some(CompressOptions { target, drop_debugger: false, drop_console: false }),
+    })
+    .build(&allocator, program)
+    .symbol_table;
     let ret = Codegen::new()
       .with_options(CodegenOptions { minify: true, ..CodegenOptions::default() })
       .with_symbol_table(symbol_table)

@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use minipack_common::{is_existing_node_builtin_modules, ImportKind, ModuleDefFormat, ResolvedId};
+use minipack_common::{ImportKind, ModuleDefFormat, ResolvedId, is_existing_node_builtin_modules};
 use minipack_error::BuildResult;
 use minipack_resolver::{ResolveError, Resolver};
 

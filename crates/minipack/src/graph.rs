@@ -1,5 +1,5 @@
 use minipack_common::{Chunk, ChunkIdx, ModuleIdx};
-use oxc_index::{index_vec, IndexVec};
+use oxc_index::{IndexVec, index_vec};
 use rustc_hash::FxHashMap;
 
 use crate::types::IndexModules;

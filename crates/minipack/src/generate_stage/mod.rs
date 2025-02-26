@@ -21,7 +21,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   graph::ChunkGraph,
-  types::{bundle_output::BundleOutput, SharedOptions},
+  types::{SharedOptions, bundle_output::BundleOutput},
   utils::chunk::{
     deconflict_chunk_symbols::deconflict_chunk_symbols,
     validate_options_for_multi_chunk_output::validate_options_for_multi_chunk_output,

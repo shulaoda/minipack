@@ -13,7 +13,7 @@ use minipack_utils::{
   rayon::{IndexedParallelIterator, IntoParallelRefMutIterator},
   xxhash::xxhash_with_base,
 };
-use oxc_index::{index_vec, IndexVec};
+use oxc_index::{IndexVec, index_vec};
 use rustc_hash::FxHashMap;
 use xxhash_rust::xxh3::Xxh3;
 

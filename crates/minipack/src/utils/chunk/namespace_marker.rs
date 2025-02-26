@@ -8,7 +8,9 @@ pub fn render_namespace_markers(
 ) -> Option<&'static str> {
   if has_default_export {
     if namespace_to_string_tag {
-      Some("Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });")
+      Some(
+        "Object.defineProperties(exports, { __esModule: { value: true }, [Symbol.toStringTag]: { value: 'Module' } });",
+      )
     } else {
       Some("Object.defineProperty(exports, '__esModule', { value: true });")
     }

@@ -49,11 +49,7 @@ impl<'ast> StatementExt<'_, 'ast> for ast::Statement<'ast> {
   }
 
   fn as_function_declaration(&self) -> Option<&ast::Function<'ast>> {
-    if let ast::Statement::FunctionDeclaration(func_decl) = self {
-      Some(func_decl)
-    } else {
-      None
-    }
+    if let ast::Statement::FunctionDeclaration(func_decl) = self { Some(func_decl) } else { None }
   }
 
   /// Check if the statement is `[import|export] ... from ...` or `export ... from ...`

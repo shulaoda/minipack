@@ -6,10 +6,10 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  side_effects::DeterminedSideEffects,
-  types::{ast_scope_idx::AstScopeIdx, source_mutation::BoxedSourceMutation},
   EcmaAstIdx, ExportsKind, ImportRecordIdx, LocalExport, ModuleDefFormat, ModuleId, NamedImport,
   ResolvedImportRecord, SourceMutation, StmtInfoIdx, StmtInfos, SymbolRef,
+  side_effects::DeterminedSideEffects,
+  types::{ast_scope_idx::AstScopeIdx, source_mutation::BoxedSourceMutation},
 };
 
 bitflags! {

@@ -4,8 +4,8 @@ use crate::{
   generate_stage::GenerateStage,
   link_stage::LinkStage,
   scan_stage::ScanStage,
-  types::{bundle_output::BundleOutput, SharedOptions, SharedResolver},
-  utils::normalize_options::{normalize_options, NormalizeOptionsReturn},
+  types::{SharedOptions, SharedResolver, bundle_output::BundleOutput},
+  utils::normalize_options::{NormalizeOptionsReturn, normalize_options},
 };
 
 use minipack_common::{BundlerOptions, NormalizedBundlerOptions};

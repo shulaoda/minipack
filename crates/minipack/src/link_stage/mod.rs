@@ -10,15 +10,15 @@ mod sort_modules;
 mod wrap_modules;
 
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, EcmaModuleAstUsage, EntryPoint, EntryPointKind,
-  ImportKind, Module, ModuleIdx, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
+  EcmaModuleAstUsage, EntryPoint, EntryPointKind, ImportKind, Module, ModuleIdx,
+  RuntimeModuleBrief, SymbolRef, SymbolRefDb, dynamic_import_usage::DynamicImportExportsUsage,
 };
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::types::{
-  linking_metadata::{LinkingMetadata, LinkingMetadataVec},
   IndexAstScope, IndexEcmaAst, IndexModules, SharedOptions,
+  linking_metadata::{LinkingMetadata, LinkingMetadataVec},
 };
 
 use super::scan_stage::ScanStageOutput;

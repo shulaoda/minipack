@@ -9,13 +9,13 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::Sender;
 
 use minipack_common::{
-  EcmaView, EcmaViewMeta, ExportsKind, ModuleIdx, ModuleType, NormalModule, ResolvedId,
-  RuntimeModuleBrief, RuntimeModuleTaskResult, RUNTIME_MODULE_ID,
+  EcmaView, EcmaViewMeta, ExportsKind, ModuleIdx, ModuleType, NormalModule, RUNTIME_MODULE_ID,
+  ResolvedId, RuntimeModuleBrief, RuntimeModuleTaskResult,
 };
 use minipack_common::{ModuleDefFormat, ModuleId, ModuleLoaderMsg};
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 
-use super::ast_scanner::{pre_processor::PreProcessor, AstScanResult, AstScanner};
+use super::ast_scanner::{AstScanResult, AstScanner, pre_processor::PreProcessor};
 use crate::types::SharedNormalizedBundlerOptions;
 
 pub struct RuntimeModuleTask {

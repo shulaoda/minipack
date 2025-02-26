@@ -2,7 +2,7 @@ use std::path::Path;
 
 use arcstr::ArcStr;
 use minipack_common::{
-  ModuleType, NormalizedBundlerOptions, Platform, StrOrBytes, RUNTIME_MODULE_ID,
+  ModuleType, NormalizedBundlerOptions, Platform, RUNTIME_MODULE_ID, StrOrBytes,
 };
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 use minipack_error::BuildResult;

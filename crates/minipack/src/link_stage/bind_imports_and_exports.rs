@@ -17,7 +17,7 @@ use oxc::span::CompactStr;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::types::{linking_metadata::LinkingMetadataVec, IndexModules, SharedOptions};
+use crate::types::{IndexModules, SharedOptions, linking_metadata::LinkingMetadataVec};
 
 use super::LinkStage;
 
@@ -317,11 +317,7 @@ impl LinkStage<'_> {
         let Module::Normal(module) = module else {
           return None;
         };
-        if module.exports_kind.is_commonjs() {
-          Some(module.idx)
-        } else {
-          None
-        }
+        if module.exports_kind.is_commonjs() { Some(module.idx) } else { None }
       })
       .collect::<Vec<_>>();
     for module_idx in cjs_exports_type_modules {

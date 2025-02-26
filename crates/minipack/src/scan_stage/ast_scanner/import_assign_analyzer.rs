@@ -1,8 +1,8 @@
 use minipack_common::Specifier;
 use oxc::{
   ast::{
-    ast::{IdentifierReference, UnaryOperator},
     AstKind,
+    ast::{IdentifierReference, UnaryOperator},
   },
   semantic::{SymbolFlags, SymbolId},
   span::Span,

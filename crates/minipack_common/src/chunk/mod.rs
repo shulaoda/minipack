@@ -60,15 +60,7 @@ impl Chunk {
     kind: ChunkKind,
     is_alive: bool,
   ) -> Self {
-    Self {
-      exec_order: u32::MAX,
-      modules,
-      name: name.map(Into::into),
-      bits,
-      kind,
-      is_alive,
-      ..Self::default()
-    }
+    Self { exec_order: u32::MAX, modules, name, bits, kind, is_alive, ..Self::default() }
   }
 
   pub fn has_side_effect(&self, runtime_id: ModuleIdx) -> bool {
@@ -84,11 +76,7 @@ impl Chunk {
       .as_ref()
       .expect("importee chunk should have absolute_preliminary_filename");
     let import_path = self.relative_path_for(importee_filename.as_path());
-    if import_path.starts_with('.') {
-      import_path
-    } else {
-      format!("./{import_path}")
-    }
+    if import_path.starts_with('.') { import_path } else { format!("./{import_path}") }
   }
 
   pub fn relative_path_for(&self, target: &Path) -> String {

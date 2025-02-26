@@ -1,8 +1,8 @@
 use arcstr::ArcStr;
 use minipack_common::{
   ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleDefFormat, ModuleId, ModuleIdx,
-  ModuleLoaderMsg, ModuleType, NormalModule, NormalModuleTaskResult, ResolvedId, StrOrBytes,
-  RUNTIME_MODULE_ID,
+  ModuleLoaderMsg, ModuleType, NormalModule, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId,
+  StrOrBytes,
 };
 use minipack_error::BuildResult;
 use minipack_fs::FileSystem;
@@ -14,7 +14,7 @@ use sugar_path::SugarPath;
 use super::loaders::{
   asset::create_asset_view,
   css::create_css_view,
-  ecmascript::{create_ecma_view, CreateEcmaViewReturn},
+  ecmascript::{CreateEcmaViewReturn, create_ecma_view},
 };
 
 use crate::{types::module_factory::CreateModuleContext, utils::resolve_id::resolve_id};
