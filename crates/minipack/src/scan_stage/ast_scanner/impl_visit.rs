@@ -1,18 +1,18 @@
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, ImportKind, ImportRecordMeta, StmtInfoMeta,
+  ImportKind, ImportRecordMeta, StmtInfoMeta, dynamic_import_usage::DynamicImportExportsUsage,
 };
 use minipack_utils::option_ext::OptionExt;
 use oxc::{
   ast::{
+    AstKind, Visit,
     ast::{self, BindingPatternKind, IdentifierReference},
     visit::walk,
-    AstKind, Visit,
   },
   semantic::SymbolId,
   span::GetSpan,
 };
 
-use super::{side_effect_detector::SideEffectDetector, AstScanner};
+use super::{AstScanner, side_effect_detector::SideEffectDetector};
 
 impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   fn enter_scope(

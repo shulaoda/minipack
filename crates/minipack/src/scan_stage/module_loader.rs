@@ -4,11 +4,11 @@ use std::sync::Arc;
 use arcstr::ArcStr;
 use minipack_common::StmtInfoIdx;
 use minipack_common::{
-  side_effects::DeterminedSideEffects, EcmaRelated, EntryPoint, EntryPointKind, ExternalModule,
-  ImportKind, ImportRecordIdx, ImportRecordMeta, ImporterRecord, Module, ModuleId, ModuleIdx,
-  ModuleLoaderMsg, ModuleType, NormalModuleTaskResult, ResolvedId, ResolvedImportRecord,
-  RuntimeModuleBrief, RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule, DUMMY_MODULE_IDX,
-  RUNTIME_MODULE_ID,
+  DUMMY_MODULE_IDX, EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind,
+  ImportRecordIdx, ImportRecordMeta, ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
+  ModuleType, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId, ResolvedImportRecord,
+  RuntimeModuleBrief, RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule,
+  side_effects::DeterminedSideEffects,
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;

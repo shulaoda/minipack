@@ -32,7 +32,7 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
       ast::Expression::Identifier(it) => {
         it.span = id_ref.span;
       }
-      ast::Expression::StaticMemberExpression(ref mut it) => {
+      ast::Expression::StaticMemberExpression(it) => {
         it.span = id_ref.span;
         it.property.span = id_ref.span;
         if let Some(object) = it.object.as_identifier_mut() {

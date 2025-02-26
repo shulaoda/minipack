@@ -8,10 +8,10 @@ use std::borrow::Cow;
 
 use arcstr::ArcStr;
 use minipack_common::{
-  dynamic_import_usage::{DynamicImportExportsUsage, DynamicImportUsageInfo},
   AstScopes, ImportKind, ImportRecordIdx, ImportRecordMeta, LocalExport, MemberExprRef, ModuleId,
   ModuleIdx, NamedImport, RawImportRecord, Specifier, StmtInfo, StmtInfos, SymbolRef,
   SymbolRefDbForModule, SymbolRefFlags,
+  dynamic_import_usage::{DynamicImportExportsUsage, DynamicImportUsageInfo},
 };
 use minipack_ecmascript_utils::{BindingIdentifierExt, BindingPatternExt};
 use minipack_error::BuildResult;
@@ -20,14 +20,14 @@ use minipack_utils::{
 };
 use oxc::{
   ast::{
+    AstKind, Comment, Visit,
     ast::{
       self, ExportAllDeclaration, ExportDefaultDeclaration, ExportNamedDeclaration,
       IdentifierReference, ImportDeclaration, MemberExpression, ModuleDeclaration, Program,
     },
-    AstKind, Comment, Visit,
   },
   semantic::{Reference, ScopeFlags, ScopeId, ScopeTree, SymbolId, SymbolTable},
-  span::{CompactStr, GetSpan, Span, SPAN},
+  span::{CompactStr, GetSpan, SPAN, Span},
 };
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -489,7 +489,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     );
     self.result.imports.insert(decl.span, rec_id);
     // // `import '...'` or `import {} from '...'`
-    if decl.specifiers.as_ref().map_or(true, |s| s.is_empty()) {
+    if decl.specifiers.as_ref().is_none_or(|s| s.is_empty()) {
       self.result.import_records[rec_id].meta.insert(ImportRecordMeta::IS_PLAIN_IMPORT);
     }
 

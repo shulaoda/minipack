@@ -3,10 +3,10 @@ use minipack_ecmascript_utils::ExpressionExt;
 use oxc::{
   allocator::{self, IntoIn},
   ast::{
+    VisitMut,
     ast::{self, Expression, SimpleAssignmentTarget},
     match_member_expression,
     visit::walk_mut,
-    VisitMut,
   },
   span::Span,
 };

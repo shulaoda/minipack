@@ -9,11 +9,11 @@ use minipack_utils::{ecmascript::is_validate_identifier_name, path_ext::PathExt,
 use oxc::{
   allocator::{Allocator, CloneIn, IntoIn},
   ast::{
+    Comment, NONE,
     ast::{
       self, Expression, IdentifierReference, ImportExpression, MemberExpression,
       VariableDeclarationKind,
     },
-    Comment, NONE,
   },
   semantic::{ReferenceId, SymbolId},
   span::{GetSpan, SPAN},

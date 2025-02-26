@@ -131,7 +131,7 @@ impl<'name> Renamer<'name> {
       let mut used_canonical_names_for_this_scope = FxHashMap::with_capacity(bindings.len());
 
       bindings.sort_unstable_by_key(|(_, symbol_id)| *symbol_id);
-      bindings.iter().for_each(|(binding_name, &symbol_id)| {
+      bindings.iter().for_each(|&(&binding_name, &symbol_id)| {
         let binding_ref: SymbolRef = (module.idx, symbol_id).into();
 
         let mut count = 1;
@@ -153,10 +153,7 @@ impl<'name> Renamer<'name> {
               break;
             }
           },
-          Entry::Occupied(sort) => {
-            // The symbol is already renamed
-            used_canonical_names_for_this_scope.insert(sort.get().clone(), 0);
-          }
+          Entry::Occupied(_) => {}
         }
       });
 

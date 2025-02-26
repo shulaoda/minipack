@@ -1,28 +1,6 @@
-use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, EntryPoint, ModuleIdx, OutputFormat, StmtInfo,
-  StmtInfoMeta,
-};
-use rustc_hash::FxHashMap;
-
-use crate::types::linking_metadata::LinkingMetadata;
+use minipack_common::{OutputFormat, StmtInfo, StmtInfoMeta};
 
 use super::LinkStage;
-
-pub fn init_entry_point_stmt_info(
-  meta: &mut LinkingMetadata,
-  entry: &EntryPoint,
-  dynamic_import_exports_usage_map: &FxHashMap<ModuleIdx, DynamicImportExportsUsage>,
-) {
-  let mut referenced_symbols = vec![];
-
-  referenced_symbols.extend(
-    meta
-      .referenced_canonical_exports_symbols(entry.id, entry.kind, dynamic_import_exports_usage_map)
-      .map(|(_, resolved_export)| resolved_export.symbol_ref),
-  );
-
-  meta.referenced_symbols_by_entry_point_chunk.extend(referenced_symbols);
-}
 
 impl LinkStage<'_> {
   pub(crate) fn create_exports_for_ecma_modules(&mut self) {
@@ -30,7 +8,15 @@ impl LinkStage<'_> {
       let linking_info = &mut self.metadata[ecma_module.idx];
 
       if let Some(entry) = self.entry_points.iter().find(|entry| entry.id == ecma_module.idx) {
-        init_entry_point_stmt_info(linking_info, entry, &self.dyn_import_usage_map);
+        let mut referenced_symbols = vec![];
+
+        referenced_symbols.extend(
+          linking_info
+            .referenced_canonical_exports_symbols(entry.id, entry.kind, &self.dyn_import_usage_map)
+            .map(|(_, resolved_export)| resolved_export.symbol_ref),
+        );
+
+        linking_info.referenced_symbols_by_entry_point_chunk.extend(referenced_symbols);
       }
 
       // Create facade StmtInfo that declares variables based on the missing exports, so they can participate in the symbol de-conflict and

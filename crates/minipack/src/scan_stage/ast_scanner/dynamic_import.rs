@@ -1,8 +1,8 @@
-use minipack_common::{dynamic_import_usage::DynamicImportExportsUsage, ImportRecordIdx};
+use minipack_common::{ImportRecordIdx, dynamic_import_usage::DynamicImportExportsUsage};
 use oxc::{
   ast::{
-    ast::{self, Argument, IdentifierReference},
     AstKind,
+    ast::{self, Argument, IdentifierReference},
   },
   span::CompactStr,
 };

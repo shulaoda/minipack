@@ -1,8 +1,8 @@
 use std::{ptr::addr_of, sync::Mutex};
 
 use minipack_common::{
-  side_effects::DeterminedSideEffects, ImportKind, ImportRecordIdx, ImportRecordMeta, Module,
-  OutputFormat,
+  ImportKind, ImportRecordIdx, ImportRecordMeta, Module, OutputFormat,
+  side_effects::DeterminedSideEffects,
 };
 use minipack_utils::{
   concat_string,

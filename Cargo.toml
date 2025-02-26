@@ -1,9 +1,9 @@
 [workspace]
 members  = ["./crates/*"]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
-edition    = "2021"
+edition    = "2024"
 homepage   = "https://github.com/shulaoda/minipack"
 license    = "MIT"
 readme     = "README.md"
@@ -80,7 +80,7 @@ bitflags          = { version = "2.8.0" }
 css-module-lexer  = { version = "0.0.15" }
 daachorse         = { version = "1.0.0" }
 dashmap           = { version = "6.1.0" }
-fast-glob         = { version = "0.4.3" }
+fast-glob         = { version = "0.4.4" }
 futures           = { version = "0.3.31" }
 indexmap          = { version = "2.7.0" }
 infer             = { version = "0.16.0" }
@@ -104,8 +104,8 @@ xxhash-rust       = { version = "0.8.15" }
 
 # oxc crates share the same version
 # Please update with `cargo update oxc_resolver oxc_index`
-oxc          = { version = "0.51.0", features = ["transformer", "minifier", "semantic", "codegen", "serialize"] }
-oxc_index    = { version = "2", features = ["rayon"] }
+oxc          = { version = "0.53.0", features = ["transformer", "minifier", "semantic", "codegen", "serialize"] }
+oxc_index    = { version = "3", features = ["rayon"] }
 oxc_resolver = { version = "4" }
 
 [profile.release]

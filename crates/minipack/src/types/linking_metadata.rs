@@ -1,6 +1,6 @@
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, EntryPointKind, ImportRecordIdx, ModuleIdx,
-  ResolvedExport, SymbolRef,
+  EntryPointKind, ImportRecordIdx, ModuleIdx, ResolvedExport, SymbolRef,
+  dynamic_import_usage::DynamicImportExportsUsage,
 };
 use minipack_utils::{indexmap::FxIndexSet, rstr::Rstr};
 use oxc::span::{CompactStr, Span};

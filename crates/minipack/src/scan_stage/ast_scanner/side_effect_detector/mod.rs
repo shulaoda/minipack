@@ -18,7 +18,7 @@ use utils::{
 };
 use utils::{extract_member_expr_chain, is_primitive_literal};
 
-use self::utils::{known_primitive_type, PrimitiveType};
+use self::utils::{PrimitiveType, known_primitive_type};
 
 /// Detect if a statement "may" have side effect.
 pub struct SideEffectDetector<'a> {

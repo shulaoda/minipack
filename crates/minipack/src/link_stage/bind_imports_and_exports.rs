@@ -15,7 +15,7 @@ use oxc::span::CompactStr;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::types::{linking_metadata::LinkingMetadataVec, IndexModules, SharedOptions};
+use crate::types::{IndexModules, SharedOptions, linking_metadata::LinkingMetadataVec};
 
 use super::LinkStage;
 

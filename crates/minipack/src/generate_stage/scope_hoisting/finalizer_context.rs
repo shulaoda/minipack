@@ -7,8 +7,8 @@ use rustc_hash::FxHashMap;
 use crate::{
   graph::ChunkGraph,
   types::{
-    linking_metadata::{LinkingMetadata, LinkingMetadataVec},
     IndexModules, SharedOptions,
+    linking_metadata::{LinkingMetadata, LinkingMetadataVec},
   },
 };
 

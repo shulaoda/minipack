@@ -7,8 +7,8 @@ pub mod oxc_parse_type;
 use std::sync::Arc;
 
 use minipack_common::{
-  dynamic_import_usage::DynamicImportExportsUsage, Asset, AssetIdx, AstScopeIdx, AstScopes,
-  ChunkIdx, EcmaAstIdx, InstantiatedChunk, Module, ModuleIdx, NormalizedBundlerOptions,
+  Asset, AssetIdx, AstScopeIdx, AstScopes, ChunkIdx, EcmaAstIdx, InstantiatedChunk, Module,
+  ModuleIdx, NormalizedBundlerOptions, dynamic_import_usage::DynamicImportExportsUsage,
 };
 use minipack_ecmascript::EcmaAst;
 use minipack_fs::OsFileSystem;

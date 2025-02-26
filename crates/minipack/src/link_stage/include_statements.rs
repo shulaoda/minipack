@@ -1,12 +1,12 @@
 use minipack_common::{
-  side_effects::DeterminedSideEffects, EcmaViewMeta, Module, ModuleIdx, ModuleType, NormalModule,
-  StmtInfoIdx, SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
+  EcmaViewMeta, Module, ModuleIdx, ModuleType, NormalModule, StmtInfoIdx, SymbolOrMemberExprRef,
+  SymbolRef, SymbolRefDb, side_effects::DeterminedSideEffects,
 };
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
 use oxc_index::IndexVec;
 use rustc_hash::FxHashSet;
 
-use crate::types::{linking_metadata::LinkingMetadataVec, IndexModules};
+use crate::types::{IndexModules, linking_metadata::LinkingMetadataVec};
 
 use super::LinkStage;
 

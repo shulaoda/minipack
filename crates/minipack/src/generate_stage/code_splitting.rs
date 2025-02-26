@@ -87,7 +87,8 @@ impl GenerateStage<'_> {
       let bits = &index_splitting_info[normal_module.idx].bits;
       debug_assert!(
         !bits.is_empty(),
-        "Empty bits means the module is not reachable, so it should bail out with `is_included: false` {:?}", normal_module.stable_id
+        "Empty bits means the module is not reachable, so it should bail out with `is_included: false` {:?}",
+        normal_module.stable_id
       );
 
       if let Some(chunk_id) = bits_to_chunk.get(bits).copied() {
