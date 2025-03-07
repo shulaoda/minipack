@@ -20,12 +20,13 @@ use minipack_utils::{
 };
 use oxc::{
   ast::{
-    AstKind, Comment, Visit,
+    AstKind, Comment,
     ast::{
       self, ExportAllDeclaration, ExportDefaultDeclaration, ExportNamedDeclaration,
       IdentifierReference, ImportDeclaration, MemberExpression, ModuleDeclaration, Program,
     },
   },
+  ast_visit::Visit,
   semantic::{Reference, ScopeFlags, ScopeId, ScopeTree, SymbolId, SymbolTable},
   span::{CompactStr, GetSpan, SPAN, Span},
 };

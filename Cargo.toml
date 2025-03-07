@@ -104,7 +104,7 @@ xxhash-rust       = { version = "0.8.15" }
 
 # oxc crates share the same version
 # Please update with `cargo update oxc_resolver oxc_index`
-oxc          = { version = "0.53.0", features = ["transformer", "minifier", "semantic", "codegen", "serialize"] }
+oxc          = { version = "0.54.0", features = ["ast_visit", "transformer", "minifier", "semantic", "codegen", "serialize"] }
 oxc_index    = { version = "3", features = ["rayon"] }
 oxc_resolver = { version = "4" }
 

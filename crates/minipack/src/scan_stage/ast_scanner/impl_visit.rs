@@ -4,10 +4,10 @@ use minipack_common::{
 use minipack_utils::option_ext::OptionExt;
 use oxc::{
   ast::{
-    AstKind, Visit,
+    AstKind,
     ast::{self, BindingPatternKind, IdentifierReference},
-    visit::walk,
   },
+  ast_visit::{Visit, walk},
   semantic::SymbolId,
   span::GetSpan,
 };

@@ -327,7 +327,8 @@ impl<'a> SideEffectDetector<'a> {
       | Expression::ImportExpression(_)
       | Expression::TaggedTemplateExpression(_)
       | Expression::UpdateExpression(_)
-      | Expression::YieldExpression(_) => true,
+      | Expression::YieldExpression(_)
+      | Expression::V8IntrinsicExpression(_) => true,
       Expression::JSXElement(_) | Expression::JSXFragment(_) => {
         unreachable!("jsx should be transpiled")
       }

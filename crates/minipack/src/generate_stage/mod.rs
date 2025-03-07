@@ -13,7 +13,7 @@ use minipack_common::{CssAssetNameReplacer, ImportMetaRolldownAssetReplacer, Mod
 use minipack_ecmascript_utils::{AstSnippet, TakeIn};
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
-use oxc::ast::VisitMut;
+use oxc::ast_visit::VisitMut;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{

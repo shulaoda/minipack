@@ -3,9 +3,9 @@ use minipack_ecmascript_utils::AstSnippet;
 use minipack_ecmascript_utils::StatementExt;
 use minipack_ecmascript_utils::TakeIn;
 use oxc::allocator::Allocator;
+use oxc::ast::NONE;
 use oxc::ast::ast::{self, BindingPatternKind, Declaration, ImportOrExportKind, Statement};
-use oxc::ast::visit::walk_mut;
-use oxc::ast::{NONE, VisitMut};
+use oxc::ast_visit::{VisitMut, walk_mut};
 use oxc::span::{SPAN, Span};
 
 /// Pre-process is a essential step to make rolldown generate correct and efficient code.
