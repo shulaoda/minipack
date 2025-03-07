@@ -240,7 +240,7 @@ impl<F: FileSystem + Default> Resolver<F> {
     }
 
     resolution.map(|info| {
-      let path = info.full_path().to_str().expect("Should be valid utf8").to_string().into();
+      let path = info.full_path().to_str().expect("Should be valid utf8").into();
       let package_json = info.package_json().map(|p| self.cached_package_json(p));
       ResolveReturn { path, package_json, module_def_format: infer_module_def_format(&info) }
     })

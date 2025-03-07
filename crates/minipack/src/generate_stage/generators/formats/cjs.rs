@@ -85,7 +85,7 @@ pub fn render_cjs<'code>(
         // Only `named` export can we render the namespace markers.
         if matches!(&export_mode, OutputExports::Named) {
           if let Some(marker) = render_namespace_markers(has_default_export, false) {
-            source_joiner.append_source(marker.to_string());
+            source_joiner.append_source(marker);
           }
         }
         Some(export_mode)

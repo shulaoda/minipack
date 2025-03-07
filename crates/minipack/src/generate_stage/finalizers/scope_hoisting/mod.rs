@@ -4,8 +4,8 @@ mod rename;
 
 pub use finalizer_context::ScopeHoistingFinalizerContext;
 use minipack_common::{
-  AstScopes, ExportsKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleType, OutputFormat,
-  Platform, SymbolRef, WrapKind,
+  AstScopes, ExportsKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleIdx, ModuleType,
+  OutputFormat, Platform, SymbolRef, WrapKind,
 };
 use minipack_ecmascript_utils::{
   AllocatorExt, AstSnippet, BindingPatternExt, CallExpressionExt, ExpressionExt, StatementExt,
@@ -42,6 +42,7 @@ pub struct ScopeHoistingFinalizer<'me, 'ast> {
   /// All `ReferenceId` of `IdentifierReference` we are interested, the `IdentifierReference` should be the object of `MemberExpression` and the property is not
   /// a `"default"` property access
   pub interested_namespace_alias_ref_id: FxHashSet<ReferenceId>,
+  pub generated_init_esm_importee_ids: FxHashSet<ModuleIdx>,
 }
 
 impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
@@ -102,7 +103,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
   /// If return true the import stmt should be removed,
   /// or transform the import stmt to target form.
   fn transform_or_remove_import_export_stmt(
-    &self,
+    &mut self,
     stmt: &mut Statement<'ast>,
     rec_id: ImportRecordIdx,
   ) -> bool {
@@ -122,11 +123,13 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
       // Replace the import statement with `init_foo()` if `ImportDeclaration` is not a plain import
       // or the importee have side effects.
       WrapKind::Esm => {
-        if rec.meta.contains(ImportRecordMeta::IS_PLAIN_IMPORT)
-          && !importee.side_effects.has_side_effects()
+        if (rec.meta.contains(ImportRecordMeta::IS_PLAIN_IMPORT)
+          && !importee.side_effects.has_side_effects())
+          || self.generated_init_esm_importee_ids.contains(&importee.idx)
         {
           return true;
         };
+        self.generated_init_esm_importee_ids.insert(importee.idx);
         // `init_foo`
         let wrapper_ref_expr = self.finalized_expr_for_symbol_ref(
           importee_linking_info.wrapper_ref.unwrap(),
@@ -1054,7 +1057,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
           self.snippet.builder.binding_pattern(
             self.snippet.builder.binding_pattern_kind_binding_identifier(
               SPAN,
-              self.canonical_name_for(esm_ns.namespace_ref).to_string(),
+              self.canonical_name_for(esm_ns.namespace_ref).as_str(),
             ),
             NONE,
             false,
@@ -1108,7 +1111,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
           self.snippet.builder.binding_pattern(
             self.snippet.builder.binding_pattern_kind_binding_identifier(
               SPAN,
-              self.canonical_name_for(esm_ns.namespace_ref).to_string(),
+              self.canonical_name_for(esm_ns.namespace_ref).as_str(),
             ),
             NONE,
             false,

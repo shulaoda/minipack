@@ -1,5 +1,4 @@
 use crate::types::generator::GenerateContext;
-use arcstr::ArcStr;
 use minipack_common::{NormalModule, OutputExports};
 use minipack_error::BuildResult;
 use minipack_utils::rstr::Rstr;
@@ -45,7 +44,7 @@ pub fn determine_export_mode(
         let has_default_export = export_names.iter().any(|name| name.as_str() == "default");
         if has_default_export {
           let name = &ctx.chunk.name;
-          let chunk = ArcStr::from("chunk");
+          let chunk = arcstr::literal!("chunk");
           let name = name.as_ref().unwrap_or(&chunk);
 
           warnings.push(anyhow::anyhow!(r#"Entry module "{}" is using named (including {}) and default exports together. Consumers of your bundle will have to use `{}.default` to access the default export, which may not be what you want. Use `output.exports: "named"` to disable this warning."#,

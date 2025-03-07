@@ -123,7 +123,7 @@ impl RuntimeModuleTask {
       .iter()
       .map(|rec| {
         // We assume the runtime module only has external dependencies.
-        let id = rec.module_request.to_string().into();
+        let id = rec.module_request.as_str().into();
         ResolvedId {
           id,
           ignored: false,

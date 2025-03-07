@@ -66,10 +66,13 @@ pub fn create_wrapper(
         #[cfg(debug_assertions)]
         debug_label: None,
         meta: StmtInfoMeta::default(),
+        ..Default::default()
       };
 
       linking_info.wrapper_stmt_info = Some(module.stmt_infos.add_stmt_info(stmt_info));
       linking_info.wrapper_ref = Some(wrapper_ref);
+      module.generate_esm_namespace_in_cjs_node_mode_stmt(symbols, runtime, wrapper_ref);
+      module.generate_esm_namespace_in_cjs_stmt(symbols, runtime, wrapper_ref);
     }
     // If this is a lazily-initialized ESM file, we're going to need to
     // generate a wrapper for the ESM closure. That will end up looking
@@ -97,6 +100,7 @@ pub fn create_wrapper(
         #[cfg(debug_assertions)]
         debug_label: None,
         meta: StmtInfoMeta::default(),
+        ..Default::default()
       };
 
       linking_info.wrapper_stmt_info = Some(module.stmt_infos.add_stmt_info(stmt_info));
@@ -128,6 +132,7 @@ impl LinkStage<'_> {
           #[cfg(debug_assertions)]
           debug_label: None,
           meta: StmtInfoMeta::default(),
+          ..Default::default()
         };
         ecma_module.stmt_infos.add_stmt_info(stmt_info);
       });
@@ -172,6 +177,7 @@ impl LinkStage<'_> {
           #[cfg(debug_assertions)]
           debug_label: None,
           meta: StmtInfoMeta::default(),
+          ..Default::default()
         };
         ecma_module.stmt_infos.replace_namespace_stmt_info(namespace_stmt_info);
       }
