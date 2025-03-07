@@ -1,9 +1,8 @@
 use minipack_common::{Interop, Module, Specifier, SymbolRef};
 use minipack_ecmascript_utils::{CallExpressionExt, TakeIn};
 use minipack_utils::ecmascript::legitimize_identifier_name;
-use oxc::ast::VisitMut;
 use oxc::ast::ast::{self, ExportDefaultDeclarationKind, Expression, Statement};
-use oxc::ast::visit::walk_mut;
+use oxc::ast_visit::{VisitMut, walk_mut};
 use oxc::span::{CompactStr, SPAN, Span};
 
 use super::IsolatingModuleFinalizer;

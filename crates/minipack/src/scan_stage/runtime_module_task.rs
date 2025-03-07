@@ -2,7 +2,7 @@ use arcstr::ArcStr;
 use minipack_common::side_effects::DeterminedSideEffects;
 use minipack_error::BuildResult;
 use minipack_utils::indexmap::FxIndexSet;
-use oxc::ast::VisitMut;
+use oxc::ast_visit::VisitMut;
 use oxc::span::SourceType;
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
