@@ -10,8 +10,9 @@ const HASH_PLACEHOLDER_RIGHT: &str = "}~";
 const HASH_PLACEHOLDER_OVERHEAD: usize = HASH_PLACEHOLDER_LEFT.len() + HASH_PLACEHOLDER_RIGHT.len();
 
 // This is the size of a 128-bit xxhash with `base_encode::to_string`
+const MIN_HASH_SIZE: usize = 6;
 const MAX_HASH_SIZE: usize = 21;
-// const DEFAULT_HASH_SIZE: usize = 8;
+const DEFAULT_HASH_SIZE: usize = 8;
 
 /// Checks if a string is a hash placeholder with the pattern "!~{...}~"
 /// where ... is 1-17 alphanumeric characters or _ or $
@@ -85,8 +86,10 @@ pub struct HashPlaceholderGenerator {
 }
 
 impl HashPlaceholderGenerator {
-  pub fn generate(&mut self, len: usize) -> String {
-    debug_assert!((HASH_PLACEHOLDER_OVERHEAD..=MAX_HASH_SIZE).contains(&len));
+  pub fn generate(&mut self, len: Option<usize>) -> String {
+    // Ensure the generated hash length is within the valid range (6-21).
+    // If `len` is `None`, default to 8.
+    let len = len.map_or(DEFAULT_HASH_SIZE, |len| len.clamp(MIN_HASH_SIZE, MAX_HASH_SIZE));
 
     let allow_middle_len = len - HASH_PLACEHOLDER_OVERHEAD;
     let seed_base64 = to_base64(self.seed);
@@ -163,8 +166,8 @@ pub fn extract_hash_placeholders(source: &str) -> FxIndexSet<ArcStr> {
 #[test]
 fn test_facade_hash_generator() {
   let mut r#gen = HashPlaceholderGenerator::default();
-  assert_eq!(r#gen.generate(8), "!~{000}~");
-  assert_eq!(r#gen.generate(8), "!~{001}~");
+  assert_eq!(r#gen.generate(None), "!~{000}~");
+  assert_eq!(r#gen.generate(None), "!~{001}~");
 }
 
 #[test]
@@ -172,10 +175,10 @@ fn test_to_base64() {
   assert_eq!(to_base64(0), "0");
   assert_eq!(to_base64(1), "1");
   assert_eq!(to_base64(10), "a");
-  assert_eq!(to_base64(64), "01");
+  assert_eq!(to_base64(64), "10");
   assert_eq!(to_base64(65), "11");
-  assert_eq!(to_base64(128), "02");
-  assert_eq!(to_base64(100_000_000), "04uZ5");
+  assert_eq!(to_base64(128), "20");
+  assert_eq!(to_base64(100_000_000), "5Zu40");
 }
 
 #[test]

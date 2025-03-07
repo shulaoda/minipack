@@ -24,7 +24,7 @@ pub fn resolve_id(
   // Auto external http url or data url
   if is_http_url(request) || is_data_url(request) {
     return Ok(ResolvedId {
-      id: request.to_string().into(),
+      id: request.into(),
       ignored: false,
       is_external: true,
       package_json: None,
@@ -49,7 +49,7 @@ pub fn resolve_id(
         // we needs to use `is_runtime_module` to get the original specifier
         is_external_without_side_effects: is_existing_node_builtin_modules(&resolved),
         id: if resolved.starts_with("node:") && !is_runtime_module {
-          resolved[5..].to_string().into()
+          resolved[5..].into()
         } else {
           resolved.into()
         },

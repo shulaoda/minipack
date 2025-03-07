@@ -10,12 +10,24 @@ pub fn xxhash_base64_url(input: &[u8]) -> String {
   to_url_safe_base64(hash)
 }
 
-const CHARACTERS: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+const CHARACTERS_BASE64: &[u8] =
+  b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+
+const CHARACTERS_BASE16: &[u8] = b"0123456789abcdef";
 
 pub fn xxhash_with_base(input: &[u8], base: u8) -> String {
   let hash = if input.len() == 16 { input } else { &xxh3_128(input).to_le_bytes() };
 
-  to_string(hash, base, CHARACTERS).unwrap()
+  let chars = match base {
+    64 => CHARACTERS_BASE64,
+    36 => &CHARACTERS_BASE64[26..(26 + 36)],
+    16 => CHARACTERS_BASE16,
+    _ => {
+      unreachable!()
+    }
+  };
+
+  to_string(hash, base, chars).unwrap()
 }
 
 #[test]

@@ -116,7 +116,7 @@ impl ModuleTask {
         let specifier = item.module_request.as_str();
         if specifier == RUNTIME_MODULE_ID {
           return Ok(ResolvedId {
-            id: item.module_request.to_string().into(),
+            id: specifier.into(),
             ignored: false,
             is_external: false,
             package_json: None,
