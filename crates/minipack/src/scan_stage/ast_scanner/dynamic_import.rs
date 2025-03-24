@@ -23,8 +23,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       return None;
     }
 
-    let reference =
-      self.result.symbols.references.get(ident.reference_id()).expect("should have reference");
+    let reference = self.result.symbols.get_reference(ident.reference_id());
 
     // panic because if program reached here, means the BindingIdentifier has referenced the
     // IdentifierReference, but IdentifierReference did not saved the related `SymbolId`

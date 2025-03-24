@@ -1,7 +1,6 @@
 pub mod asset;
 pub mod asset_idx;
 pub mod asset_meta;
-pub mod ast_scope_idx;
 pub mod ast_scopes;
 pub mod chunk_idx;
 pub mod chunk_kind;

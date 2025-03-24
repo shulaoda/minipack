@@ -48,7 +48,7 @@ impl PreProcessEcmaAst {
     }
 
     self.stats = semantic_ret.semantic.stats();
-    let (mut symbols, mut scopes) = semantic_ret.semantic.into_symbol_table_and_scope_tree();
+    let mut scoping = semantic_ret.semantic.into_scoping();
 
     // Transform TypeScript and jsx.
     if !matches!(parsed_type, OxcParseType::Js)
@@ -61,7 +61,7 @@ impl PreProcessEcmaAst {
           transformer_options.jsx.jsx_plugin = true;
         }
         Transformer::new(fields.allocator, source_path, &transformer_options)
-          .build_with_symbols_and_scopes(symbols, scopes, fields.program)
+          .build_with_scoping(scoping, fields.program)
       });
 
       let (errors, warnings) =
@@ -81,8 +81,7 @@ impl PreProcessEcmaAst {
 
       warning.extend(warnings);
 
-      scopes = ret.scopes;
-      symbols = ret.symbols;
+      scoping = ret.scoping;
       self.ast_changed = true;
     }
 
@@ -90,12 +89,12 @@ impl PreProcessEcmaAst {
       if !has_lazy_export {
         // Perform dead code elimination.
         // NOTE: `CompressOptions::dead_code_elimination` will remove `ParenthesizedExpression`s from the AST.
-        let compressor = Compressor::new(fields.allocator, CompressOptions::all_false());
+        let compressor = Compressor::new(fields.allocator, CompressOptions::safest());
         if self.ast_changed {
           let semantic_ret = SemanticBuilder::new().with_stats(self.stats).build(fields.program);
-          (symbols, scopes) = semantic_ret.semantic.into_symbol_table_and_scope_tree();
+          scoping = semantic_ret.semantic.into_scoping();
         }
-        compressor.dead_code_elimination_with_symbols_and_scopes(symbols, scopes, fields.program);
+        compressor.dead_code_elimination_with_scoping(scoping, fields.program);
       }
     });
 
@@ -110,7 +109,7 @@ impl PreProcessEcmaAst {
     });
 
     // NOTE: Recreate semantic data because AST is changed in the transformations above.
-    (symbols, scopes) = ast.program.with_dependent(|_, dep| {
+    scoping = ast.program.with_dependent(|_, dep| {
       SemanticBuilder::new()
         // Required by `module.scope.get_child_ids` in `crates/rolldown/src/utils/renamer.rs`.
         .with_scope_tree_child_ids(true)
@@ -118,9 +117,9 @@ impl PreProcessEcmaAst {
         .with_stats(self.stats)
         .build(&dep.program)
         .semantic
-        .into_symbol_table_and_scope_tree()
+        .into_scoping()
     });
 
-    Ok(ParseToEcmaAstResult { ast, symbols, scopes, has_lazy_export, warning })
+    Ok(ParseToEcmaAstResult { ast, scoping, has_lazy_export, warning })
   }
 }

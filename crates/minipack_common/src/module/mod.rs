@@ -5,8 +5,7 @@ use minipack_utils::option_ext::OptionExt;
 use oxc_index::IndexVec;
 
 use crate::{
-  AstScopeIdx, EcmaAstIdx, ExternalModule, ImportRecordIdx, ModuleIdx, NormalModule,
-  ResolvedImportRecord,
+  EcmaAstIdx, ExternalModule, ImportRecordIdx, ModuleIdx, NormalModule, ResolvedImportRecord,
 };
 
 #[derive(Debug)]
@@ -111,13 +110,6 @@ impl Module {
     match self {
       Self::Normal(v) => v.ecma_ast_idx = Some(idx),
       Self::External(_) => panic!("set_ecma_ast_idx should be called on EcmaModule"),
-    }
-  }
-
-  pub fn set_ast_scope_idx(&mut self, idx: AstScopeIdx) {
-    match self {
-      Self::Normal(v) => v.ast_scope_idx = Some(idx),
-      Self::External(_) => panic!("set_ast_scope_idx should be called on EcmaModule"),
     }
   }
 

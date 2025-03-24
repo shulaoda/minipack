@@ -47,9 +47,13 @@ pub fn deconflict_chunk_symbols(
     .copied()
     .filter_map(|id| link_output.modules[id].as_normal())
     .flat_map(|m| {
-      let ast_scope =
-        &link_output.ast_scope_table[m.ast_scope_idx.expect("ast_scope_idx should be set")];
-      ast_scope.root_unresolved_references().keys().map(Cow::Borrowed)
+      link_output.symbols[m.idx]
+        .as_ref()
+        .unwrap()
+        .ast_scopes
+        .root_unresolved_references()
+        .keys()
+        .map(Cow::Borrowed)
     })
     .for_each(|name| {
       // global names should be reserved
@@ -116,10 +120,6 @@ pub fn deconflict_chunk_symbols(
     });
 
   // rename non-top-level names
-  renamer.rename_non_root_symbol(
-    &chunk.modules,
-    &link_output.modules,
-    &link_output.ast_scope_table,
-  );
+  renamer.rename_non_root_symbol(&chunk.modules, link_output);
   (chunk.canonical_names, chunk.canonical_name_by_token) = renamer.into_canonical_names();
 }

@@ -10,10 +10,7 @@ use minipack_utils::{
   base64::to_standard_base64, concat_string, mime::guess_mime,
   percent_encoding::encode_as_percent_escaped, text_to_esm::text_to_string_literal,
 };
-use oxc::{
-  semantic::{ScopeTree, SymbolTable},
-  span::SourceType as OxcSourceType,
-};
+use oxc::{semantic::Scoping, span::SourceType as OxcSourceType};
 use sugar_path::SugarPath;
 
 use super::pre_process_ecma_ast::PreProcessEcmaAst;
@@ -41,8 +38,7 @@ fn binary_to_esm(base64: &str, platform: Platform, runtime_module_id: &str) -> S
 
 pub struct ParseToEcmaAstResult {
   pub ast: EcmaAst,
-  pub scopes: ScopeTree,
-  pub symbols: SymbolTable,
+  pub scoping: Scoping,
   pub has_lazy_export: bool,
   pub warning: Vec<anyhow::Error>,
 }

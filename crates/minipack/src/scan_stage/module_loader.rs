@@ -14,7 +14,7 @@ use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 use minipack_utils::rstr::Rstr;
 use minipack_utils::{ecmascript::legitimize_identifier_name, rustc_hash::FxHashSetExt};
-use oxc::semantic::{ScopeId, SymbolTable};
+use oxc::semantic::{ScopeId, Scoping};
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::Receiver;
@@ -23,25 +23,17 @@ use super::module_task::ModuleTask;
 use super::runtime_module_task::RuntimeModuleTask;
 use super::task_context::TaskContext;
 
-use crate::types::{
-  DynImportUsageMap, IndexAstScope, IndexEcmaAst, IndexModules, SharedOptions, SharedResolver,
-};
+use crate::types::{DynImportUsageMap, IndexEcmaAst, IndexModules, SharedOptions, SharedResolver};
 
 pub struct IntermediateNormalModules {
   pub modules: IndexVec<ModuleIdx, Option<Module>>,
   pub importers: IndexVec<ModuleIdx, Vec<ImporterRecord>>,
   pub index_ecma_ast: IndexEcmaAst,
-  pub index_ast_scope: IndexAstScope,
 }
 
 impl IntermediateNormalModules {
   pub fn new() -> Self {
-    Self {
-      modules: IndexVec::new(),
-      importers: IndexVec::new(),
-      index_ecma_ast: IndexVec::new(),
-      index_ast_scope: IndexVec::new(),
-    }
+    Self { modules: IndexVec::new(), importers: IndexVec::new(), index_ecma_ast: IndexVec::new() }
   }
 
   pub fn alloc_ecma_module_idx(&mut self) -> ModuleIdx {
@@ -66,7 +58,6 @@ pub struct ModuleLoaderOutput {
   pub symbols: SymbolRefDb,
   pub modules: IndexModules,
   pub index_ecma_ast: IndexEcmaAst,
-  pub index_ast_scope: IndexAstScope,
   // Entries that user defined + dynamic import entries
   pub entry_points: Vec<EntryPoint>,
   pub runtime_module: RuntimeModuleBrief,
@@ -109,7 +100,6 @@ impl ModuleLoader {
 
     self.inm.modules.reserve(entries_count);
     self.inm.index_ecma_ast.reserve(entries_count);
-    self.inm.index_ast_scope.reserve(entries_count);
 
     // Store the already consider as entry module
     let mut user_defined_entry_ids = FxHashSet::with_capacity(user_defined_entries.len());
@@ -205,9 +195,8 @@ impl ModuleLoader {
           module.set_import_records(import_records);
 
           let module_idx = module.idx();
-          if let Some(EcmaRelated { ast, scopes, symbols, .. }) = ecma_related {
+          if let Some(EcmaRelated { ast, symbols, .. }) = ecma_related {
             module.set_ecma_ast_idx(self.inm.index_ecma_ast.push((ast, module_idx)));
-            module.set_ast_scope_idx(self.inm.index_ast_scope.push(scopes));
             self.symbols.store_local_db(module_idx, symbols);
           }
 
@@ -219,7 +208,6 @@ impl ModuleLoader {
             mut module,
             runtime,
             ast,
-            scopes,
             symbols,
             raw_import_records,
             resolved_deps,
@@ -258,10 +246,8 @@ impl ModuleLoader {
             .collect::<IndexVec<ImportRecordIdx, _>>();
 
           let ast_idx = self.inm.index_ecma_ast.push((ast, module.idx));
-          let ast_scope_idx = self.inm.index_ast_scope.push(scopes);
 
           module.ecma_ast_idx = Some(ast_idx);
-          module.ast_scope_idx = Some(ast_scope_idx);
           module.import_records = import_records;
 
           runtime_module = Some(runtime);
@@ -336,7 +322,6 @@ impl ModuleLoader {
       modules,
       symbols: self.symbols,
       index_ecma_ast: self.inm.index_ecma_ast,
-      index_ast_scope: self.inm.index_ast_scope,
       entry_points,
       runtime_module,
       warnings,
@@ -359,7 +344,7 @@ impl ModuleLoader {
         if resolved_id.is_external {
           self.symbols.store_local_db(
             idx,
-            SymbolRefDbForModule::new(idx, SymbolTable::default(), ScopeId::new(0)),
+            SymbolRefDbForModule::new(idx, Scoping::default(), ScopeId::new(0)),
           );
 
           let symbol_ref = self.symbols.create_facade_root_symbol_ref(

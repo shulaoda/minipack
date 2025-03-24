@@ -16,7 +16,7 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::types::{
-  IndexAstScope, IndexEcmaAst, IndexModules, SharedOptions,
+  IndexEcmaAst, IndexModules, SharedOptions,
   linking_metadata::{LinkingMetadata, LinkingMetadataVec},
 };
 
@@ -32,7 +32,6 @@ pub struct LinkStageOutput {
   pub runtime_module: RuntimeModuleBrief,
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
-  pub ast_scope_table: IndexAstScope,
   pub used_symbol_refs: FxHashSet<SymbolRef>,
   pub dyn_import_usage_map: FxHashMap<ModuleIdx, DynamicImportExportsUsage>,
   pub lived_entry_points: FxHashSet<ModuleIdx>,
@@ -49,7 +48,6 @@ pub struct LinkStage<'a> {
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
   pub index_ecma_ast: IndexEcmaAst,
-  pub ast_scope_table: IndexAstScope,
   pub options: &'a SharedOptions,
   pub used_symbol_refs: FxHashSet<SymbolRef>,
   pub dyn_import_usage_map: FxHashMap<ModuleIdx, DynamicImportExportsUsage>,
@@ -60,7 +58,6 @@ impl<'a> LinkStage<'a> {
     let ScanStageOutput {
       modules,
       index_ecma_ast,
-      index_ast_scope,
       symbols,
       entry_points,
       runtime_module,
@@ -105,7 +102,6 @@ impl<'a> LinkStage<'a> {
       index_ecma_ast,
       dyn_import_usage_map,
       options,
-      ast_scope_table: index_ast_scope,
       used_symbol_refs: FxHashSet::default(),
     }
   }
@@ -134,7 +130,6 @@ impl<'a> LinkStage<'a> {
       index_ecma_ast: self.index_ecma_ast,
       used_symbol_refs: self.used_symbol_refs,
       dyn_import_usage_map: self.dyn_import_usage_map,
-      ast_scope_table: self.ast_scope_table,
     }
   }
 

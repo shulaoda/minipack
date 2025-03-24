@@ -51,7 +51,6 @@ impl RuntimeModuleTask {
       default_export_ref,
       namespace_object_ref,
       has_top_level_await,
-      scopes,
       symbols,
       imports,
       import_records: raw_import_records,
@@ -85,7 +84,6 @@ impl RuntimeModuleTask {
         stmt_infos,
         imports,
         default_export_ref,
-        ast_scope_idx: None,
         namespace_object_ref,
         has_top_level_await,
         self_referenced_class_decl_symbol_ids: FxHashSet::default(),
@@ -119,12 +117,11 @@ impl RuntimeModuleTask {
       })
       .collect();
 
-    let runtime = RuntimeModuleBrief::new(self.idx, &scopes);
+    let runtime = RuntimeModuleBrief::new(self.idx, &symbols.ast_scopes);
     let result = ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
       ast,
       module,
       runtime,
-      scopes,
       symbols,
       resolved_deps,
       raw_import_records,
@@ -146,12 +143,11 @@ impl RuntimeModuleTask {
       ast.contains_use_strict = pre_processor.contains_use_strict;
     });
 
-    let (symbol_table, scopes) = ast.make_symbol_table_and_scope_tree();
+    let scoping = ast.make_scoping();
     let facade_path = ModuleId::new(RUNTIME_MODULE_ID);
     let scanner = AstScanner::new(
       self.idx,
-      scopes,
-      symbol_table,
+      scoping,
       "minipack_runtime",
       source,
       &facade_path,

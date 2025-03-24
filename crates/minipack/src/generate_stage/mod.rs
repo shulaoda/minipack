@@ -71,8 +71,7 @@ impl<'a> GenerateStage<'a> {
         let Module::Normal(module) = &self.link_output.modules[*owner] else {
           return;
         };
-        let ast_scope_idx = module.ecma_view.ast_scope_idx.expect("scope idx should be set");
-        let ast_scope = &self.link_output.ast_scope_table[ast_scope_idx];
+        let ast_scope = &self.link_output.symbols[module.idx].as_ref().unwrap().ast_scopes;
         let chunk_id = chunk_graph.module_to_chunk[module.idx].unwrap();
         let chunk = &chunk_graph.chunk_table[chunk_id];
         let linking_info = &self.link_output.metadata[module.idx];
@@ -129,7 +128,9 @@ impl<'a> GenerateStage<'a> {
         if let Some(css_view) =
           module.as_normal_mut().and_then(|normal_module| normal_module.css_view.as_mut())
         {
-          for (idx, record) in css_view.import_records.iter_enumerated() {
+          for (idx, record) in
+            css_view.import_records.iter_enumerated().filter(|(_idx, rec)| !rec.is_dummy())
+          {
             if let Some(asset_filename) = module_idx_to_filenames.get(&record.resolved_module) {
               let span = css_view.record_idx_to_span[idx];
               css_view

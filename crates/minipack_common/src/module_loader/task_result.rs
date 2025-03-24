@@ -1,5 +1,5 @@
 use crate::{
-  AstScopes, ImportRecordIdx, Module, RawImportRecord, ResolvedId, SymbolRefDbForModule,
+  ImportRecordIdx, Module, RawImportRecord, ResolvedId, SymbolRefDbForModule,
   dynamic_import_usage::DynamicImportExportsUsage,
 };
 use minipack_ecmascript::EcmaAst;
@@ -16,7 +16,6 @@ pub struct NormalModuleTaskResult {
 
 pub struct EcmaRelated {
   pub ast: EcmaAst,
-  pub scopes: AstScopes,
   pub symbols: SymbolRefDbForModule,
   pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
 }

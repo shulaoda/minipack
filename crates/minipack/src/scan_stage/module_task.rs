@@ -129,7 +129,11 @@ impl ModuleTask {
       .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
 
     if css_view.is_none() {
-      for (record, info) in raw_import_records.iter().zip(&resolved_deps) {
+      for (record, info) in raw_import_records
+        .iter()
+        .filter(|rec| !rec.meta.contains(ImportRecordMeta::IS_DUMMY))
+        .zip(&resolved_deps)
+      {
         match record.kind {
           ImportKind::Import | ImportKind::NewUrl => {
             ecma_view.imported_ids.insert(ArcStr::clone(&info.id).into());

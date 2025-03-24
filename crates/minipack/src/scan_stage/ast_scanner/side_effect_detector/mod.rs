@@ -11,7 +11,7 @@ use oxc::ast::ast::{
   PropertyKey, UnaryOperator, VariableDeclarationKind,
 };
 use oxc::ast::{match_expression, match_member_expression};
-use oxc::semantic::SymbolTable;
+use oxc::semantic::Scoping;
 use utils::{
   can_change_strict_to_loose, is_side_effect_free_unbound_identifier_ref,
   maybe_side_effect_free_global_constructor,
@@ -26,7 +26,7 @@ pub struct SideEffectDetector<'a> {
   pub source: &'a str,
   pub comments: &'a oxc::allocator::Vec<'a, Comment>,
   pub ignore_annotations: bool,
-  pub symbol_table: &'a SymbolTable,
+  pub scoping: &'a Scoping,
 }
 
 impl<'a> SideEffectDetector<'a> {
@@ -35,13 +35,13 @@ impl<'a> SideEffectDetector<'a> {
     source: &'a str,
     comments: &'a oxc::allocator::Vec<'a, Comment>,
     ignore_annotations: bool,
-    symbol_table: &'a SymbolTable,
+    scoping: &'a Scoping,
   ) -> Self {
-    Self { scope, source, comments, ignore_annotations, symbol_table }
+    Self { scope, source, comments, ignore_annotations, scoping }
   }
 
   fn is_unresolved_reference(&self, ident_ref: &IdentifierReference) -> bool {
-    self.scope.is_unresolved(ident_ref.reference_id.get().unwrap(), self.symbol_table)
+    self.scope.is_unresolved(ident_ref.reference_id.get().unwrap(), self.scoping)
   }
 
   fn detect_side_effect_of_property_key(&self, key: &PropertyKey, is_computed: bool) -> bool {
@@ -55,13 +55,12 @@ impl<'a> SideEffectDetector<'a> {
               if let Some((ref_id, chain)) =
                 extract_member_expr_chain(key_expr.to_member_expression(), 2)
               {
-                !(chain == ["Symbol", "iterator"]
-                  && self.scope.is_unresolved(ref_id, self.symbol_table))
+                !(chain == ["Symbol", "iterator"] && self.scope.is_unresolved(ref_id, self.scoping))
               } else {
                 true
               }
             }
-            _ => !is_primitive_literal(self.scope, key_expr, self.symbol_table),
+            _ => !is_primitive_literal(self.scope, key_expr, self.scoping),
           }
         }
       }
@@ -118,7 +117,7 @@ impl<'a> SideEffectDetector<'a> {
       return true;
     };
     // If the global variable is override, we considered it has side effect.
-    if !self.scope.is_unresolved(ref_id, self.symbol_table) {
+    if !self.scope.is_unresolved(ref_id, self.scoping) {
       return true;
     }
     match chains.len() {
@@ -201,7 +200,7 @@ impl<'a> SideEffectDetector<'a> {
       Expression::TemplateLiteral(literal) => literal.expressions.iter().any(|expr| {
         // Primitive type detection is more strict and faster than side_effects detection of
         // `Expr`, put it first to fail fast.
-        known_primitive_type(self.scope, expr, self.symbol_table) == PrimitiveType::Unknown
+        known_primitive_type(self.scope, expr, self.scoping) == PrimitiveType::Unknown
           || self.detect_side_effect_of_expr(expr)
       }),
       Expression::LogicalExpression(logic_expr) => match logic_expr.operator {
@@ -212,7 +211,7 @@ impl<'a> SideEffectDetector<'a> {
               &logic_expr.right,
               &logic_expr.left,
               false,
-              self.symbol_table,
+              self.scoping,
             )
             .unwrap_or_default()
               && self.detect_side_effect_of_expr(&logic_expr.right))
@@ -224,7 +223,7 @@ impl<'a> SideEffectDetector<'a> {
               &logic_expr.right,
               &logic_expr.left,
               true,
-              self.symbol_table,
+              self.scoping,
             )
             .unwrap_or_default()
               && self.detect_side_effect_of_expr(&logic_expr.right))
@@ -248,7 +247,7 @@ impl<'a> SideEffectDetector<'a> {
             &cond_expr.consequent,
             &cond_expr.test,
             true,
-            self.symbol_table,
+            self.scoping,
           )
           .unwrap_or_default()
             && self.detect_side_effect_of_expr(&cond_expr.consequent))
@@ -257,7 +256,7 @@ impl<'a> SideEffectDetector<'a> {
             &cond_expr.alternate,
             &cond_expr.test,
             false,
-            self.symbol_table,
+            self.scoping,
           )
           .unwrap_or_default()
             && self.detect_side_effect_of_expr(&cond_expr.alternate))
@@ -278,10 +277,10 @@ impl<'a> SideEffectDetector<'a> {
         | ast::BinaryOperator::LessThan
         | ast::BinaryOperator::GreaterEqualThan
         | ast::BinaryOperator::LessEqualThan => {
-          let lt = known_primitive_type(self.scope, &binary_expr.left, self.symbol_table);
+          let lt = known_primitive_type(self.scope, &binary_expr.left, self.scoping);
           match lt {
             PrimitiveType::Number | PrimitiveType::String | PrimitiveType::BigInt => {
-              known_primitive_type(self.scope, &binary_expr.right, self.symbol_table) != lt
+              known_primitive_type(self.scope, &binary_expr.right, self.scoping) != lt
                 || self.detect_side_effect_of_expr(&binary_expr.left)
                 || self.detect_side_effect_of_expr(&binary_expr.right)
             }
@@ -300,7 +299,7 @@ impl<'a> SideEffectDetector<'a> {
             self.scope,
             &binary_expr.left,
             &binary_expr.right,
-            self.symbol_table,
+            self.scoping,
           ) || self.detect_side_effect_of_expr(&binary_expr.left)
             || self.detect_side_effect_of_expr(&binary_expr.right)
         }
@@ -334,9 +333,8 @@ impl<'a> SideEffectDetector<'a> {
       }
       Expression::ArrayExpression(expr) => self.detect_side_effect_of_array_expr(expr),
       Expression::NewExpression(expr) => {
-        let is_pure =
-          maybe_side_effect_free_global_constructor(self.scope, expr, self.symbol_table)
-            || self.is_pure_function_or_constructor_call(expr.span);
+        let is_pure = maybe_side_effect_free_global_constructor(self.scope, expr, self.scoping)
+          || self.is_pure_function_or_constructor_call(expr.span);
         if is_pure {
           expr.arguments.iter().any(|arg| match arg {
             Argument::SpreadElement(_) => true,
@@ -456,8 +454,8 @@ impl<'a> SideEffectDetector<'a> {
       }
       Statement::ExpressionStatement(expr) => self.detect_side_effect_of_expr(&expr.expression),
       oxc::ast::match_module_declaration!(Statement) => match stmt.to_module_declaration() {
-        ast::ModuleDeclaration::ExportAllDeclaration(_) => true,
-        ast::ModuleDeclaration::ImportDeclaration(_) => {
+        ast::ModuleDeclaration::ExportAllDeclaration(_)
+        | ast::ModuleDeclaration::ImportDeclaration(_) => {
           // We consider `import ...` has no side effect. However, `import ...` might be rewritten to other statements by the bundler.
           // In that case, we will mark the statement as having side effect in link stage.
           false
@@ -479,8 +477,7 @@ impl<'a> SideEffectDetector<'a> {
         }
         ast::ModuleDeclaration::ExportNamedDeclaration(named_decl) => {
           if named_decl.source.is_some() {
-            // `export { ... } from '...'` is considered as side effect.
-            true
+            false
           } else {
             named_decl
               .declaration

@@ -7,9 +7,8 @@ use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   EcmaAstIdx, ImportRecordIdx, LocalExport, ModuleId, NamedImport, ResolvedImportRecord,
-  SourceMutation, StmtInfos, SymbolRef,
-  side_effects::DeterminedSideEffects,
-  types::{ast_scope_idx::AstScopeIdx, source_mutation::BoxedSourceMutation},
+  SourceMutation, StmtInfos, SymbolRef, side_effects::DeterminedSideEffects,
+  types::source_mutation::BoxedSourceMutation,
 };
 
 bitflags! {
@@ -58,7 +57,6 @@ pub struct EcmaView {
   /// The key is the `Span` of `ImportDeclaration`, `ImportExpression`, `ExportNamedDeclaration`, `ExportAllDeclaration`
   /// and `CallExpression`(only when the callee is `require`).
   pub imports: FxHashMap<Span, ImportRecordIdx>,
-  pub ast_scope_idx: Option<AstScopeIdx>,
   pub default_export_ref: SymbolRef,
   // the ids of all modules that statically import this module
   pub importers: FxIndexSet<ModuleId>,

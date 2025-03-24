@@ -4,7 +4,7 @@ use oxc::{
   allocator::Allocator,
   ast::AstBuilder,
   codegen::{CodeGenerator, Codegen, CodegenOptions, CodegenReturn, LegalComment},
-  minifier::{CompressOptions, MangleOptions, Minifier, MinifierOptions},
+  minifier::{CompressOptions, CompressOptionsKeepNames, MangleOptions, Minifier, MinifierOptions},
   parser::{ParseOptions, Parser},
   span::{SPAN, SourceType},
   transformer::ESTarget,
@@ -82,17 +82,23 @@ impl EcmaCompiler {
     let allocator = Allocator::default();
     let source_type = SourceType::default();
 
-    let program =
-      allocator.alloc(Parser::new(&allocator, source_text, source_type).parse().program);
-    let symbol_table = Minifier::new(MinifierOptions {
+    let program = Parser::new(&allocator, source_text, source_type).parse().program;
+    let program = allocator.alloc(program);
+
+    let ret = Minifier::new(MinifierOptions {
       mangle: Some(MangleOptions::default()),
-      compress: Some(CompressOptions { target, drop_debugger: false, drop_console: false }),
+      compress: Some(CompressOptions {
+        target,
+        drop_debugger: false,
+        drop_console: false,
+        keep_names: CompressOptionsKeepNames { function: true, class: true },
+      }),
     })
-    .build(&allocator, program)
-    .symbol_table;
+    .build(&allocator, program);
+
     let ret = Codegen::new()
       .with_options(CodegenOptions { minify: true, ..CodegenOptions::default() })
-      .with_symbol_table(symbol_table)
+      .with_scoping(ret.scoping)
       .build(program);
 
     ret.code

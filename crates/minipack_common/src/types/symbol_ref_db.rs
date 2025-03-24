@@ -1,13 +1,13 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, Index, IndexMut};
 
 use minipack_utils::{option_ext::OptionExt, rstr::Rstr};
-use oxc::semantic::SymbolId;
-use oxc::semantic::{NodeId, ScopeId, SymbolFlags, SymbolTable};
+use oxc::semantic::{NodeId, ScopeId, SymbolFlags};
+use oxc::semantic::{Scoping, SymbolId};
 use oxc::span::SPAN;
 use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 
-use crate::{ChunkIdx, ModuleIdx, SymbolRef};
+use crate::{AstScopes, ChunkIdx, ModuleIdx, SymbolRef};
 
 use super::namespace_alias::NamespaceAlias;
 
@@ -36,19 +36,26 @@ bitflags::bitflags! {
 pub struct SymbolRefDbForModule {
   owner: ModuleIdx,
   root_scope_id: ScopeId,
-  pub symbols: SymbolTable,
+  pub ast_scopes: AstScopes,
   // Only some symbols would be cared about, so we use a hashmap to store the flags.
   pub flags: FxHashMap<SymbolId, SymbolRefFlags>,
   pub classic_data: IndexVec<SymbolId, SymbolRefDataClassic>,
 }
 
 impl SymbolRefDbForModule {
-  pub fn new(owner: ModuleIdx, symbols: SymbolTable, root_scope_id: ScopeId) -> Self {
-    let classic_data = symbols
-      .names()
+  pub fn new(owner: ModuleIdx, scoping: Scoping, root_scope_id: ScopeId) -> Self {
+    let classic_data = scoping
+      .symbol_names()
       .map(|_| SymbolRefDataClassic { link: None, chunk_id: None, namespace_alias: None })
       .collect();
-    Self { owner, symbols, classic_data, root_scope_id, flags: FxHashMap::default() }
+
+    Self {
+      owner,
+      ast_scopes: AstScopes::new(scoping),
+      classic_data,
+      root_scope_id,
+      flags: FxHashMap::default(),
+    }
   }
 
   // The `facade` means the symbol is actually not exist in the AST.
@@ -58,7 +65,7 @@ impl SymbolRefDbForModule {
       chunk_id: None,
       namespace_alias: None,
     });
-    let symbol_id = self.symbols.create_symbol(
+    let symbol_id = self.ast_scopes.create_symbol(
       SPAN,
       name,
       SymbolFlags::empty(),
@@ -78,23 +85,37 @@ impl SymbolRefDbForModule {
 }
 
 impl Deref for SymbolRefDbForModule {
-  type Target = SymbolTable;
+  type Target = Scoping;
 
   fn deref(&self) -> &Self::Target {
-    &self.symbols
+    &self.ast_scopes
   }
 }
 
 impl DerefMut for SymbolRefDbForModule {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.symbols
+    &mut self.ast_scopes
   }
 }
 
 // Information about symbols for all modules
 #[derive(Debug, Default)]
 pub struct SymbolRefDb {
-  pub(crate) inner: IndexVec<ModuleIdx, Option<SymbolRefDbForModule>>,
+  inner: IndexVec<ModuleIdx, Option<SymbolRefDbForModule>>,
+}
+
+impl Index<ModuleIdx> for SymbolRefDb {
+  type Output = Option<SymbolRefDbForModule>;
+
+  fn index(&self, index: ModuleIdx) -> &Self::Output {
+    self.inner.index(index)
+  }
+}
+
+impl IndexMut<ModuleIdx> for SymbolRefDb {
+  fn index_mut(&mut self, index: ModuleIdx) -> &mut Self::Output {
+    self.inner.index_mut(index)
+  }
 }
 
 impl SymbolRefDb {
@@ -172,10 +193,10 @@ impl SymbolRefDb {
 
   pub fn is_declared_in_root_scope(&self, refer: SymbolRef) -> bool {
     let local_db = self.inner[refer.owner].unpack_ref();
-    local_db.get_scope_id(refer.symbol) == local_db.root_scope_id
+    local_db.symbol_scope_id(refer.symbol) == local_db.root_scope_id
   }
 
-  pub fn this_method_should_be_removed_get_symbol_table(&self, owner: ModuleIdx) -> &SymbolTable {
+  pub fn this_method_should_be_removed_get_symbol_table(&self, owner: ModuleIdx) -> &Scoping {
     self.inner[owner].unpack_ref()
   }
 }
