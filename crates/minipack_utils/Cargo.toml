@@ -1,12 +1,12 @@
 [package]
 name = "minipack_utils"
 
-edition.workspace    = true
-homepage.workspace   = true
-license.workspace    = true
-readme.workspace     = true
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
 repository.workspace = true
-version.workspace    = true
 
 [lib]
 doctest = false
@@ -15,19 +15,19 @@ doctest = false
 workspace = true
 
 [dependencies]
-anyhow      = { workspace = true }
-arcstr      = { workspace = true }
+anyhow = { workspace = true }
+arcstr = { workspace = true }
 base-encode = { workspace = true }
 base64-simd = { workspace = true }
-indexmap    = { workspace = true }
-infer       = { workspace = true }
-mime        = { workspace = true }
-oxc         = { workspace = true }
-phf         = { workspace = true }
-rayon       = { workspace = true }
-regex       = { workspace = true }
-rustc-hash  = { workspace = true }
-serde_json  = { workspace = true }
-simdutf8    = { workspace = true }
-sugar_path  = { workspace = true }
+indexmap = { workspace = true }
+infer = { workspace = true }
+mime = { workspace = true }
+oxc = { workspace = true }
+phf = { workspace = true }
+rayon = { workspace = true }
+regex = { workspace = true }
+rustc-hash = { workspace = true }
+serde_json = { workspace = true }
+simdutf8 = { workspace = true }
+sugar_path = { workspace = true }
 xxhash-rust = { workspace = true, features = ["xxh3"] }

@@ -1,0 +1,17 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": ["import", "unicorn", "typescript", "oxc"],
+  "ignorePatterns": [
+    "crates/**"
+  ],
+  "rules": {
+    "no-unused-vars": [
+      "warn",
+      { "varsIgnorePattern": "^_", "argsIgnorePattern": "^_" }
+    ],
+    "no-empty-file": "allow",
+    "import/named": "error",
+    "import/namespace": "error",
+    "unicorn/prefer-node-protocol": "error"
+  }
+}

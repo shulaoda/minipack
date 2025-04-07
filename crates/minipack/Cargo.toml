@@ -1,40 +1,40 @@
 [package]
 name = "minipack"
 
-edition.workspace    = true
-homepage.workspace   = true
-license.workspace    = true
-readme.workspace     = true
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
 repository.workspace = true
-version.workspace    = true
 
 [dependencies]
-minipack_common           = { workspace = true }
-minipack_ecmascript       = { workspace = true }
+minipack_common = { workspace = true }
+minipack_ecmascript = { workspace = true }
 minipack_ecmascript_utils = { workspace = true }
-minipack_error            = { workspace = true }
-minipack_fs               = { workspace = true, features = ["os"] }
-minipack_resolver         = { workspace = true }
-minipack_utils            = { workspace = true }
+minipack_error = { workspace = true }
+minipack_fs = { workspace = true, features = ["os"] }
+minipack_resolver = { workspace = true }
+minipack_utils = { workspace = true }
 
-anyhow            = { workspace = true }
-append-only-vec   = { workspace = true }
-arcstr            = { workspace = true }
-css-module-lexer  = { workspace = true }
-daachorse         = { workspace = true }
-futures           = { workspace = true }
-indexmap          = { workspace = true }
-itertools         = { workspace = true }
-itoa              = { workspace = true }
-oxc               = { workspace = true }
-oxc_index         = { workspace = true }
-rustc-hash        = { workspace = true }
+anyhow = { workspace = true }
+append-only-vec = { workspace = true }
+arcstr = { workspace = true }
+css-module-lexer = { workspace = true }
+daachorse = { workspace = true }
+futures = { workspace = true }
+indexmap = { workspace = true }
+itertools = { workspace = true }
+itoa = { workspace = true }
+oxc = { workspace = true }
+oxc_index = { workspace = true }
+rustc-hash = { workspace = true }
 sanitize-filename = { workspace = true }
-string_wizard     = { workspace = true }
-sugar_path        = { workspace = true }
-tokio             = { workspace = true, features = ["rt", "macros", "sync"] }
-xxhash-rust       = { workspace = true, features = ["xxh3"] }
+string_wizard = { workspace = true }
+sugar_path = { workspace = true }
+tokio = { workspace = true, features = ["rt", "macros", "sync"] }
+xxhash-rust = { workspace = true, features = ["xxh3"] }
 
 [dev-dependencies]
 sugar_path = { workspace = true }
-tokio      = { workspace = true, features = ["rt", "macros", "sync", "rt-multi-thread"] }
+tokio = { workspace = true, features = ["rt", "macros", "sync", "rt-multi-thread"] }

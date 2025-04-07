@@ -2,5 +2,5 @@
 // a separate chunk that is imported by both entry
 // chunks to avoid code duplication
 export default function cube(x) {
-	return x;
+  return x;
 }

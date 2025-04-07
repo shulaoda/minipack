@@ -1,13 +1,13 @@
 [package]
+name = "minipack_error"
 description = "minipack_error"
-name        = "minipack_error"
 
-edition.workspace    = true
-homepage.workspace   = true
-license.workspace    = true
-readme.workspace     = true
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
 repository.workspace = true
-version.workspace    = true
 
 [lib]
 doctest = false

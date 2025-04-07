@@ -8,7 +8,7 @@ setup:
     just check-setup-prerequisites
     # Rust related setup
     cargo install cargo-binstall
-    cargo binstall taplo-cli cargo-insta cargo-deny cargo-shear -y
+    cargo binstall cargo-deny cargo-shear -y
     # Node.js related setup
     corepack enable
     pnpm install
@@ -19,15 +19,14 @@ setup:
 lint: lint-rust lint-node lint-repo
 
 lint-rust:
-    cargo fmt --all -- --check
     cargo clippy --workspace --all-targets -- --deny warnings
     cargo shear
 
 lint-node:
-    # pnpm lint-code
+    pnpm lint-code
 
 lint-repo:
-    # pnpm lint-repo
+    pnpm lint-repo
 
 bench:
   pnpm --filter bench run bench

@@ -1,33 +1,28 @@
 {
   "name": "minipack",
-  "version": "1.0.0",
+  "private": true,
   "description": "",
-  "main": "index.js",
+  "packageManager": "pnpm@10.7.0",
   "scripts": {
-    "lint-toml": "taplo format --check",
-    "lint-toml:fix": "taplo format"
+    "lint-code": "oxlint -c .oxlintrc.json --ignore-path=.oxlintignore --deny-warnings",
+    "lint-spell": "cspell \"**\" --no-progress  --gitignore",
+    "lint-repo": "npm-run-all -l --parallel fmt lint-spell",
+    "fmt": "dprint fmt"
   },
-  "keywords": [],
-  "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
-    "@taplo/cli": "^0.7.0",
     "@types/node": "^22.10.5",
     "cspell": "^8.17.1",
+    "oxlint": "^0.16.5",
     "typescript": "^5.7.3"
   },
-  "prettier": {
-    "arrowParens": "always",
-    "printWidth": 80,
-    "semi": false,
-    "singleQuote": true,
-    "trailingComma": "all"
-  },
   "lint-staged": {
-    "*.toml": "taplo format",
-    "*.{js,ts,json,md,yml,yaml,vue}": [],
+    "*.@(js|ts|tsx|yml|yaml|md|json|html|toml)": [
+      "dprint fmt"
+    ],
+    "*.@(js|ts|tsx)": [
+      "pnpm lint-code -- --fix"
+    ],
     "*": "cspell --no-progress --gitignore --no-must-find-files"
-  },
-  "packageManager": "pnpm@9.15.3"
+  }
 }

@@ -80,14 +80,14 @@ impl Chunk {
   }
 
   pub fn relative_path_for(&self, target: &Path) -> String {
-    let sorurce_dir = self
+    let source_dir = self
       .absolute_preliminary_filename
       .as_ref()
       .expect("chunk should have absolute_preliminary_filename")
       .as_path()
       .parent()
       .expect("absolute_preliminary_filename should have a parent directory");
-    target.relative(sorurce_dir).as_path().expect_to_slash()
+    target.relative(source_dir).as_path().expect_to_slash()
   }
 
   pub fn filename_template(&self, options: &NormalizedBundlerOptions) -> FilenameTemplate {

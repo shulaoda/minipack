@@ -1,12 +1,12 @@
 [package]
 name = "minipack_ecmascript"
 
-edition.workspace    = true
-homepage.workspace   = true
-license.workspace    = true
-readme.workspace     = true
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
 repository.workspace = true
-version.workspace    = true
 
 [lib]
 doctest = false
@@ -14,11 +14,10 @@ doctest = false
 [lints]
 workspace = true
 
-
 [dependencies]
 minipack_error = { workspace = true }
 
-anyhow    = { workspace = true }
-arcstr    = { workspace = true }
-oxc       = { workspace = true }
+anyhow = { workspace = true }
+arcstr = { workspace = true }
+oxc = { workspace = true }
 self_cell = { workspace = true }

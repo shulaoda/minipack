@@ -1,12 +1,12 @@
 [package]
 name = "minipack_ecmascript_utils"
 
-edition.workspace    = true
-homepage.workspace   = true
-license.workspace    = true
-readme.workspace     = true
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
 repository.workspace = true
-version.workspace    = true
 
 [lib]
 doctest = false
@@ -14,9 +14,8 @@ doctest = false
 [lints]
 workspace = true
 
-
 [dependencies]
 minipack_common = { workspace = true }
 
-oxc      = { workspace = true }
+oxc = { workspace = true }
 smallvec = { workspace = true }

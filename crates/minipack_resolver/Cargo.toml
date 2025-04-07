@@ -1,13 +1,13 @@
 [package]
+name = "minipack_resolver"
 description = "minipack_resolver"
-name        = "minipack_resolver"
 
-edition.workspace    = true
-homepage.workspace   = true
-license.workspace    = true
-readme.workspace     = true
+version.workspace = true
+edition.workspace = true
+homepage.workspace = true
+license.workspace = true
+readme.workspace = true
 repository.workspace = true
-version.workspace    = true
 
 [lib]
 doctest = false
@@ -17,10 +17,10 @@ workspace = true
 
 [dependencies]
 minipack_common = { workspace = true }
-minipack_fs     = { workspace = true, features = ["os"] }
+minipack_fs = { workspace = true, features = ["os"] }
 
-arcstr       = { workspace = true }
-dashmap      = { workspace = true }
-itertools    = { workspace = true }
+arcstr = { workspace = true }
+dashmap = { workspace = true }
+itertools = { workspace = true }
 oxc_resolver = { workspace = true }
-sugar_path   = { workspace = true }
+sugar_path = { workspace = true }

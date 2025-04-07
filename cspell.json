@@ -40,7 +40,9 @@
       // Multiple locales can be specified like: "en, en-US" to match both English and English US.
       "locale": "*",
       // To exclude patterns, add them to "ignoreRegExpList"
-      "ignoreRegExpList": ["/import\\s.*/"],
+      "ignoreRegExpList": [
+        "/import\\s.*/"
+      ],
       // List of dictionaries to enable by name in `dictionaryDefinitions`
       "dictionaries": [],
       // Dictionary definitions can also be supplied here. They are only used if "languageId" and "locale" match.
@@ -68,6 +70,7 @@
     "codegen",
     "codemirror",
     "codspeed",
+    "Colour",
     "compat",
     "concat",
     "conflictless",
@@ -87,6 +90,7 @@
     "emnapi",
     "endregion",
     "esbuild",
+    "Estarget",
     "evanw",
     "execa",
     "externalizable",
@@ -94,6 +98,7 @@
     "FEFF",
     "Finalizer",
     "finalizers",
+    "fontobject",
     "globset",
     "hashbang",
     "hasher",
@@ -128,6 +133,7 @@
     "Microtask",
     "mimalloc",
     "minifier",
+    "minipack",
     "multizip",
     "napi",
     "nocheck",
@@ -163,6 +169,7 @@
     "sfnt",
     "shaked",
     "sharedworker",
+    "shulaoda",
     "simd",
     "simdutf",
     "smallvec",
@@ -209,5 +216,10 @@
     "पतलूनमे",
     "मेरेशॉर्ट्सखाओ"
   ],
-  "ignoreWords": ["Jeqs", "Gwetwem", "bpwli", "mxrh"]
+  "ignoreWords": [
+    "Jeqs",
+    "Gwetwem",
+    "bpwli",
+    "mxrh"
+  ]
 }
