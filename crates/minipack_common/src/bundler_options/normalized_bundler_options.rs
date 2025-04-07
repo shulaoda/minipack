@@ -19,7 +19,6 @@ pub struct NormalizedBundlerOptions {
   pub exports: OutputExports,
   pub entry_filenames: String,
   pub chunk_filenames: String,
-  pub asset_filenames: String,
 
   // --- Enhance
   pub minify: bool,

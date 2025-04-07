@@ -47,9 +47,6 @@ pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsRet
     exports: raw_options.exports.unwrap_or(OutputExports::Auto),
     entry_filenames: raw_options.entry_filenames.unwrap_or_else(|| "[name].js".to_string()),
     chunk_filenames: raw_options.chunk_filenames.unwrap_or_else(|| "[name]-[hash].js".to_string()),
-    asset_filenames: raw_options
-      .asset_filenames
-      .unwrap_or_else(|| "assets/[name]-[hash][extname]".to_string()),
     // --- Enhance
     minify: raw_options.minify.unwrap_or_default(),
     target,

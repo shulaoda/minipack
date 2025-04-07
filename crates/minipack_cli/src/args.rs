@@ -38,9 +38,6 @@ pub struct OutputArgs {
 
   #[clap(long)]
   pub chunk_filenames: Option<String>,
-
-  #[clap(long)]
-  pub asset_filenames: Option<String>,
 }
 
 #[derive(Args)]

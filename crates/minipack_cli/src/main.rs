@@ -102,7 +102,6 @@ async fn main() {
     exports: args.output.exports.map(Into::into),
     entry_filenames: args.output.entry_filenames,
     chunk_filenames: args.output.chunk_filenames,
-    asset_filenames: args.output.asset_filenames,
     minify: args.enhance.minify,
     target: args.enhance.target.map(Into::into),
     shim_missing_exports: args.enhance.shim_missing_exports,
