@@ -97,8 +97,7 @@ impl RuntimeModuleTask {
         mutations: vec![],
         new_url_references,
         this_expr_replace_map: FxHashSet::default(),
-      },
-      asset_view: None,
+      }
     };
 
     let resolved_deps = raw_import_records

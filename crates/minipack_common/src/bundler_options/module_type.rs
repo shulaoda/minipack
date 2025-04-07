@@ -5,11 +5,6 @@ pub enum ModuleType {
   Ts,
   Tsx,
   Json,
-  Text,
-  Base64,
-  Dataurl,
-  Binary,
   Empty,
-  Asset,
   Custom(String),
 }

@@ -1,7 +1,7 @@
 use arcstr::ArcStr;
 use minipack_common::{
   ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
-  ModuleType, NormalModule, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId, StrOrBytes,
+  ModuleType, NormalModule, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId,
 };
 use minipack_error::BuildResult;
 use minipack_fs::FileSystem;
@@ -10,10 +10,7 @@ use oxc_index::IndexVec;
 use std::sync::Arc;
 use sugar_path::SugarPath;
 
-use super::loaders::{
-  asset::create_asset_view,
-  ecmascript::{CreateEcmaViewReturn, create_ecma_view},
-};
+use super::loaders::ecmascript::{CreateEcmaViewReturn, create_ecma_view};
 
 use crate::{types::module_factory::CreateModuleContext, utils::resolve_id::resolve_id};
 
@@ -48,7 +45,7 @@ impl ModuleTask {
   }
 
   async fn run_inner(&mut self) -> BuildResult<()> {
-    let (mut source, module_type) = self.load_source().map_err(|err| {
+    let (source, module_type) = self.load_source().map_err(|err| {
       anyhow::anyhow!(
         "Could not load {}{} - {}.",
         self.resolved_id.debug_id(self.ctx.options.cwd.as_path()),
@@ -59,13 +56,6 @@ impl ModuleTask {
 
     let mut warnings = vec![];
 
-    let mut asset_view = None;
-
-    if module_type == ModuleType::Asset {
-      asset_view = Some(create_asset_view(source.into_bytes()));
-      source = StrOrBytes::default();
-    }
-
     let id = ModuleId::new(&self.resolved_id.id);
     let stable_id = id.stabilize(&self.ctx.options.cwd);
     let ret = create_ecma_view(
@@ -75,7 +65,7 @@ impl ModuleTask {
         resolved_id: &self.resolved_id,
         options: &self.ctx.options,
         warnings: &mut warnings,
-        module_type: module_type.clone()
+        module_type: module_type.clone(),
       },
       source,
     )
@@ -132,7 +122,6 @@ impl ModuleTask {
         debug_id,
         stable_id,
         repr_name,
-        asset_view,
         ecma_view,
         exec_order: u32::MAX,
         module_type: module_type.clone(),
@@ -149,14 +138,11 @@ impl ModuleTask {
     Ok(())
   }
 
-  pub fn load_source(&self) -> anyhow::Result<(StrOrBytes, ModuleType)> {
+  pub fn load_source(&self) -> anyhow::Result<(String, ModuleType)> {
     let fs: &dyn FileSystem = &self.ctx.fs;
 
     if self.resolved_id.ignored {
-      return Ok((
-        StrOrBytes::default(),
-        self.asserted_module_type.clone().unwrap_or(ModuleType::Empty),
-      ));
+      return Ok((String::new(), self.asserted_module_type.clone().unwrap_or(ModuleType::Empty)));
     }
 
     let id = &self.resolved_id.id;
@@ -168,17 +154,10 @@ impl ModuleTask {
       "jsx" => ModuleType::Jsx,
       "tsx" => ModuleType::Tsx,
       "json" => ModuleType::Json,
-      "txt" => ModuleType::Text,
       _ => ModuleType::Js,
     };
 
-    let content = match module_type {
-      ModuleType::Base64 | ModuleType::Binary | ModuleType::Dataurl | ModuleType::Asset => {
-        StrOrBytes::Bytes(fs.read(id.as_path())?)
-      }
-      _ => StrOrBytes::Str(fs.read_to_string(id.as_path())?),
-    };
-
+    let content = fs.read_to_string(id.as_path())?;
     let final_type = self.asserted_module_type.clone().unwrap_or(module_type);
 
     Ok((content, final_type))

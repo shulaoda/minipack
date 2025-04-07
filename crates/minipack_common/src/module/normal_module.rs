@@ -2,7 +2,7 @@ use std::fmt::Debug;
 use std::sync::Arc;
 
 use crate::ecmascript::ecma_view::EcmaView;
-use crate::{AssetView, ImportRecordIdx, ImportRecordMeta, ModuleId, ModuleIdx};
+use crate::{ImportRecordIdx, ImportRecordMeta, ModuleId, ModuleIdx};
 use crate::{EcmaAstIdx, Module, ModuleType};
 use std::ops::{Deref, DerefMut};
 
@@ -22,7 +22,6 @@ pub struct NormalModule {
   pub repr_name: String,
   pub module_type: ModuleType,
   pub ecma_view: EcmaView,
-  pub asset_view: Option<AssetView>,
 }
 
 impl NormalModule {

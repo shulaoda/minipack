@@ -1,5 +1,5 @@
 use minipack_common::{
-  EcmaRelated, EcmaView, EcmaViewMeta, ImportRecordIdx, ModuleId, RawImportRecord, StrOrBytes,
+  EcmaRelated, EcmaView, EcmaViewMeta, ImportRecordIdx, ModuleId, RawImportRecord,
   side_effects::DeterminedSideEffects,
 };
 use minipack_error::BuildResult;
@@ -24,7 +24,7 @@ pub struct CreateEcmaViewReturn {
 
 pub async fn create_ecma_view(
   ctx: &mut CreateModuleContext<'_>,
-  source: StrOrBytes,
+  source: String,
 ) -> BuildResult<CreateEcmaViewReturn> {
   let ParseToEcmaAstResult { ast, scoping, has_lazy_export, warning } =
     parse_to_ecma_ast(ctx, source)?;

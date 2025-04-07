@@ -1,4 +1,3 @@
-mod asset;
 mod bundler_options;
 mod chunk;
 mod ecmascript;
@@ -14,7 +13,6 @@ pub use bundler_options::{
 };
 
 pub use crate::{
-  asset::AssetView,
   chunk::{
     Chunk,
     types::{
@@ -67,7 +65,6 @@ pub use crate::{
     source_joiner::SourceJoiner,
     source_mutation::SourceMutation,
     stmt_info::{StmtInfo, StmtInfoIdx, StmtInfoMeta, StmtInfos},
-    str_or_bytes::StrOrBytes,
     symbol_name_ref_token::SymbolNameRefToken,
     symbol_or_member_expr_ref::SymbolOrMemberExprRef,
     symbol_ref::SymbolRef,

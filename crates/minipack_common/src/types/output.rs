@@ -1,13 +1,13 @@
 use arcstr::ArcStr;
 
-use crate::{OutputChunk, StrOrBytes};
+use crate::OutputChunk;
 
 #[derive(Debug, Clone)]
 pub struct OutputAsset {
   pub names: Vec<String>,
   pub original_file_names: Vec<String>,
   pub filename: ArcStr,
-  pub source: StrOrBytes,
+  pub source: String,
 }
 
 #[derive(Debug, Clone)]

@@ -107,7 +107,7 @@ impl Generator for EcmaGenerator {
 
     let instantiated_chunk = InstantiatedChunk {
       origin_chunk: ctx.chunk_idx,
-      content: content.into(),
+      content,
       kind: rendered_chunk.into(),
       augment_chunk_hash: None,
       file_dir: file_dir.to_path_buf(),

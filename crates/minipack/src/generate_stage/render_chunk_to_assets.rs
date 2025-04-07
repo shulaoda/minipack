@@ -8,7 +8,7 @@ use minipack_utils::{
 };
 use oxc_index::{IndexVec, index_vec};
 
-use super::generators::{asset::AssetGenerator, ecmascript::EcmaGenerator};
+use super::generators::ecmascript::EcmaGenerator;
 
 use crate::{
   graph::ChunkGraph,
@@ -39,8 +39,6 @@ impl GenerateStage<'_> {
     for Asset { meta: rendered_chunk, content: code, preliminary_filename, filename, .. } in assets
     {
       if let InstantiationKind::Ecma(rendered_chunk) = rendered_chunk {
-        let code = code.try_into_string()?;
-
         output.push(Output::Chunk(Box::new(OutputChunk {
           name: rendered_chunk.name,
           filename: rendered_chunk.filename,
@@ -105,30 +103,12 @@ impl GenerateStage<'_> {
             warnings: vec![],
             module_id_to_codegen_ret,
           };
-          
-          let ecma_chunks = EcmaGenerator::instantiate_chunk(&mut ctx).await;
 
-          let mut ctx = GenerateContext {
-            chunk_idx,
-            chunk,
-            options: self.options,
-            link_output: self.link_output,
-            chunk_graph,
-            warnings: vec![],
-            // FIXME: module_id_to_codegen_ret is currently not used in AssetGenerator. But we need to pass it to satisfy the args.
-            module_id_to_codegen_ret: vec![],
-          };
-
-          let asset_chunks = AssetGenerator::instantiate_chunk(&mut ctx).await;
-
-          ecma_chunks.and_then(|ecma_chunks| {
-            asset_chunks.map(|asset_chunks| [ecma_chunks, asset_chunks])
-          })
+          EcmaGenerator::instantiate_chunk(&mut ctx).await
         }),
     )
     .await?
     .into_iter()
-    .flatten()
     .for_each(|result| {
       result.chunks.into_iter().for_each(|asset| {
         let origin_chunk = asset.origin_chunk;
@@ -182,9 +162,7 @@ impl GenerateStage<'_> {
       assets.par_iter_mut().try_for_each(|asset| -> anyhow::Result<()> {
         match asset.meta {
           InstantiationKind::Ecma(_) => {
-            let minified_content =
-              EcmaCompiler::minify(asset.content.try_as_inner_str()?, self.options.target.into());
-            asset.content = minified_content.into();
+            asset.content = EcmaCompiler::minify(&asset.content, self.options.target.into());
           }
           InstantiationKind::None => {}
         }

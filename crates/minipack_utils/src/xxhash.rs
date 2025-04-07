@@ -3,11 +3,9 @@
 use base_encode::to_string;
 use xxhash_rust::xxh3::xxh3_128;
 
-use crate::base64::to_url_safe_base64;
-
 pub fn xxhash_base64_url(input: &[u8]) -> String {
   let hash = xxh3_128(input).to_le_bytes();
-  to_url_safe_base64(hash)
+  base64_simd::URL_SAFE_NO_PAD.encode_to_string(hash)
 }
 
 const CHARACTERS_BASE64: &[u8] =

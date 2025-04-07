@@ -1,13 +1,11 @@
 use std::collections::hash_map::Entry;
 
 use arcstr::ArcStr;
-use minipack_common::{ChunkIdx, ChunkKind, FilenameTemplate, PreliminaryFilename};
+use minipack_common::{ChunkIdx, ChunkKind};
 use minipack_error::BuildResult;
 use minipack_utils::{
   concat_string,
   hash_placeholder::HashPlaceholderGenerator,
-  option_ext::OptionExt,
-  path_buf_ext::PathBufExt,
   path_ext::PathExt,
   rayon::{IntoParallelRefIterator, ParallelIterator},
   sanitize_file_name::sanitize_file_name,
@@ -124,45 +122,19 @@ impl GenerateStage<'_> {
         &mut make_unique_name_for_ecma_chunk,
       )?;
 
-      chunk.modules.iter().copied().filter_map(|idx| modules[idx].as_normal()).for_each(|module| {
-        if module.asset_view.is_some() {
-          let asset_filename_template = FilenameTemplate::new(self.options.asset_filenames.clone());
-
-          let has_hash_pattern = asset_filename_template.has_hash_pattern();
-
-          let name = module.id.as_path().file_stem().and_then(|s| s.to_str()).unpack();
-          let extension = module.id.as_path().extension().and_then(|s| s.to_str());
-
-          let mut hash_placeholder = has_hash_pattern.then_some(vec![]);
-          let hash_replacer = has_hash_pattern.then_some({
-            |len: Option<usize>| {
-              let hash = hash_placeholder_generator.generate(len);
-              if let Some(hash_placeholder) = hash_placeholder.as_mut() {
-                hash_placeholder.push(hash.clone());
-              }
-              hash
-            }
-          });
-
-          let filename = asset_filename_template.render(Some(name), extension, hash_replacer);
-          let preliminary = PreliminaryFilename::new(filename, hash_placeholder);
-
-          chunk.asset_absolute_preliminary_filenames.insert(
-            module.idx,
-            preliminary
-              .absolutize_with(self.options.cwd.join(&self.options.dir))
-              .expect_into_string(),
-          );
-          chunk.asset_preliminary_filenames.insert(module.idx, preliminary);
-        }
-      });
-
       chunk.pre_rendered_chunk = Some(pre_rendered_chunk);
 
       chunk.absolute_preliminary_filename = Some(
         preliminary_filename
           .absolutize_with(self.options.cwd.join(&self.options.dir))
-          .expect_into_string(),
+          .into_os_string()
+          .into_string()
+          .unwrap_or_else(|input| {
+            panic!(
+              "Failed to convert {:?} to valid utf8 string",
+              std::path::PathBuf::from(input).display()
+            );
+          }),
       );
 
       chunk.preliminary_filename = Some(preliminary_filename);

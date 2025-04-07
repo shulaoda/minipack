@@ -1,8 +1,8 @@
-use std::{hash::Hash, mem};
+use std::hash::Hash;
 
 use arcstr::ArcStr;
 use itertools::Itertools;
-use minipack_common::{AssetIdx, InstantiationKind, StrOrBytes};
+use minipack_common::{AssetIdx, InstantiationKind};
 use minipack_utils::{
   hash_placeholder::{extract_hash_placeholders, replace_placeholder_with_hash},
   indexmap::FxIndexSet,
@@ -42,14 +42,11 @@ pub fn finalize_assets(
 
   let index_direct_dependencies: IndexVec<AssetIdx, Vec<AssetIdx>> = preliminary_assets
     .par_iter()
-    .map(|asset| match &asset.content {
-      StrOrBytes::Str(content) => extract_hash_placeholders(content)
+    .map(|asset| {
+      extract_hash_placeholders(&asset.content)
         .iter()
         .filter_map(|placeholder| asset_idx_by_placeholder.get(placeholder).copied())
-        .collect_vec(),
-      StrOrBytes::Bytes(_content) => {
-        vec![]
-      }
+        .collect_vec()
     })
     .collect::<Vec<_>>()
     .into();
@@ -129,14 +126,8 @@ pub fn finalize_assets(
         rendered_chunk.debug_id = index_final_hashes[asset_idx].1;
       }
 
-      match &mut asset.content {
-        StrOrBytes::Str(content) => {
-          *content =
-            replace_placeholder_with_hash(mem::take(content), &final_hashes_by_placeholder)
-              .into_owned();
-        }
-        StrOrBytes::Bytes(_content) => {}
-      }
+      asset.content =
+        replace_placeholder_with_hash(asset.content, &final_hashes_by_placeholder).into_owned();
 
       asset.finalize(filename.to_string())
     })

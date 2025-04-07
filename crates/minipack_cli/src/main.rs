@@ -44,7 +44,7 @@ fn print_output_assets(outputs: Vec<Output>) {
         (output.filename, Colour::Cyan, size, true)
       }
       minipack::Output::Asset(output) => {
-        let size = format!("{:.2}", output.source.as_bytes().len() as f64 / 1024.0);
+        let size = format!("{:.2}", output.source.len() as f64 / 1024.0);
 
         if size.len() > right {
           right = size.len();
