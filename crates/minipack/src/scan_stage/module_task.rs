@@ -117,7 +117,6 @@ impl ModuleTask {
         ImportKind::DynamicImport => {
           ecma_view.dynamically_imported_ids.insert(ArcStr::clone(&info.id).into());
         }
-        _ => unreachable!(),
       }
     }
 

@@ -27,8 +27,6 @@ pub struct BundlerOptions {
   pub entry_filenames: Option<String>,
   pub chunk_filenames: Option<String>,
   pub asset_filenames: Option<String>,
-  pub css_entry_filenames: Option<String>,
-  pub css_chunk_filenames: Option<String>,
 
   // --- Enhance
   pub minify: Option<bool>,

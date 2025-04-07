@@ -41,12 +41,6 @@ pub struct OutputArgs {
 
   #[clap(long)]
   pub asset_filenames: Option<String>,
-
-  #[clap(long)]
-  pub css_entry_filenames: Option<String>,
-
-  #[clap(long)]
-  pub css_chunk_filenames: Option<String>,
 }
 
 #[derive(Args)]

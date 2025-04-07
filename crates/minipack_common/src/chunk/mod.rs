@@ -1,7 +1,4 @@
-use std::{
-  borrow::Cow,
-  path::{Path, PathBuf},
-};
+use std::{borrow::Cow, path::Path};
 
 pub mod types;
 
@@ -33,8 +30,6 @@ pub struct Chunk {
   pub pre_rendered_chunk: Option<RollupPreRenderedChunk>,
   pub preliminary_filename: Option<PreliminaryFilename>,
   pub absolute_preliminary_filename: Option<String>,
-  pub css_preliminary_filename: Option<PreliminaryFilename>,
-  pub css_absolute_preliminary_filename: Option<String>,
   pub asset_preliminary_filenames: FxIndexMap<ModuleIdx, PreliminaryFilename>,
   pub asset_absolute_preliminary_filenames: FxIndexMap<ModuleIdx, String>,
   pub canonical_names: FxHashMap<SymbolRef, Rstr>,
@@ -101,17 +96,6 @@ impl Chunk {
     FilenameTemplate::new(ret)
   }
 
-  pub fn css_filename_template(&self, options: &NormalizedBundlerOptions) -> FilenameTemplate {
-    let ret = if matches!(self.kind, ChunkKind::EntryPoint { is_user_defined, .. } if is_user_defined)
-    {
-      options.css_entry_filenames.clone()
-    } else {
-      options.css_chunk_filenames.clone()
-    };
-
-    FilenameTemplate::new(ret)
-  }
-
   pub fn generate_preliminary_filename(
     &mut self,
     options: &NormalizedBundlerOptions,
@@ -124,46 +108,6 @@ impl Chunk {
     }
 
     let filename_template = self.filename_template(options);
-    let has_hash_pattern = filename_template.has_hash_pattern();
-
-    let name = if has_hash_pattern {
-      make_unique_name(chunk_name);
-      Cow::Borrowed(chunk_name)
-    } else {
-      let unique = make_unique_name(chunk_name);
-      Cow::Owned(unique)
-    };
-
-    let mut hash_placeholder = has_hash_pattern.then_some(vec![]);
-    let hash_replacer = has_hash_pattern.then_some({
-      |len: Option<usize>| {
-        let hash = hash_placeholder_generator.generate(len);
-        if let Some(hash_placeholder) = hash_placeholder.as_mut() {
-          hash_placeholder.push(hash.clone());
-        }
-        hash
-      }
-    });
-
-    let filename = filename_template.render(Some(&name), None, hash_replacer);
-
-    Ok(PreliminaryFilename::new(filename, hash_placeholder))
-  }
-
-  pub fn generate_css_preliminary_filename(
-    &self,
-    options: &NormalizedBundlerOptions,
-    chunk_name: &ArcStr,
-    hash_placeholder_generator: &mut HashPlaceholderGenerator,
-    make_unique_name: &mut impl FnMut(&ArcStr) -> ArcStr,
-  ) -> anyhow::Result<PreliminaryFilename> {
-    if let Some(file) = &options.file {
-      let mut file = PathBuf::from(file);
-      file.set_extension("css");
-      return Ok(PreliminaryFilename::new(file.into_os_string().into_string().unwrap(), None));
-    }
-
-    let filename_template = self.css_filename_template(options);
     let has_hash_pattern = filename_template.has_hash_pattern();
 
     let name = if has_hash_pattern {

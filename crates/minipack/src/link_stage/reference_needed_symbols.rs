@@ -62,41 +62,32 @@ impl LinkStage<'_> {
                 }
               }
               Module::Normal(importee) => {
-                match rec.kind {
-                  ImportKind::Import => {
-                    let is_reexport_all = rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR);
-                    // for case:
-                    // ```js
-                    // // index.js
-                    // export * from './foo'; /* importee wrap kind is `none`, but since `foo` has dynamic_export, we need to preserve the `__reExport(index_exports, foo_ns)` */
-                    //
-                    // // foo.js
-                    // export * from './bar' /* importee wrap kind is `cjs`, preserve by
-                    // default*/
-                    //
-                    // // bar.js
-                    // module.exports = 1000
-                    // ```
-                    if is_reexport_all {
-                      let meta = &self.metadata[importee.idx];
-                      if meta.has_dynamic_exports {
-                        *importer_side_effect = DeterminedSideEffects::Analyzed(true);
-                        stmt_info.side_effect = true;
-                        stmt_info
-                          .referenced_symbols
-                          .push(self.runtime_module.resolve_symbol("__reExport").into());
-                        stmt_info.referenced_symbols.push(importer.namespace_object_ref.into());
-                        stmt_info.referenced_symbols.push(importee.namespace_object_ref.into());
-                      }
+                if rec.kind == ImportKind::Import {
+                  let is_reexport_all = rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR);
+                  // for case:
+                  // ```js
+                  // // index.js
+                  // export * from './foo'; /* importee wrap kind is `none`, but since `foo` has dynamic_export, we need to preserve the `__reExport(index_exports, foo_ns)` */
+                  //
+                  // // foo.js
+                  // export * from './bar' /* importee wrap kind is `cjs`, preserve by
+                  // default*/
+                  //
+                  // // bar.js
+                  // module.exports = 1000
+                  // ```
+                  if is_reexport_all {
+                    let meta = &self.metadata[importee.idx];
+                    if meta.has_dynamic_exports {
+                      *importer_side_effect = DeterminedSideEffects::Analyzed(true);
+                      stmt_info.side_effect = true;
+                      stmt_info
+                        .referenced_symbols
+                        .push(self.runtime_module.resolve_symbol("__reExport").into());
+                      stmt_info.referenced_symbols.push(importer.namespace_object_ref.into());
+                      stmt_info.referenced_symbols.push(importee.namespace_object_ref.into());
                     }
                   }
-                  ImportKind::AtImport => {
-                    unreachable!("A Js module would never import a CSS module via `@import`");
-                  }
-                  ImportKind::UrlImport => {
-                    unreachable!("A Js module would never import a CSS module via `url()`");
-                  }
-                  _ => {}
                 }
               }
             }

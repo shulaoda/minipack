@@ -50,12 +50,6 @@ pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsRet
     asset_filenames: raw_options
       .asset_filenames
       .unwrap_or_else(|| "assets/[name]-[hash][extname]".to_string()),
-    css_entry_filenames: raw_options
-      .css_entry_filenames
-      .unwrap_or_else(|| "[name].css".to_string()),
-    css_chunk_filenames: raw_options
-      .css_chunk_filenames
-      .unwrap_or_else(|| "[name]-[hash].css".to_string()),
     // --- Enhance
     minify: raw_options.minify.unwrap_or_default(),
     target,

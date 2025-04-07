@@ -20,8 +20,6 @@ pub struct NormalizedBundlerOptions {
   pub entry_filenames: String,
   pub chunk_filenames: String,
   pub asset_filenames: String,
-  pub css_entry_filenames: String,
-  pub css_chunk_filenames: String,
 
   // --- Enhance
   pub minify: bool,

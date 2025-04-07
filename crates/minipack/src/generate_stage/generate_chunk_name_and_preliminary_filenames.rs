@@ -103,7 +103,6 @@ impl GenerateStage<'_> {
       }
     };
     let mut make_unique_name_for_ecma_chunk = create_make_unique_name(FxHashMap::default());
-    let mut make_unique_name_for_css_chunk = create_make_unique_name(FxHashMap::default());
 
     for chunk_id in &chunk_graph.sorted_chunk_idx_vec {
       let chunk = &mut chunk_graph.chunk_table[*chunk_id];
@@ -123,13 +122,6 @@ impl GenerateStage<'_> {
         pre_generated_chunk_name,
         &mut hash_placeholder_generator,
         &mut make_unique_name_for_ecma_chunk,
-      )?;
-
-      let css_preliminary_filename = chunk.generate_css_preliminary_filename(
-        self.options,
-        pre_generated_chunk_name,
-        &mut hash_placeholder_generator,
-        &mut make_unique_name_for_css_chunk,
       )?;
 
       chunk.modules.iter().copied().filter_map(|idx| modules[idx].as_normal()).for_each(|module| {
@@ -172,14 +164,8 @@ impl GenerateStage<'_> {
           .absolutize_with(self.options.cwd.join(&self.options.dir))
           .expect_into_string(),
       );
-      chunk.css_absolute_preliminary_filename = Some(
-        css_preliminary_filename
-          .absolutize_with(self.options.cwd.join(&self.options.dir))
-          .expect_into_string(),
-      );
 
       chunk.preliminary_filename = Some(preliminary_filename);
-      chunk.css_preliminary_filename = Some(css_preliminary_filename);
     }
     Ok(index_chunk_id_to_name)
   }

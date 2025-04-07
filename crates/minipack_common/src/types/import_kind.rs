@@ -6,17 +6,13 @@ pub enum ImportKind {
   Import,
   /// `import('foo')`
   DynamicImport,
-  /// css @import
-  AtImport,
-  /// css url import, e.g. `url(foo.png)`
-  UrlImport,
   // `new URL('path', import.meta.url)`
   NewUrl,
 }
 
 impl ImportKind {
   pub fn is_static(&self) -> bool {
-    matches!(self, Self::Import | Self::AtImport | Self::UrlImport)
+    matches!(self, Self::Import)
   }
 }
 
@@ -27,8 +23,6 @@ impl TryFrom<&str> for ImportKind {
     match value {
       "import" => Ok(Self::Import),
       "dynamic-import" => Ok(Self::DynamicImport),
-      "import-rule" => Ok(Self::AtImport),
-      "url-import" => Ok(Self::UrlImport),
       _ => Err(format!("Invalid import kind: {value:?}")),
     }
   }
@@ -40,8 +34,6 @@ impl Display for ImportKind {
     match self {
       Self::Import => write!(f, "import-statement"),
       Self::DynamicImport => write!(f, "dynamic-import"),
-      Self::AtImport => write!(f, "import-rule"),
-      Self::UrlImport => write!(f, "url-import"),
       Self::NewUrl => write!(f, "new-url"),
     }
   }

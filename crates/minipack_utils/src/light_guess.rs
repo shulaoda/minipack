@@ -16,8 +16,6 @@ impl RawMimeExt {
 }
 
 pub static MIME_TYPES: Map<&'static str, RawMimeExt> = phf_map! {
-    // Text
-    "css" => RawMimeExt::new("text/css", true),
     "htm" => RawMimeExt::new("text/html", true),
     "html" => RawMimeExt::new("text/html", true),
     "js" => RawMimeExt::new("text/javascript", true),
@@ -78,7 +76,6 @@ mod tests {
   #[test]
   fn normal_extensions() {
     assert_eq!(mime_type_by_extension("txt"), None);
-    assert_eq!(mime_type_by_extension("css").unwrap().mime_str, "text/css");
     assert_eq!(mime_type_by_extension("html").unwrap().mime_str, "text/html");
     assert_eq!(mime_type_by_extension("json").unwrap().mime_str, "application/json");
     assert_eq!(mime_type_by_extension("png").unwrap().mime_str, "image/png");
