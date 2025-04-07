@@ -619,7 +619,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   pub fn is_this_nested(&self) -> bool {
     self.is_nested_this_inside_class
       || self.scope_stack.iter().any(|scope| {
-        scope.map_or(false, |scope| {
+        scope.is_some_and(|scope| {
           let flags = self.result.symbols.ast_scopes.scope_flags(scope);
           flags.contains(ScopeFlags::Function) && !flags.contains(ScopeFlags::Arrow)
         })
