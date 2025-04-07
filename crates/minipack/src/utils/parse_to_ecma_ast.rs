@@ -22,8 +22,10 @@ pub fn parse_to_ecma_ast(
 ) -> BuildResult<ParseToEcmaAstResult> {
   let CreateModuleContext { options, stable_id, module_type, .. } = ctx;
 
-  let (has_lazy_export, source, parsed_type) = pre_process_source(module_type, source)?;
+  let has_lazy_export = matches!(module_type, ModuleType::Json);
+  let source = if matches!(module_type, ModuleType::Empty) { ArcStr::new() } else { source.into() };
 
+  let parsed_type = module_type.into();
   let oxc_source_type = {
     let default = OxcSourceType::default().with_module(true);
     match parsed_type {
@@ -44,23 +46,4 @@ pub fn parse_to_ecma_ast(
     has_lazy_export,
     options,
   )
-}
-
-fn pre_process_source(
-  module_type: &ModuleType,
-  source: String,
-) -> BuildResult<(bool, ArcStr, OxcParseType)> {
-  let has_lazy_export = matches!(module_type, ModuleType::Json);
-
-  let source = match module_type {
-    ModuleType::Js | ModuleType::Jsx | ModuleType::Ts | ModuleType::Tsx | ModuleType::Json => {
-      source
-    }
-    ModuleType::Empty => String::new(),
-    ModuleType::Custom(custom_type) => {
-      return Err(anyhow::format_err!("Unknown module type: {custom_type}"))?;
-    }
-  };
-
-  Ok((has_lazy_export, source.into(), module_type.into()))
 }

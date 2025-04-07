@@ -6,5 +6,4 @@ pub enum ModuleType {
   Tsx,
   Json,
   Empty,
-  Custom(String),
 }
