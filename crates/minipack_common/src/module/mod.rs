@@ -1,7 +1,6 @@
 pub mod external_module;
 pub mod normal_module;
 
-use minipack_utils::option_ext::OptionExt;
 use oxc_index::IndexVec;
 
 use crate::{
@@ -88,20 +87,14 @@ impl Module {
 
   pub fn import_records(&self) -> &IndexVec<ImportRecordIdx, ResolvedImportRecord> {
     match self {
-      Self::Normal(v) => match v.module_type {
-        crate::ModuleType::Css => &v.css_view.unpack_ref().import_records,
-        _ => &v.ecma_view.import_records,
-      },
+      Self::Normal(v) => &v.ecma_view.import_records,
       Self::External(v) => &v.import_records,
     }
   }
 
   pub fn set_import_records(&mut self, records: IndexVec<ImportRecordIdx, ResolvedImportRecord>) {
     match self {
-      Self::Normal(v) => match v.module_type {
-        crate::ModuleType::Css => v.css_view.unpack_ref_mut().import_records = records,
-        _ => v.ecma_view.import_records = records,
-      },
+      Self::Normal(v) => v.ecma_view.import_records = records,
       Self::External(v) => v.import_records = records,
     }
   }

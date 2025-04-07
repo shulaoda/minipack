@@ -8,6 +8,5 @@ pub struct CreateModuleContext<'a> {
   pub resolved_id: &'a ResolvedId,
   pub options: &'a SharedOptions,
   pub module_type: ModuleType,
-  pub warnings: &'a mut Vec<anyhow::Error>,
-  pub is_user_defined_entry: bool,
+  pub warnings: &'a mut Vec<anyhow::Error>
 }

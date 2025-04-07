@@ -1,7 +1,6 @@
 mod asset;
 mod bundler_options;
 mod chunk;
-mod css;
 mod ecmascript;
 mod module;
 mod module_loader;
@@ -22,7 +21,6 @@ pub use crate::{
       cross_chunk_import_item::CrossChunkImportItem, preliminary_filename::PreliminaryFilename,
     },
   },
-  css::{CssAssetNameReplacer, CssRenderer, CssView},
   ecmascript::{
     dynamic_import_usage,
     ecma_ast_idx::EcmaAstIdx,

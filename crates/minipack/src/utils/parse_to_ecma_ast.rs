@@ -50,10 +50,8 @@ pub fn parse_to_ecma_ast(
   let CreateModuleContext { options, stable_id, resolved_id, module_type, .. } = ctx;
 
   let path = resolved_id.id.as_path();
-  let is_user_defined_entry = ctx.is_user_defined_entry;
-
   let (has_lazy_export, source, parsed_type) =
-    pre_process_source(module_type, source, is_user_defined_entry, path, options)?;
+    pre_process_source(module_type, source, path, options)?;
 
   let oxc_source_type = {
     let default = OxcSourceType::default().with_module(true);
@@ -82,11 +80,10 @@ pub fn parse_to_ecma_ast(
 fn pre_process_source(
   module_type: &ModuleType,
   source: StrOrBytes,
-  is_user_defined_entry: bool,
   path: &Path,
   options: &NormalizedBundlerOptions,
 ) -> BuildResult<(bool, ArcStr, OxcParseType)> {
-  let mut has_lazy_export = matches!(
+  let has_lazy_export = matches!(
     module_type,
     ModuleType::Json
       | ModuleType::Text
@@ -98,14 +95,6 @@ fn pre_process_source(
   let source = match module_type {
     ModuleType::Js | ModuleType::Jsx | ModuleType::Ts | ModuleType::Tsx | ModuleType::Json => {
       source.try_into_string()?
-    }
-    ModuleType::Css => {
-      if is_user_defined_entry {
-        "export {}".to_owned()
-      } else {
-        has_lazy_export = true;
-        "({})".to_owned()
-      }
     }
     ModuleType::Text => text_to_string_literal(&source.try_into_string()?)?,
     ModuleType::Base64 => text_to_string_literal(&to_standard_base64(source.into_bytes()))?,

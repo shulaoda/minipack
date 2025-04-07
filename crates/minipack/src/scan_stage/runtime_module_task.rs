@@ -98,7 +98,6 @@ impl RuntimeModuleTask {
         new_url_references,
         this_expr_replace_map: FxHashSet::default(),
       },
-      css_view: None,
       asset_view: None,
     };
 

@@ -10,7 +10,6 @@ pub enum ModuleType {
   Dataurl,
   Binary,
   Empty,
-  Css,
   Asset,
   Custom(String),
 }

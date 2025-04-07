@@ -9,7 +9,7 @@ pub mod generators;
 use scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext};
 
 use arcstr::ArcStr;
-use minipack_common::{CssAssetNameReplacer, ImportMetaRolldownAssetReplacer, Module};
+use minipack_common::{ImportMetaRolldownAssetReplacer, Module};
 use minipack_ecmascript_utils::{AstSnippet, TakeIn};
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
@@ -121,24 +121,6 @@ impl<'a> GenerateStage<'a> {
           asset_filename: asset_filename.clone(),
         }));
         module_idx_to_filenames.insert(module_idx, asset_filename);
-      });
-      // replace asset name in css view
-      chunk.modules.iter().for_each(|module_idx| {
-        let module = &mut self.link_output.modules[*module_idx];
-        if let Some(css_view) =
-          module.as_normal_mut().and_then(|normal_module| normal_module.css_view.as_mut())
-        {
-          for (idx, record) in
-            css_view.import_records.iter_enumerated().filter(|(_idx, rec)| !rec.is_dummy())
-          {
-            if let Some(asset_filename) = module_idx_to_filenames.get(&record.resolved_module) {
-              let span = css_view.record_idx_to_span[idx];
-              css_view
-                .mutations
-                .push(Box::new(CssAssetNameReplacer { span, asset_name: asset_filename.clone() }));
-            }
-          }
-        }
       });
     });
   }

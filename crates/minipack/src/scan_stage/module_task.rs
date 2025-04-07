@@ -12,7 +12,6 @@ use sugar_path::SugarPath;
 
 use super::loaders::{
   asset::create_asset_view,
-  css::create_css_view,
   ecmascript::{CreateEcmaViewReturn, create_ecma_view},
 };
 
@@ -60,25 +59,12 @@ impl ModuleTask {
 
     let mut warnings = vec![];
 
-    let mut css_view = None;
     let mut asset_view = None;
-    let mut raw_import_records = IndexVec::default();
 
-    match module_type {
-      ModuleType::Asset => {
-        asset_view = Some(create_asset_view(source.into_bytes()));
-        source = StrOrBytes::default();
-      }
-      ModuleType::Css => {
-        let (raw_css_view, import_records, css_warnings) =
-          create_css_view(source.try_into_string()?);
-        raw_import_records = import_records;
-        css_view = Some(raw_css_view);
-        source = StrOrBytes::default();
-        warnings.extend(css_warnings);
-      }
-      _ => {}
-    };
+    if module_type == ModuleType::Asset {
+      asset_view = Some(create_asset_view(source.into_bytes()));
+      source = StrOrBytes::default();
+    }
 
     let id = ModuleId::new(&self.resolved_id.id);
     let stable_id = id.stabilize(&self.ctx.options.cwd);
@@ -89,22 +75,13 @@ impl ModuleTask {
         resolved_id: &self.resolved_id,
         options: &self.ctx.options,
         warnings: &mut warnings,
-        module_type: module_type.clone(),
-        is_user_defined_entry: self.is_user_defined_entry,
+        module_type: module_type.clone()
       },
       source,
     )
     .await?;
 
-    let CreateEcmaViewReturn {
-      mut ecma_view,
-      ecma_related,
-      raw_import_records: ecma_raw_import_records,
-    } = ret;
-
-    if css_view.is_none() {
-      raw_import_records = ecma_raw_import_records;
-    }
+    let CreateEcmaViewReturn { mut ecma_view, ecma_related, raw_import_records } = ret;
 
     let resolved_deps = raw_import_records
       .iter()
@@ -128,21 +105,19 @@ impl ModuleTask {
       })
       .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
 
-    if css_view.is_none() {
-      for (record, info) in raw_import_records
-        .iter()
-        .filter(|rec| !rec.meta.contains(ImportRecordMeta::IS_DUMMY))
-        .zip(&resolved_deps)
-      {
-        match record.kind {
-          ImportKind::Import | ImportKind::NewUrl => {
-            ecma_view.imported_ids.insert(ArcStr::clone(&info.id).into());
-          }
-          ImportKind::DynamicImport => {
-            ecma_view.dynamically_imported_ids.insert(ArcStr::clone(&info.id).into());
-          }
-          _ => unreachable!(),
+    for (record, info) in raw_import_records
+      .iter()
+      .filter(|rec| !rec.meta.contains(ImportRecordMeta::IS_DUMMY))
+      .zip(&resolved_deps)
+    {
+      match record.kind {
+        ImportKind::Import | ImportKind::NewUrl => {
+          ecma_view.imported_ids.insert(ArcStr::clone(&info.id).into());
         }
+        ImportKind::DynamicImport => {
+          ecma_view.dynamically_imported_ids.insert(ArcStr::clone(&info.id).into());
+        }
+        _ => unreachable!(),
       }
     }
 
@@ -158,7 +133,6 @@ impl ModuleTask {
         debug_id,
         stable_id,
         repr_name,
-        css_view,
         asset_view,
         ecma_view,
         exec_order: u32::MAX,
@@ -196,7 +170,6 @@ impl ModuleTask {
       "tsx" => ModuleType::Tsx,
       "json" => ModuleType::Json,
       "txt" => ModuleType::Text,
-      "css" => ModuleType::Css,
       _ => ModuleType::Js,
     };
 

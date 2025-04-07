@@ -8,7 +8,7 @@ use minipack_utils::{
 };
 use oxc_index::{IndexVec, index_vec};
 
-use super::generators::{asset::AssetGenerator, css::CssGenerator, ecmascript::EcmaGenerator};
+use super::generators::{asset::AssetGenerator, ecmascript::EcmaGenerator};
 
 use crate::{
   graph::ChunkGraph,
@@ -105,19 +105,8 @@ impl GenerateStage<'_> {
             warnings: vec![],
             module_id_to_codegen_ret,
           };
+          
           let ecma_chunks = EcmaGenerator::instantiate_chunk(&mut ctx).await;
-
-          let mut ctx = GenerateContext {
-            chunk_idx,
-            chunk,
-            options: self.options,
-            link_output: self.link_output,
-            chunk_graph,
-            warnings: vec![],
-            // FIXME: module_id_to_codegen_ret is currently not used in CssGenerator. But we need to pass it to satisfy the args.
-            module_id_to_codegen_ret: vec![],
-          };
-          let css_chunks = CssGenerator::instantiate_chunk(&mut ctx).await;
 
           let mut ctx = GenerateContext {
             chunk_idx,
@@ -129,12 +118,11 @@ impl GenerateStage<'_> {
             // FIXME: module_id_to_codegen_ret is currently not used in AssetGenerator. But we need to pass it to satisfy the args.
             module_id_to_codegen_ret: vec![],
           };
+
           let asset_chunks = AssetGenerator::instantiate_chunk(&mut ctx).await;
 
           ecma_chunks.and_then(|ecma_chunks| {
-            css_chunks.and_then(|css_chunks| {
-              asset_chunks.map(|asset_chunks| [ecma_chunks, css_chunks, asset_chunks])
-            })
+            asset_chunks.map(|asset_chunks| [ecma_chunks, asset_chunks])
           })
         }),
     )

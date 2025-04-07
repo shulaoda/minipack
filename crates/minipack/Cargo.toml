@@ -20,7 +20,6 @@ minipack_utils = { workspace = true }
 anyhow = { workspace = true }
 append-only-vec = { workspace = true }
 arcstr = { workspace = true }
-css-module-lexer = { workspace = true }
 daachorse = { workspace = true }
 futures = { workspace = true }
 indexmap = { workspace = true }
@@ -30,7 +29,6 @@ oxc = { workspace = true }
 oxc_index = { workspace = true }
 rustc-hash = { workspace = true }
 sanitize-filename = { workspace = true }
-string_wizard = { workspace = true }
 sugar_path = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
 xxhash-rust = { workspace = true, features = ["xxh3"] }
