@@ -20,9 +20,6 @@
   "references": [
     {
       "path": "./packages/bench"
-    },
-    {
-      "path": "./packages/minipack"
     }
   ]
 }
