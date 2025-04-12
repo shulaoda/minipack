@@ -3,11 +3,9 @@ mod impl_visit_mut;
 mod rename;
 
 pub use finalizer_context::ScopeHoistingFinalizerContext;
-use minipack_common::{AstScopes, Module, OutputFormat, Platform, SymbolRef};
-use minipack_ecmascript_utils::{AllocatorExt, AstSnippet, ExpressionExt, StatementExt, TakeIn};
-use minipack_utils::{ecmascript::is_validate_identifier_name, path_ext::PathExt, rstr::Rstr};
+
 use oxc::{
-  allocator::{Allocator, CloneIn, IntoIn},
+  allocator::{Allocator, Box as ArenaBox, CloneIn, Dummy, IntoIn, TakeIn},
   ast::{
     Comment, NONE,
     ast::{
@@ -20,6 +18,10 @@ use oxc::{
 };
 use rustc_hash::FxHashSet;
 use sugar_path::SugarPath;
+
+use minipack_common::{AstScopes, Module, OutputFormat, Platform, SymbolRef};
+use minipack_ecmascript_utils::{AstSnippet, ExpressionExt, StatementExt};
+use minipack_utils::{ecmascript::is_validate_identifier_name, path_ext::PathExt, rstr::Rstr};
 
 /// Finalizer for emitting output code with scope hoisting.
 pub struct ScopeHoistingFinalizer<'me, 'ast> {
@@ -171,7 +173,10 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     // construct `var [binding_name_for_namespace_object_ref] = {}`
     let decl_stmt = self.snippet.var_decl_stmt(
       binding_name_for_namespace_object_ref,
-      ast::Expression::ObjectExpression(TakeIn::dummy(self.alloc)),
+      ast::Expression::ObjectExpression(ArenaBox::new_in(
+        ast::ObjectExpression::dummy(self.alloc),
+        self.alloc,
+      )),
     );
 
     let exports_len = self.ctx.linking_info.canonical_exports().count();
@@ -259,7 +264,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
             ast::PropertyKey::StringLiteral(self.snippet.alloc_string_literal(prop_name, SPAN))
           },
           value: self.snippet.only_return_arrow_expr(returned),
-          ..TakeIn::dummy(self.alloc)
+          ..ast::ObjectProperty::dummy(self.alloc)
         }
         .into_in(self.alloc),
       ));
@@ -495,7 +500,10 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
           NONE,
           false,
         ),
-        Some(Expression::ClassExpression(class.take_in(self.alloc))),
+        Some(Expression::ClassExpression(ArenaBox::new_in(
+          class.as_mut().take_in(self.alloc),
+          self.alloc,
+        ))),
         false,
       )),
       false,
@@ -545,7 +553,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
   }
 
   fn remove_unused_top_level_stmt(&mut self, program: &mut ast::Program<'ast>) {
-    let old_body = self.alloc.take(&mut program.body);
+    let old_body = program.body.take_in(self.alloc);
 
     // the first statement info is the namespace variable declaration
     // skip first statement info to make sure `program.body` has same index as `stmt_infos`
@@ -621,7 +629,10 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
                   self.canonical_name_for(self.ctx.module.default_export_ref);
                 func.id = Some(self.snippet.id(canonical_name_for_default_export_ref, SPAN));
               }
-              top_stmt = ast::Statement::FunctionDeclaration(func.take_in(self.alloc));
+              top_stmt = ast::Statement::FunctionDeclaration(ArenaBox::new_in(
+                func.as_mut().take_in(self.alloc),
+                self.alloc,
+              ));
             }
             ast::ExportDefaultDeclarationKind::ClassDeclaration(class) => {
               // "export default class {}" => "class default {}"
@@ -631,7 +642,10 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
                   self.canonical_name_for(self.ctx.module.default_export_ref);
                 class.id = Some(self.snippet.id(canonical_name_for_default_export_ref, SPAN));
               }
-              top_stmt = ast::Statement::ClassDeclaration(class.take_in(self.alloc));
+              top_stmt = ast::Statement::ClassDeclaration(ArenaBox::new_in(
+                class.as_mut().take_in(self.alloc),
+                self.alloc,
+              ));
             }
             _ => {}
           }

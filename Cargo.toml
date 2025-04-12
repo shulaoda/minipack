@@ -85,7 +85,6 @@ indexmap = { version = "2.7.0" }
 itertools = { version = "0.14.0" }
 itoa = { version = "1.0.14" }
 memchr = { version = "2.7.4" }
-phf = { version = "0.11.3" }
 rayon = { version = "1.10.0" }
 regex = { version = "1.11.1" }
 rustc-hash = { version = "2.1.0" }
@@ -100,7 +99,7 @@ xxhash-rust = { version = "0.8.15" }
 
 # oxc crates share the same version
 # Please update with `cargo update oxc_resolver oxc_index`
-oxc = { version = "0.61.0", features = ["ast_visit", "transformer", "minifier", "semantic", "codegen", "serialize", "regular_expression"] }
+oxc = { version = "0.63.0", features = ["ast_visit", "transformer", "minifier", "semantic", "codegen", "serialize", "regular_expression"] }
 oxc_index = { version = "3", features = ["rayon"] }
 oxc_resolver = { version = "4" }
 

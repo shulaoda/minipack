@@ -1,5 +1,5 @@
 use oxc::{
-  allocator::{self, Allocator, Box, IntoIn},
+  allocator::{self, Allocator, Box, Dummy, IntoIn, TakeIn},
   ast::{
     AstBuilder, NONE,
     ast::{
@@ -9,8 +9,6 @@ use oxc::{
   },
   span::{Atom, CompactStr, SPAN, Span},
 };
-
-use crate::allocator_helpers::take_in::TakeIn;
 
 type PassedStr<'a> = &'a str;
 
@@ -414,8 +412,11 @@ impl<'ast> AstSnippet<'ast> {
   // return xxx
   pub fn return_stmt(&self, argument: ast::Expression<'ast>) -> ast::Statement<'ast> {
     ast::Statement::ReturnStatement(
-      ast::ReturnStatement { argument: Some(argument), ..TakeIn::dummy(self.alloc()) }
-        .into_in(self.alloc()),
+      ast::ReturnStatement {
+        argument: Some(argument),
+        ..ast::ReturnStatement::dummy(self.alloc())
+      }
+      .into_in(self.alloc()),
     )
   }
 
@@ -506,7 +507,7 @@ impl<'ast> AstSnippet<'ast> {
 
   pub fn expr_without_parentheses(&self, mut expr: Expression<'ast>) -> Expression<'ast> {
     while let Expression::ParenthesizedExpression(mut paren_expr) = expr {
-      expr = self.builder.move_expression(&mut paren_expr.expression);
+      expr = paren_expr.expression.take_in(self.builder.allocator);
     }
     expr
   }

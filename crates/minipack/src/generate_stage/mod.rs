@@ -9,12 +9,13 @@ pub mod generators;
 use scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext};
 
 use arcstr::ArcStr;
+use oxc::{allocator::TakeIn, ast_visit::VisitMut};
+use rustc_hash::{FxHashMap, FxHashSet};
+
 use minipack_common::{ImportMetaRolldownAssetReplacer, Module};
-use minipack_ecmascript_utils::{AstSnippet, TakeIn};
+use minipack_ecmascript_utils::AstSnippet;
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
-use oxc::ast_visit::VisitMut;
-use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   graph::ChunkGraph,

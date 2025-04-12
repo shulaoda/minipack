@@ -1,11 +1,11 @@
 use oxc::{
-  allocator::{Allocator, Box, IntoIn},
+  allocator::{Allocator, Box, Dummy, IntoIn, TakeIn},
   ast::ast,
   span::SPAN,
 };
 use smallvec::SmallVec;
 
-use crate::{AstSnippet, TakeIn};
+use crate::AstSnippet;
 
 pub trait BindingPatternExt<'ast> {
   fn binding_identifiers(&self) -> smallvec::SmallVec<[&Box<ast::BindingIdentifier<'ast>>; 1]>;
@@ -53,7 +53,7 @@ impl<'ast> BindingPatternExt<'ast> for ast::BindingPattern<'ast> {
             span: SPAN,
             target: rest.unbox().argument.into_assignment_target(alloc),
           }),
-          ..TakeIn::dummy(alloc)
+          ..ast::ObjectAssignmentTarget::dummy(alloc)
         };
 
         obj_pat.properties.take_in(alloc).into_iter().for_each(|binding_prop| {
@@ -66,10 +66,10 @@ impl<'ast> BindingPatternExt<'ast> for ast::BindingPattern<'ast> {
                   ast::AssignmentTargetPropertyIdentifier {
                     binding: ast::IdentifierReference {
                       name: assign_pat.left.get_identifier_name().unwrap(),
-                      ..TakeIn::dummy(alloc)
+                      ..ast::IdentifierReference::dummy(alloc)
                     },
                     init: Some(assign_pat.right),
-                    ..TakeIn::dummy(alloc)
+                    ..ast::AssignmentTargetPropertyIdentifier::dummy(alloc)
                   }
                   .into_in(alloc),
                 )
@@ -81,11 +81,11 @@ impl<'ast> BindingPatternExt<'ast> for ast::BindingPattern<'ast> {
                       ast::AssignmentTargetWithDefault {
                         binding: assign_pat.left.into_assignment_target(alloc),
                         init: assign_pat.right,
-                        ..TakeIn::dummy(alloc)
+                        ..ast::AssignmentTargetWithDefault::dummy(alloc)
                       }
                       .into_in(alloc),
                     ),
-                    ..TakeIn::dummy(alloc)
+                    ..ast::AssignmentTargetPropertyProperty::dummy(alloc)
                   }
                   .into_in(alloc),
                 )
@@ -98,10 +98,10 @@ impl<'ast> BindingPatternExt<'ast> for ast::BindingPattern<'ast> {
                   ast::AssignmentTargetPropertyIdentifier {
                     binding: ast::IdentifierReference {
                       name: id.name,
-                      ..TakeIn::dummy(alloc)
+                      ..ast::IdentifierReference::dummy(alloc)
                     },
                     init: None,
-                    ..TakeIn::dummy(alloc)
+                    ..ast::AssignmentTargetPropertyIdentifier::dummy(alloc)
                   }
                   .into_in(alloc),
                 )
@@ -112,7 +112,7 @@ impl<'ast> BindingPatternExt<'ast> for ast::BindingPattern<'ast> {
                     binding: ast::AssignmentTargetMaybeDefault::from(
                       binding_prop.value.into_assignment_target(alloc),
                     ),
-                    ..TakeIn::dummy(alloc)
+                    ..ast::AssignmentTargetPropertyProperty::dummy(alloc)
                   }
                   .into_in(alloc),
                 )
@@ -136,7 +136,7 @@ impl<'ast> BindingPatternExt<'ast> for ast::BindingPattern<'ast> {
             span: SPAN,
             target: rest.unbox().argument.into_assignment_target(alloc),
           }),
-          ..TakeIn::dummy(alloc)
+          ..ast::ArrayAssignmentTarget::dummy(alloc)
         };
         arr_pat.elements.take_in(alloc).into_iter().for_each(|binding_pat| {
           arr_target.elements.push(binding_pat.map(|binding_pat| match binding_pat.kind {
@@ -146,7 +146,7 @@ impl<'ast> BindingPatternExt<'ast> for ast::BindingPattern<'ast> {
                 ast::AssignmentTargetWithDefault {
                   binding: assign_pat.left.into_assignment_target(alloc),
                   init: assign_pat.right,
-                  ..TakeIn::dummy(alloc)
+                  ..ast::AssignmentTargetWithDefault::dummy(alloc)
                 }
                 .into_in(alloc),
               )

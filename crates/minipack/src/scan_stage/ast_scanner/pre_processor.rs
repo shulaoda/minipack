@@ -1,8 +1,8 @@
 use itertools::Itertools;
 use minipack_ecmascript_utils::AstSnippet;
 use minipack_ecmascript_utils::StatementExt;
-use minipack_ecmascript_utils::TakeIn;
 use oxc::allocator::Allocator;
+use oxc::allocator::TakeIn;
 use oxc::ast::NONE;
 use oxc::ast::ast::{self, BindingPatternKind, Declaration, ImportOrExportKind, Statement};
 use oxc::ast_visit::{VisitMut, walk_mut};

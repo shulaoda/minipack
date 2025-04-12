@@ -1,20 +1,22 @@
 use indexmap::map::Entry;
+use oxc::{
+  allocator::TakeIn,
+  ast::ast,
+  semantic::{SemanticBuilder, Stats},
+  span::SPAN,
+};
+
 use minipack_common::{
   ESTarget, EcmaAstIdx, LocalExport, Module, ModuleIdx, ModuleType, NormalModule, StmtInfo,
   StmtInfoIdx, SymbolOrMemberExprRef, SymbolRef, SymbolRefDbForModule,
 };
-use minipack_ecmascript_utils::{AstSnippet, TakeIn};
+use minipack_ecmascript_utils::AstSnippet;
 use minipack_utils::{
   concat_string,
   ecmascript::legitimize_identifier_name,
   indexmap::FxIndexMap,
   rayon::{IntoParallelRefMutIterator, ParallelIterator},
   rstr::{Rstr, ToRstr},
-};
-use oxc::{
-  ast::ast::{self, Expression},
-  semantic::{SemanticBuilder, Stats},
-  span::SPAN,
 };
 
 use super::LinkStage;
@@ -107,16 +109,16 @@ fn json_object_expr_to_esm(
         unreachable!()
       }
     };
-    if !matches!(expr.without_parentheses(), Expression::ObjectExpression(_)) {
+    if !matches!(expr.without_parentheses(), ast::Expression::ObjectExpression(_)) {
       return false;
     }
-    let Expression::ObjectExpression(mut obj_expr) =
+    let ast::Expression::ObjectExpression(mut obj_expr) =
       snippet.expr_without_parentheses(expr.take_in(snippet.alloc()))
     else {
       unreachable!();
     };
     // clean program body, since we already take it and left a dummy expr
-    snippet.builder.move_vec(&mut program.body);
+    program.body.clear();
 
     // convert {"a": "b", "c": "d"} to
     // {"a": b, "c": d}
@@ -167,7 +169,7 @@ fn json_object_expr_to_esm(
       .map(|(local, v)| snippet.var_decl_stmt(local.as_str(), v))
       // export default json module
       .chain(std::iter::once(
-        snippet.export_default_expr_stmt(Expression::ObjectExpression(obj_expr)),
+        snippet.export_default_expr_stmt(ast::Expression::ObjectExpression(obj_expr)),
       ))
       // export all declaration
       .chain(std::iter::once(

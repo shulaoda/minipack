@@ -20,7 +20,6 @@ base-encode = { workspace = true }
 base64-simd = { workspace = true }
 indexmap = { workspace = true }
 oxc = { workspace = true }
-phf = { workspace = true }
 rayon = { workspace = true }
 regex = { workspace = true }
 rustc-hash = { workspace = true }
