@@ -88,6 +88,7 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
       &ctx.chunk.import_path_for(importee_chunk).into(),
     ));
   });
+
   // render external imports
   ctx.chunk.imports_from_external_modules.iter().for_each(|(importee_id, named_imports)| {
     let importee =
@@ -129,6 +130,7 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
       .sorted_unstable()
       .dedup()
       .collect::<Vec<_>>();
+
     default_alias.sort_unstable();
     default_alias.dedup();
 

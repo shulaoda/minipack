@@ -1,6 +1,5 @@
 mod dynamic_import;
 mod impl_visit;
-mod import_assign_analyzer;
 pub mod pre_processor;
 mod side_effect_detector;
 

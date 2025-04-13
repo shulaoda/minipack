@@ -146,7 +146,8 @@ impl GenerateStage<'_> {
           .par_iter()
           .map(|&module_idx| {
             if let Some(module) = self.link_output.modules[module_idx].as_normal() {
-              module.render(&self.link_output.index_ecma_ast[module.ecma_ast_idx()].0)
+              let ast = &self.link_output.index_ecma_ast[module.ecma_ast_idx()].0;
+              Some(EcmaCompiler::print(ast).code)
             } else {
               None
             }

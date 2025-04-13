@@ -40,7 +40,6 @@ fn has_dynamic_exports_due_to_export_star(
 impl LinkStage<'_> {
   pub(crate) fn wrap_modules(&mut self) {
     let mut visited_modules_for_wrapping = oxc_index::index_vec![false; self.modules.len()];
-
     let mut visited_modules_for_dynamic_exports = oxc_index::index_vec![false; self.modules.len()];
 
     debug_assert!(!self.sorted_modules.is_empty());

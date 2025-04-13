@@ -66,30 +66,21 @@ impl<'ast> PreProcessor<'ast> {
 
 impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
   fn visit_program(&mut self, program: &mut ast::Program<'ast>) {
-    program.directives.retain(|directive| {
-      if directive.is_use_strict() {
-        self.contains_use_strict = true;
-        false
-      } else {
-        true
-      }
-    });
+    let directives_len = program.directives.len();
+    program.directives.retain(|directive| !directive.is_use_strict());
+    self.contains_use_strict = directives_len != program.directives.len();
 
-    let original_body = program.body.take_in(self.snippet.alloc());
-    program.body.reserve_exact(original_body.len());
-    self.stmt_temp_storage = Vec::with_capacity(
-      original_body.iter().filter(|stmt| !stmt.is_module_declaration_with_source()).count(),
-    );
+    let drain_elements = program
+      .body
+      .drain_filter(|stmt| !stmt.is_module_declaration_with_source())
+      .collect::<Vec<_>>();
 
-    for mut stmt in original_body {
+    self.stmt_temp_storage = Vec::with_capacity(drain_elements.len());
+    for mut stmt in drain_elements {
       self.need_push_ast = true;
       walk_mut::walk_statement(self, &mut stmt);
       if self.need_push_ast {
-        if stmt.is_module_declaration_with_source() {
-          program.body.push(stmt);
-        } else {
-          self.stmt_temp_storage.push(stmt);
-        }
+        self.stmt_temp_storage.push(stmt);
       }
     }
     program.body.extend(std::mem::take(&mut self.stmt_temp_storage));

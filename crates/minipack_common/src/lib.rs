@@ -22,7 +22,7 @@ pub use crate::{
   ecmascript::{
     dynamic_import_usage,
     ecma_ast_idx::EcmaAstIdx,
-    ecma_view::{EcmaModuleAstUsage, EcmaView, EcmaViewMeta, ImportMetaRolldownAssetReplacer},
+    ecma_view::{EcmaModuleAstUsage, EcmaView, EcmaViewMeta},
     module_idx::{DUMMY_MODULE_IDX, ModuleIdx},
     node_builtin_modules::is_existing_node_builtin_modules,
   },
@@ -63,7 +63,6 @@ pub use crate::{
     side_effects,
     source::Source,
     source_joiner::SourceJoiner,
-    source_mutation::SourceMutation,
     stmt_info::{StmtInfo, StmtInfoIdx, StmtInfoMeta, StmtInfos},
     symbol_name_ref_token::SymbolNameRefToken,
     symbol_or_member_expr_ref::SymbolOrMemberExprRef,

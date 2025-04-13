@@ -219,8 +219,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
           self.add_referenced_symbol(root_symbol_id);
         }
 
-        self.check_import_assign(ident_ref, root_symbol_id.symbol);
-
         match (self.cur_class_decl, self.resolve_symbol_from_reference(ident_ref)) {
           (Some(cur_class_decl), Some(referenced_to)) if cur_class_decl == referenced_to => {
             self.result.self_referenced_class_decl_symbol_ids.insert(cur_class_decl);

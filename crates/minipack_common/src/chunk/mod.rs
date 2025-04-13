@@ -5,8 +5,7 @@ pub mod types;
 use arcstr::ArcStr;
 
 use minipack_utils::{
-  bitset::BitSet, hash_placeholder::HashPlaceholderGenerator, indexmap::FxIndexMap,
-  path_ext::PathExt, rstr::Rstr,
+  bitset::BitSet, hash_placeholder::HashPlaceholderGenerator, path_ext::PathExt, rstr::Rstr,
 };
 use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
@@ -30,8 +29,6 @@ pub struct Chunk {
   pub pre_rendered_chunk: Option<RollupPreRenderedChunk>,
   pub preliminary_filename: Option<PreliminaryFilename>,
   pub absolute_preliminary_filename: Option<String>,
-  pub asset_preliminary_filenames: FxIndexMap<ModuleIdx, PreliminaryFilename>,
-  pub asset_absolute_preliminary_filenames: FxIndexMap<ModuleIdx, String>,
   pub canonical_names: FxHashMap<SymbolRef, Rstr>,
   pub canonical_name_by_token: FxHashMap<SymbolNameRefToken, Rstr>,
   // Sorted by Module#stable_id of modules in the chunk

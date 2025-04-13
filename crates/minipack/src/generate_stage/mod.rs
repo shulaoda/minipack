@@ -8,17 +8,15 @@ pub mod generators;
 
 use scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext};
 
-use arcstr::ArcStr;
 use oxc::{allocator::TakeIn, ast_visit::VisitMut};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
-use minipack_common::{ImportMetaRolldownAssetReplacer, Module};
+use minipack_common::Module;
 use minipack_ecmascript_utils::AstSnippet;
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
 
 use crate::{
-  graph::ChunkGraph,
   types::{SharedOptions, bundle_output::BundleOutput},
   utils::chunk::{
     deconflict_chunk_symbols::deconflict_chunk_symbols,
@@ -52,7 +50,6 @@ impl<'a> GenerateStage<'a> {
 
     let index_chunk_id_to_name =
       self.generate_chunk_name_and_preliminary_filenames(&mut chunk_graph).await?;
-    self.patch_asset_modules(&chunk_graph);
 
     chunk_graph.chunk_table.par_iter_mut().for_each(|chunk| {
       deconflict_chunk_symbols(
@@ -107,22 +104,5 @@ impl<'a> GenerateStage<'a> {
       });
 
     self.render_chunk_to_assets(&mut chunk_graph).await
-  }
-
-  pub fn patch_asset_modules(&mut self, chunk_graph: &ChunkGraph) {
-    chunk_graph.chunk_table.iter().for_each(|chunk| {
-      let mut module_idx_to_filenames = FxHashMap::default();
-      // replace asset name in ecma view
-      chunk.asset_preliminary_filenames.iter().for_each(|(module_idx, preliminary)| {
-        let Module::Normal(module) = &mut self.link_output.modules[*module_idx] else {
-          return;
-        };
-        let asset_filename: ArcStr = preliminary.as_str().into();
-        module.ecma_view.mutations.push(Box::new(ImportMetaRolldownAssetReplacer {
-          asset_filename: asset_filename.clone(),
-        }));
-        module_idx_to_filenames.insert(module_idx, asset_filename);
-      });
-    });
   }
 }

@@ -17,11 +17,10 @@ use oxc::{
   span::{GetSpan, SPAN},
 };
 use rustc_hash::FxHashSet;
-use sugar_path::SugarPath;
 
 use minipack_common::{AstScopes, Module, OutputFormat, Platform, SymbolRef};
 use minipack_ecmascript_utils::{AstSnippet, ExpressionExt, StatementExt};
-use minipack_utils::{ecmascript::is_validate_identifier_name, path_ext::PathExt, rstr::Rstr};
+use minipack_utils::{ecmascript::is_validate_identifier_name, rstr::Rstr};
 
 /// Finalizer for emitting output code with scope hoisting.
 pub struct ScopeHoistingFinalizer<'me, 'ast> {
@@ -361,52 +360,6 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
         _ => {}
       }
     }
-    None
-  }
-
-  pub fn handle_new_url_with_string_literal_and_import_meta_url(
-    &self,
-    expr: &mut ast::NewExpression<'ast>,
-  ) -> Option<()> {
-    let &rec_idx = self.ctx.module.new_url_references.get(&expr.span())?;
-    let rec = &self.ctx.module.import_records[rec_idx];
-
-    let is_callee_global_url = matches!(expr.callee.as_identifier(), Some(ident) if ident.name == "URL" && self.is_global_identifier_reference(ident));
-
-    if !is_callee_global_url {
-      return None;
-    }
-
-    let is_second_arg_import_meta_url = expr
-      .arguments
-      .get(1)
-      .is_some_and(|arg| arg.as_expression().is_some_and(ExpressionExt::is_import_meta_url));
-
-    if !is_second_arg_import_meta_url {
-      return None;
-    }
-
-    let first_arg_string_literal = expr.arguments.first_mut().and_then(|arg| match arg {
-      ast::Argument::StringLiteral(string_literal) => Some(string_literal),
-      _ => None,
-    })?;
-
-    let importee = &self.ctx.modules[rec.resolved_module].as_normal()?;
-    let chunk_idx = &self.ctx.chunk_graph.module_to_chunk[importee.idx]?;
-    let chunk = &self.ctx.chunk_graph.chunk_table[*chunk_idx];
-    let asset_filename = &chunk.asset_absolute_preliminary_filenames[&importee.idx];
-    let cur_chunk_idx =
-      self.ctx.chunk_graph.module_to_chunk[self.ctx.id].expect("This module should be in a chunk");
-    let current_chunk_filename = &self.ctx.chunk_graph.chunk_table[cur_chunk_idx]
-      .absolute_preliminary_filename
-      .as_ref()
-      .expect("This chunk should have a filename");
-
-    let importer_dir = current_chunk_filename.as_path().parent().unwrap();
-    let importee_filename = asset_filename;
-    let import_path = importee_filename.relative(importer_dir).as_path().expect_to_slash();
-
-    first_arg_string_literal.value = self.snippet.atom(&import_path);
     None
   }
 

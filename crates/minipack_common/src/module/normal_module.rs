@@ -1,12 +1,10 @@
 use std::fmt::Debug;
-use std::sync::Arc;
 
 use crate::ecmascript::ecma_view::EcmaView;
-use crate::{ImportRecordIdx, ImportRecordMeta, ModuleId, ModuleIdx};
 use crate::{EcmaAstIdx, Module, ModuleType};
+use crate::{ImportRecordIdx, ImportRecordMeta, ModuleId, ModuleIdx};
 use std::ops::{Deref, DerefMut};
 
-use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 use oxc_index::IndexVec;
 
 #[derive(Debug)]
@@ -67,17 +65,6 @@ impl NormalModule {
         Module::Normal(_) => None,
       }
     })
-  }
-
-  pub fn render(&self, ast: &EcmaAst) -> Option<String> {
-    let render_output = EcmaCompiler::print(ast);
-    if !self.ecma_view.mutations.is_empty() {
-      let original_code: Arc<str> = render_output.code.into();
-      let magic_string = string_wizard::MagicString::new(&*original_code);
-      let code = magic_string.to_string();
-      return Some(code);
-    }
-    Some(render_output.code)
   }
 
   pub fn is_included(&self) -> bool {
