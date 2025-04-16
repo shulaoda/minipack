@@ -1,7 +1,6 @@
 mod bind_imports_and_exports;
 mod create_exports_for_ecma_modules;
 mod determine_side_effects;
-mod generate_lazy_export;
 mod include_statements;
 mod patch_module_dependencies;
 mod reference_needed_symbols;
@@ -110,7 +109,6 @@ impl<'a> LinkStage<'a> {
     self.sort_modules();
     self.compute_tla();
     self.wrap_modules();
-    self.generate_lazy_export();
     self.determine_side_effects();
     self.bind_imports_and_exports();
     self.create_exports_for_ecma_modules();

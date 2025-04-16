@@ -12,7 +12,6 @@ use crate::types::{module_factory::CreateModuleContext, oxc_parse_type::OxcParse
 pub struct ParseToEcmaAstResult {
   pub ast: EcmaAst,
   pub scoping: Scoping,
-  pub has_lazy_export: bool,
   pub warning: Vec<anyhow::Error>,
 }
 
@@ -22,7 +21,6 @@ pub fn parse_to_ecma_ast(
 ) -> BuildResult<ParseToEcmaAstResult> {
   let CreateModuleContext { options, stable_id, module_type, .. } = ctx;
 
-  let has_lazy_export = matches!(module_type, ModuleType::Json);
   let source = if matches!(module_type, ModuleType::Empty) { ArcStr::new() } else { source.into() };
 
   let parsed_type = module_type.into();
@@ -34,16 +32,6 @@ pub fn parse_to_ecma_ast(
     }
   };
 
-  let ecma_ast = match module_type {
-    ModuleType::Json => EcmaCompiler::parse_expr_as_program(&source, oxc_source_type)?,
-    _ => EcmaCompiler::parse(&source, oxc_source_type)?,
-  };
-
-  PreProcessEcmaAst::default().build(
-    ecma_ast,
-    stable_id.as_path(),
-    &parsed_type,
-    has_lazy_export,
-    options,
-  )
+  let ecma_ast = EcmaCompiler::parse(&source, oxc_source_type)?;
+  PreProcessEcmaAst::default().build(ecma_ast, stable_id.as_path(), &parsed_type, options)
 }

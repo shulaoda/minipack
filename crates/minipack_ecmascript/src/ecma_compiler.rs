@@ -2,11 +2,10 @@ use arcstr::ArcStr;
 use minipack_error::BuildResult;
 use oxc::{
   allocator::Allocator,
-  ast::AstBuilder,
   codegen::{CodeGenerator, Codegen, CodegenOptions, CodegenReturn, LegalComment},
   minifier::{CompressOptions, CompressOptionsKeepNames, MangleOptions, Minifier, MinifierOptions},
   parser::{ParseOptions, Parser},
-  span::{SPAN, SourceType},
+  span::SourceType,
   transformer::ESTarget,
 };
 
@@ -32,36 +31,6 @@ impl EcmaCompiler {
         Err(anyhow::anyhow!("{:?}", ret.errors))
       } else {
         Ok(ProgramCellDependent { program: ret.program })
-      }
-    })?;
-
-    Ok(EcmaAst { program, source_type, contains_use_strict: false })
-  }
-
-  pub fn parse_expr_as_program(
-    source: impl Into<ArcStr>,
-    source_type: SourceType,
-  ) -> anyhow::Result<EcmaAst> {
-    let source: ArcStr = source.into();
-    let allocator = oxc::allocator::Allocator::default();
-    let program = ProgramCell::try_new(ProgramCellOwner { source, allocator }, |owner| {
-      let parser = Parser::new(&owner.allocator, &owner.source, source_type);
-      let ret = parser.parse_expression();
-      match ret {
-        Ok(expr) => {
-          let builder = AstBuilder::new(&owner.allocator);
-          let program = builder.program(
-            SPAN,
-            SourceType::default().with_module(true),
-            owner.source.as_str(),
-            builder.vec(),
-            None,
-            builder.vec(),
-            builder.vec1(builder.statement_expression(SPAN, expr)),
-          );
-          Ok(ProgramCellDependent { program })
-        }
-        Err(errors) => Err(anyhow::anyhow!("{:?}", errors)),
       }
     })?;
 

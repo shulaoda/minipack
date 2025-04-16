@@ -153,7 +153,6 @@ impl ModuleTask {
       "ts" | "mts" => ModuleType::Ts,
       "jsx" => ModuleType::Jsx,
       "tsx" => ModuleType::Tsx,
-      "json" => ModuleType::Json,
       _ => ModuleType::Js,
     };
 

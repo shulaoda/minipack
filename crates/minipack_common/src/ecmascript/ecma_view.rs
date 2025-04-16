@@ -15,7 +15,6 @@ bitflags! {
     pub struct EcmaViewMeta: u8 {
         const EVAL = 1;
         const INCLUDED = 1 << 1;
-        const HAS_LAZY_EXPORT = 1 << 2;
         const HAS_STAR_EXPORT = 1 << 3;
     }
 }
@@ -29,11 +28,6 @@ impl EcmaViewMeta {
   #[inline]
   pub fn is_included(&self) -> bool {
     self.contains(Self::INCLUDED)
-  }
-
-  #[inline]
-  pub fn has_lazy_export(&self) -> bool {
-    self.contains(Self::HAS_LAZY_EXPORT)
   }
 
   #[inline]

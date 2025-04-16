@@ -30,7 +30,6 @@ impl PreProcessEcmaAst {
     mut ast: EcmaAst,
     source_path: &Path,
     parsed_type: &OxcParseType,
-    has_lazy_export: bool,
     bundle_options: &NormalizedBundlerOptions,
   ) -> BuildResult<ParseToEcmaAstResult> {
     let mut warning = vec![];
@@ -86,16 +85,14 @@ impl PreProcessEcmaAst {
     }
 
     ast.program.with_mut(|fields| {
-      if !has_lazy_export {
-        // Perform dead code elimination.
-        // NOTE: `CompressOptions::dead_code_elimination` will remove `ParenthesizedExpression`s from the AST.
-        let compressor = Compressor::new(fields.allocator, CompressOptions::safest());
-        if self.ast_changed {
-          let semantic_ret = SemanticBuilder::new().with_stats(self.stats).build(fields.program);
-          scoping = semantic_ret.semantic.into_scoping();
-        }
-        compressor.dead_code_elimination_with_scoping(scoping, fields.program);
+      // Perform dead code elimination.
+      // NOTE: `CompressOptions::dead_code_elimination` will remove `ParenthesizedExpression`s from the AST.
+      let compressor = Compressor::new(fields.allocator, CompressOptions::safest());
+      if self.ast_changed {
+        let semantic_ret = SemanticBuilder::new().with_stats(self.stats).build(fields.program);
+        scoping = semantic_ret.semantic.into_scoping();
       }
+      compressor.dead_code_elimination_with_scoping(scoping, fields.program);
     });
 
     ast.program.with_mut(|fields| {
@@ -120,6 +117,6 @@ impl PreProcessEcmaAst {
         .into_scoping()
     });
 
-    Ok(ParseToEcmaAstResult { ast, scoping, has_lazy_export, warning })
+    Ok(ParseToEcmaAstResult { ast, scoping, warning })
   }
 }

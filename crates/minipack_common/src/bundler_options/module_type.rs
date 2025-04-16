@@ -4,6 +4,5 @@ pub enum ModuleType {
   Jsx,
   Ts,
   Tsx,
-  Json,
   Empty,
 }

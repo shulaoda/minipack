@@ -26,8 +26,7 @@ pub async fn create_ecma_view(
   ctx: &mut CreateModuleContext<'_>,
   source: String,
 ) -> BuildResult<CreateEcmaViewReturn> {
-  let ParseToEcmaAstResult { ast, scoping, has_lazy_export, warning } =
-    parse_to_ecma_ast(ctx, source)?;
+  let ParseToEcmaAstResult { ast, scoping, warning } = parse_to_ecma_ast(ctx, source)?;
 
   ctx.warnings.extend(warning);
 
@@ -92,7 +91,6 @@ pub async fn create_ecma_view(
     meta: {
       let mut meta = EcmaViewMeta::default();
       meta.set(EcmaViewMeta::EVAL, has_eval);
-      meta.set(EcmaViewMeta::HAS_LAZY_EXPORT, has_lazy_export);
       meta.set(EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
       meta
     },
