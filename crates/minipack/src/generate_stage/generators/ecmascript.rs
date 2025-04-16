@@ -104,6 +104,8 @@ impl Generator for EcmaGenerator {
         .as_str(),
     );
     let file_dir = file_path.parent().expect("chunk file name should have a parent");
+    let preliminary_filename =
+      ctx.chunk.preliminary_filename.clone().expect("should have preliminary filename");
 
     let instantiated_chunk = InstantiatedChunk {
       origin_chunk: ctx.chunk_idx,
@@ -111,11 +113,7 @@ impl Generator for EcmaGenerator {
       kind: rendered_chunk.into(),
       augment_chunk_hash: None,
       file_dir: file_dir.to_path_buf(),
-      preliminary_filename: ctx
-        .chunk
-        .preliminary_filename
-        .clone()
-        .expect("should have preliminary filename"),
+      preliminary_filename,
     };
 
     Ok(GenerateOutput {

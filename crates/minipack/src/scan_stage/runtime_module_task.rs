@@ -3,6 +3,7 @@ use minipack_common::side_effects::DeterminedSideEffects;
 use minipack_error::BuildResult;
 use minipack_utils::indexmap::FxIndexSet;
 use oxc::ast_visit::VisitMut;
+use oxc::semantic::SemanticBuilder;
 use oxc::span::SourceType;
 use oxc_index::IndexVec;
 use rustc_hash::FxHashSet;
@@ -94,7 +95,7 @@ impl RuntimeModuleTask {
           meta
         },
         this_expr_replace_map: FxHashSet::default(),
-      }
+      },
     };
 
     let resolved_deps = raw_import_records
@@ -138,7 +139,10 @@ impl RuntimeModuleTask {
       ast.contains_use_strict = pre_processor.contains_use_strict;
     });
 
-    let scoping = ast.make_scoping();
+    let scoping = ast.program.with_dependent(|_owner, dep| {
+      SemanticBuilder::new().build(&dep.program).semantic.into_scoping()
+    });
+
     let facade_path = ModuleId::new(RUNTIME_MODULE_ID);
     let scanner = AstScanner::new(
       self.idx,

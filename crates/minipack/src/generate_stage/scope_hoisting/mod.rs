@@ -20,7 +20,7 @@ use rustc_hash::FxHashSet;
 
 use minipack_common::{AstScopes, Module, OutputFormat, Platform, SymbolRef};
 use minipack_ecmascript_utils::{AstSnippet, ExpressionExt, StatementExt};
-use minipack_utils::{ecmascript::is_validate_identifier_name, rstr::Rstr};
+use minipack_utils::ecmascript::is_validate_identifier_name;
 
 /// Finalizer for emitting output code with scope hoisting.
 pub struct ScopeHoistingFinalizer<'me, 'ast> {
@@ -50,7 +50,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     )
   }
 
-  pub fn canonical_name_for(&self, symbol: SymbolRef) -> &'me Rstr {
+  pub fn canonical_name_for(&self, symbol: SymbolRef) -> &'me str {
     self.ctx.symbol_db.canonical_name_for(symbol, self.ctx.canonical_names)
   }
 

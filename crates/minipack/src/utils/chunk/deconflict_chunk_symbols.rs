@@ -14,7 +14,7 @@ pub fn deconflict_chunk_symbols(
   format: OutputFormat,
   index_chunk_id_to_name: &FxHashMap<ChunkIdx, ArcStr>,
 ) {
-  let mut renamer = Renamer::new(&link_output.symbols, format);
+  let mut renamer = Renamer::new(chunk.entry_module_idx(), &link_output.symbols, format);
 
   if matches!(format, OutputFormat::Cjs) {
     // deconflict iife introduce symbols by external
@@ -119,7 +119,5 @@ pub fn deconflict_chunk_symbols(
         });
     });
 
-  // rename non-top-level names
-  renamer.rename_non_root_symbol(&chunk.modules, link_output);
   (chunk.canonical_names, chunk.canonical_name_by_token) = renamer.into_canonical_names();
 }

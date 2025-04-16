@@ -146,7 +146,7 @@ impl ModuleTask {
     }
 
     let id = &self.resolved_id.id;
-    let ext = id.rsplit('.').next().filter(|ext| *ext != id).unwrap_or("");
+    let ext: &str = id.rsplit('.').next().filter(|ext| *ext != id).unwrap_or("");
 
     let module_type = match ext {
       "js" | "mjs" => ModuleType::Js,
