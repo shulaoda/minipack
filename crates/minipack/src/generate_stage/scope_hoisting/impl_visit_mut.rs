@@ -1,11 +1,8 @@
 use minipack_common::{Module, StmtInfoIdx, SymbolRef};
 use minipack_ecmascript_utils::ExpressionExt;
 use oxc::{
-  allocator::{self, IntoIn},
-  ast::{
-    ast::{self, Expression, SimpleAssignmentTarget},
-    match_member_expression,
-  },
+  allocator::IntoIn,
+  ast::ast::{self, SimpleAssignmentTarget},
   ast_visit::{VisitMut, walk_mut},
   span::Span,
 };
@@ -94,23 +91,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
     walk_mut::walk_statement(self, it);
   }
 
-  fn visit_statements(&mut self, it: &mut allocator::Vec<'ast, ast::Statement<'ast>>) {
-    let previous_stmt_index = self.ctx.cur_stmt_index;
-    let previous_keep_name_statement = std::mem::take(&mut self.ctx.keep_name_statement_to_insert);
-    for (i, stmt) in it.iter_mut().enumerate() {
-      self.ctx.cur_stmt_index = i;
-      self.visit_statement(stmt);
-    }
-
-    for (stmt_index, original_name, new_name) in self.ctx.keep_name_statement_to_insert.iter().rev()
-    {
-      it.insert(*stmt_index, self.snippet.keep_name_call_expr_stmt(original_name, new_name));
-    }
-
-    self.ctx.cur_stmt_index = previous_stmt_index;
-    self.ctx.keep_name_statement_to_insert = previous_keep_name_statement;
-  }
-
   fn visit_identifier_reference(&mut self, ident: &mut ast::IdentifierReference) {
     // This ensure all `IdentifierReference`s are processed
     debug_assert!(
@@ -168,14 +148,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
   // The `foo_exports.bar.a` ast is `StaticMemberExpression(StaticMemberExpression)`, The outer StaticMemberExpression span is `foo_exports.bar.a`, the `visit_expression(Expression::MemberExpression)` is called with `foo_exports.bar`, the span is inner StaticMemberExpression.
   fn visit_member_expression(&mut self, expr: &mut ast::MemberExpression<'ast>) {
     if let Some(new_expr) = self.try_rewrite_member_expr(expr) {
-      match new_expr {
-        match_member_expression!(Expression) => {
-          *expr = new_expr.into_member_expression();
-        }
-        _ => {
-          unreachable!("Always rewrite to MemberExpression for nested MemberExpression")
-        }
-      }
+      *expr = new_expr.into_member_expression();
     } else {
       if let Some(ref_id) = self.try_get_valid_namespace_alias_ref_id_from_member_expr(expr) {
         self.interested_namespace_alias_ref_id.insert(ref_id);
@@ -186,16 +159,14 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
 
   fn visit_object_property(&mut self, prop: &mut ast::ObjectProperty<'ast>) {
     // Ensure `{ a }` would be rewritten to `{ a: a$1 }` instead of `{ a$1 }`
-    match &mut prop.value {
-      ast::Expression::Identifier(id_ref) if prop.shorthand => {
-        if let Some(expr) = self.generate_finalized_expr_for_reference(id_ref, false) {
-          prop.value = expr;
-          prop.shorthand = false;
-        } else {
-          id_ref.reference_id.get_mut().take();
-        }
+    if prop.shorthand {
+      let ast::Expression::Identifier(id_ref) = &mut prop.value else { unreachable!() };
+      if let Some(expr) = self.generate_finalized_expr_for_reference(id_ref, false) {
+        prop.value = expr;
+        prop.shorthand = false;
+      } else {
+        id_ref.reference_id.get_mut().take();
       }
-      _ => {}
     }
 
     walk_mut::walk_object_property(self, prop);

@@ -4,8 +4,6 @@ pub trait StatementExt<'me, 'ast> {
   fn is_import_declaration(&self) -> bool;
   fn is_module_declaration_with_source(&self) -> bool;
 
-  fn as_function_declaration(&self) -> Option<&ast::Function<'ast>>;
-  fn as_import_declaration(&'me self) -> Option<&'me ast::ImportDeclaration<'ast>>;
   fn as_export_default_declaration_mut(
     &'me mut self,
   ) -> Option<&'me mut ast::ExportDefaultDeclaration<'ast>>;
@@ -16,13 +14,6 @@ pub trait StatementExt<'me, 'ast> {
 impl<'ast> StatementExt<'_, 'ast> for ast::Statement<'ast> {
   fn is_import_declaration(&self) -> bool {
     matches!(self, ast::Statement::ImportDeclaration(_))
-  }
-
-  fn as_import_declaration(&self) -> Option<&ast::ImportDeclaration<'ast>> {
-    if let ast::Statement::ImportDeclaration(import_decl) = self {
-      return Some(&**import_decl);
-    }
-    None
   }
 
   fn as_export_default_declaration_mut(
@@ -46,10 +37,6 @@ impl<'ast> StatementExt<'_, 'ast> for ast::Statement<'ast> {
       return Some(&mut **export_named_decl);
     }
     None
-  }
-
-  fn as_function_declaration(&self) -> Option<&ast::Function<'ast>> {
-    if let ast::Statement::FunctionDeclaration(func_decl) = self { Some(func_decl) } else { None }
   }
 
   /// Check if the statement is `[import|export] ... from ...` or `export ... from ...`

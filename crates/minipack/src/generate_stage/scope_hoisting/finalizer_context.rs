@@ -24,6 +24,4 @@ pub struct ScopeHoistingFinalizerContext<'me> {
   pub runtime: &'me RuntimeModuleBrief,
   pub chunk_graph: &'me ChunkGraph,
   pub options: &'me SharedOptions,
-  pub cur_stmt_index: usize,
-  pub keep_name_statement_to_insert: Vec<(usize, Rstr, Rstr)>,
 }

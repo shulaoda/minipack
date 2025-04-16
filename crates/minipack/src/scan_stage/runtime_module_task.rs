@@ -54,7 +54,6 @@ impl RuntimeModuleTask {
       symbols,
       imports,
       import_records: raw_import_records,
-      new_url_references,
       has_star_exports,
       has_eval,
       ..
@@ -94,7 +93,6 @@ impl RuntimeModuleTask {
           meta.set(self::EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
           meta
         },
-        new_url_references,
         this_expr_replace_map: FxHashSet::default(),
       }
     };

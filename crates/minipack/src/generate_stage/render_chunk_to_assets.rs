@@ -36,9 +36,8 @@ impl GenerateStage<'_> {
     self.minify_assets(&mut assets)?;
 
     let mut output = Vec::with_capacity(assets.len());
-    for Asset { meta: rendered_chunk, content: code, preliminary_filename, filename, .. } in assets
-    {
-      if let InstantiationKind::Ecma(rendered_chunk) = rendered_chunk {
+    for Asset { meta, content: code, preliminary_filename, filename, .. } in assets {
+      if let InstantiationKind::Ecma(rendered_chunk) = meta {
         output.push(Output::Chunk(Box::new(OutputChunk {
           name: rendered_chunk.name,
           filename: rendered_chunk.filename,

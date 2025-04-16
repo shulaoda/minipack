@@ -89,8 +89,6 @@ impl<'a> GenerateStage<'a> {
               runtime: &self.link_output.runtime_module,
               chunk_graph: &chunk_graph,
               options: self.options,
-              cur_stmt_index: 0,
-              keep_name_statement_to_insert: Vec::new(),
             },
             scope: ast_scope,
             snippet: AstSnippet::new(alloc),

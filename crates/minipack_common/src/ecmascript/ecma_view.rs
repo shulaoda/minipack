@@ -71,8 +71,6 @@ pub struct EcmaView {
   // the range of hashbang in source
   pub hashbang_range: Option<Span>,
   pub meta: EcmaViewMeta,
-  /// `Span` of `new URL('path', import.meta.url)` -> `ImportRecordIdx`
-  pub new_url_references: FxHashMap<Span, ImportRecordIdx>,
   pub this_expr_replace_map: FxHashSet<Span>,
 }
 

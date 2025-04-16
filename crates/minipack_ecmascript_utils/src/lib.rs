@@ -6,8 +6,7 @@ pub use crate::{
   extensions::{
     ast_ext::{
       binding_identifier_ext::BindingIdentifierExt, binding_pattern_ext::BindingPatternExt,
-      call_expression_ext::CallExpressionExt, expression_ext::ExpressionExt,
-      statement_ext::StatementExt,
+      expression_ext::ExpressionExt, statement_ext::StatementExt,
     },
     span_ext::SpanExt,
   },

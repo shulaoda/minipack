@@ -62,8 +62,6 @@ pub struct AstScanResult {
   pub has_star_exports: bool,
   /// We don't know the ImportRecord related ModuleIdx yet, so use ImportRecordIdx as key temporarily
   pub dynamic_import_rec_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
-  /// `new URL('...', import.meta.url)`
-  pub new_url_references: FxHashMap<Span, ImportRecordIdx>,
   pub this_expr_replace_map: FxHashSet<Span>,
 }
 
@@ -131,7 +129,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       has_star_exports: false,
       has_top_level_await: false,
       dynamic_import_rec_exports_usage: FxHashMap::default(),
-      new_url_references: FxHashMap::default(),
       this_expr_replace_map: FxHashSet::default(),
     };
 

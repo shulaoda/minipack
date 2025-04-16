@@ -1,4 +1,8 @@
-use crate::pretty_type_name::pretty_type_name;
+use std::sync::LazyLock;
+
+use regex::Regex;
+
+static MODULE_MATCHER_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"(?:\w+::)").unwrap());
 
 pub trait OptionExt<T> {
   fn unpack(self) -> T;
@@ -22,10 +26,9 @@ impl<T> OptionExt<T> for Option<T> {
   fn unpack(self) -> T {
     self.map_or_else(
       || {
-        panic!(
-          "Got `None` value when calling `OptionExt::unpack()` on `{type_name}`",
-          type_name = pretty_type_name::<Self>()
-        )
+        let type_name = std::any::type_name::<T>();
+        let type_name = MODULE_MATCHER_RE.replace_all(type_name, "");
+        panic!("Got `None` value when calling `OptionExt::unpack()` on `{type_name}`",)
       },
       |v| v,
     )

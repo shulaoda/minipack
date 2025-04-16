@@ -15,7 +15,5 @@ doctest = false
 workspace = true
 
 [dependencies]
-minipack_common = { workspace = true }
-
 oxc = { workspace = true }
 smallvec = { workspace = true }

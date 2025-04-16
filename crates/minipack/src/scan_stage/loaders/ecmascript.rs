@@ -62,7 +62,6 @@ pub async fn create_ecma_view(
     hashbang_range,
     has_star_exports,
     dynamic_import_rec_exports_usage: dynamic_import_exports_usage,
-    new_url_references: new_url_imports,
     this_expr_replace_map,
   } = scanner.scan(ast.program())?;
 
@@ -97,7 +96,6 @@ pub async fn create_ecma_view(
       meta.set(EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
       meta
     },
-    new_url_references: new_url_imports,
     this_expr_replace_map,
   };
 
