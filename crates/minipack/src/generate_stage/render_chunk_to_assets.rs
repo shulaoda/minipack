@@ -1,19 +1,18 @@
 use futures::future::try_join_all;
-use minipack_common::{Asset, InstantiationKind, Output, OutputAsset, OutputChunk};
+use minipack_common::{Asset, Output, OutputAsset, OutputChunk};
 use minipack_ecmascript::EcmaCompiler;
 use minipack_error::BuildResult;
-use minipack_utils::{
-  indexmap::FxIndexSet,
-  rayon::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator},
+use minipack_utils::rayon::{
+  IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
-use oxc_index::{IndexVec, index_vec};
+use oxc_index::IndexVec;
 
 use super::generators::ecmascript::EcmaGenerator;
 
 use crate::{
   graph::ChunkGraph,
   types::{
-    IndexAssets, IndexChunkToAssets, IndexInstantiatedChunks,
+    IndexAssets, IndexInstantiatedChunks,
     bundle_output::BundleOutput,
     generator::{GenerateContext, Generator},
   },
@@ -28,28 +27,18 @@ impl GenerateStage<'_> {
     chunk_graph: &mut ChunkGraph,
   ) -> BuildResult<BundleOutput> {
     let mut warnings = std::mem::take(&mut self.link_output.warnings);
-    let (instantiated_chunks, index_chunk_to_assets) =
-      self.instantiate_chunks(chunk_graph, &mut warnings).await?;
+    let instantiated_chunks = self.instantiate_chunks(chunk_graph, &mut warnings).await?;
 
-    let mut assets = finalize_assets(chunk_graph, instantiated_chunks, &index_chunk_to_assets);
+    let mut assets = finalize_assets(instantiated_chunks);
 
-    self.minify_assets(&mut assets)?;
+    self.minify_assets(&mut assets);
 
     let mut output = Vec::with_capacity(assets.len());
     for Asset { meta, content: code, preliminary_filename, filename, .. } in assets {
-      if let InstantiationKind::Ecma(rendered_chunk) = meta {
+      if let Some(filename) = meta {
         output.push(Output::Chunk(Box::new(OutputChunk {
-          name: rendered_chunk.name,
-          filename: rendered_chunk.filename,
+          filename,
           code,
-          is_entry: rendered_chunk.is_entry,
-          is_dynamic_entry: rendered_chunk.is_dynamic_entry,
-          facade_module_id: rendered_chunk.facade_module_id,
-          modules: rendered_chunk.modules,
-          exports: rendered_chunk.exports,
-          module_ids: rendered_chunk.module_ids,
-          imports: rendered_chunk.imports,
-          dynamic_imports: rendered_chunk.dynamic_imports,
           preliminary_filename: preliminary_filename.to_string(),
         })));
       } else {
@@ -62,16 +51,6 @@ impl GenerateStage<'_> {
       }
     }
 
-    // The chunks order make sure the entry chunk at first, the assets at last, see https://github.com/rollup/rollup/blob/master/src/rollup/rollup.ts#L266
-    output.sort_unstable_by(|a, b| {
-      let a_type = get_sorting_file_type(a) as u8;
-      let b_type = get_sorting_file_type(b) as u8;
-      if a_type == b_type {
-        return a.filename().cmp(b.filename());
-      }
-      a_type.cmp(&b_type)
-    });
-
     Ok(BundleOutput { assets: output, warnings })
   }
 
@@ -79,9 +58,7 @@ impl GenerateStage<'_> {
     &self,
     chunk_graph: &ChunkGraph,
     warnings: &mut Vec<anyhow::Error>,
-  ) -> BuildResult<(IndexInstantiatedChunks, IndexChunkToAssets)> {
-    let mut index_chunk_to_assets: IndexChunkToAssets =
-      index_vec![FxIndexSet::default(); chunk_graph.chunk_table.len()];
+  ) -> BuildResult<IndexInstantiatedChunks> {
     let mut index_preliminary_assets: IndexInstantiatedChunks =
       IndexVec::with_capacity(chunk_graph.chunk_table.len());
     let chunk_index_to_codegen_rets = self.create_chunk_to_codegen_ret_map(chunk_graph);
@@ -109,21 +86,11 @@ impl GenerateStage<'_> {
     .await?
     .into_iter()
     .for_each(|result| {
-      result.chunks.into_iter().for_each(|asset| {
-        let origin_chunk = asset.origin_chunk;
-        let asset_idx = index_preliminary_assets.push(asset);
-        index_chunk_to_assets[origin_chunk].insert(asset_idx);
-      });
+      index_preliminary_assets.extend(result.chunks);
       warnings.extend(result.warnings);
     });
 
-    index_chunk_to_assets.iter_mut().for_each(|assets| {
-      assets.sort_by_cached_key(|asset_idx| {
-        index_preliminary_assets[*asset_idx].preliminary_filename.as_str()
-      });
-    });
-
-    Ok((index_preliminary_assets, index_chunk_to_assets))
+    Ok(index_preliminary_assets)
   }
 
   /// Create a IndexVecMap from chunk index to related modules codegen return list.
@@ -157,39 +124,13 @@ impl GenerateStage<'_> {
     chunk_to_codegen_ret
   }
 
-  pub fn minify_assets(&mut self, assets: &mut IndexAssets) -> BuildResult<()> {
+  pub fn minify_assets(&mut self, assets: &mut IndexAssets) {
     if self.options.minify {
-      assets.par_iter_mut().try_for_each(|asset| -> anyhow::Result<()> {
-        match asset.meta {
-          InstantiationKind::Ecma(_) => {
-            asset.content = EcmaCompiler::minify(&asset.content, self.options.target.into());
-          }
-          InstantiationKind::None => {}
+      assets.par_iter_mut().for_each(|asset| {
+        if asset.meta.is_some() {
+          asset.content = EcmaCompiler::minify(&asset.content, self.options.target.into());
         }
-        Ok(())
-      })?;
-    }
-
-    Ok(())
-  }
-}
-
-enum SortingFileType {
-  EntryChunk = 0,
-  SecondaryChunk = 1,
-  Asset = 2,
-}
-
-#[inline]
-fn get_sorting_file_type(output: &Output) -> SortingFileType {
-  match output {
-    Output::Asset(_) => SortingFileType::Asset,
-    Output::Chunk(chunk) => {
-      if chunk.is_entry {
-        SortingFileType::EntryChunk
-      } else {
-        SortingFileType::SecondaryChunk
-      }
+      });
     }
   }
 }

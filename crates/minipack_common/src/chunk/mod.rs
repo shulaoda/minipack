@@ -13,7 +13,7 @@ use sugar_path::SugarPath;
 
 use crate::{
   ChunkIdx, ChunkKind, FilenameTemplate, Module, ModuleIdx, NamedImport, NormalModule,
-  NormalizedBundlerOptions, RollupPreRenderedChunk, SymbolNameRefToken, SymbolRef,
+  NormalizedBundlerOptions, SymbolNameRefToken, SymbolRef,
 };
 
 use self::types::{
@@ -26,7 +26,6 @@ pub struct Chunk {
   pub kind: ChunkKind,
   pub modules: Vec<ModuleIdx>,
   pub name: Option<ArcStr>,
-  pub pre_rendered_chunk: Option<RollupPreRenderedChunk>,
   pub preliminary_filename: Option<PreliminaryFilename>,
   pub absolute_preliminary_filename: Option<String>,
   pub canonical_names: FxHashMap<SymbolRef, Rstr>,

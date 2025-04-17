@@ -2,31 +2,21 @@ use std::hash::Hash;
 
 use arcstr::ArcStr;
 use itertools::Itertools;
-use minipack_common::{AssetIdx, InstantiationKind};
+use minipack_common::AssetIdx;
 use minipack_utils::{
   hash_placeholder::{extract_hash_placeholders, replace_placeholder_with_hash},
   indexmap::FxIndexSet,
   rayon::{IntoParallelIterator, IntoParallelRefIterator, ParallelIterator},
   xxhash::xxhash_base64_url,
 };
-use minipack_utils::{
-  rayon::{IndexedParallelIterator, IntoParallelRefMutIterator},
-  xxhash::xxhash_with_base,
-};
+use minipack_utils::{rayon::IndexedParallelIterator, xxhash::xxhash_with_base};
 use oxc_index::{IndexVec, index_vec};
 use rustc_hash::FxHashMap;
 use xxhash_rust::xxh3::Xxh3;
 
-use crate::{
-  graph::ChunkGraph,
-  types::{IndexAssets, IndexChunkToAssets, IndexInstantiatedChunks},
-};
+use crate::types::{IndexAssets, IndexInstantiatedChunks};
 
-pub fn finalize_assets(
-  chunk_graph: &mut ChunkGraph,
-  preliminary_assets: IndexInstantiatedChunks,
-  index_chunk_to_assets: &IndexChunkToAssets,
-) -> IndexAssets {
+pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAssets {
   let asset_idx_by_placeholder = preliminary_assets
     .iter_enumerated()
     .filter_map(|(asset_idx, asset)| {
@@ -108,12 +98,9 @@ pub fn finalize_assets(
     .flatten()
     .collect::<FxHashMap<_, _>>();
 
-  let mut assets: IndexAssets = preliminary_assets
+  preliminary_assets
     .into_par_iter()
-    .enumerate()
-    .map(|(asset_idx, mut asset)| {
-      let asset_idx = AssetIdx::from(asset_idx);
-
+    .map(|mut asset| {
       let filename: ArcStr = replace_placeholder_with_hash(
         asset.preliminary_filename.as_str(),
         &final_hashes_by_placeholder,
@@ -121,9 +108,8 @@ pub fn finalize_assets(
       .into_owned()
       .into();
 
-      if let InstantiationKind::Ecma(rendered_chunk) = &mut asset.kind {
-        rendered_chunk.filename = filename.clone();
-        rendered_chunk.debug_id = index_final_hashes[asset_idx].1;
+      if let Some(filename) = &mut asset.kind {
+        *filename = filename.clone();
       }
 
       asset.content =
@@ -132,31 +118,7 @@ pub fn finalize_assets(
       asset.finalize(filename.to_string())
     })
     .collect::<Vec<_>>()
-    .into();
-
-  let index_asset_to_filename: IndexVec<AssetIdx, String> =
-    assets.iter().map(|asset| asset.filename.clone()).collect::<Vec<_>>().into();
-
-  assets.par_iter_mut().for_each(|asset| {
-    if let InstantiationKind::Ecma(rendered_chunk) = &mut asset.meta {
-      let chunk = &chunk_graph.chunk_table[asset.origin_chunk];
-      rendered_chunk.imports = chunk
-        .cross_chunk_imports
-        .iter()
-        .flat_map(|importee_idx| &index_chunk_to_assets[*importee_idx])
-        .map(|importee_asset_idx| index_asset_to_filename[*importee_asset_idx].clone().into())
-        .collect();
-
-      rendered_chunk.dynamic_imports = chunk
-        .cross_chunk_dynamic_imports
-        .iter()
-        .flat_map(|importee_idx| &index_chunk_to_assets[*importee_idx])
-        .map(|importee_asset_idx| index_asset_to_filename[*importee_asset_idx].clone().into())
-        .collect();
-    }
-  });
-
-  assets
+    .into()
 }
 
 fn collect_transitive_dependencies(

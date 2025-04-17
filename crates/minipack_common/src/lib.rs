@@ -36,7 +36,6 @@ pub use crate::{
   types::{
     asset::Asset,
     asset_idx::AssetIdx,
-    asset_meta::InstantiationKind,
     ast_scopes::AstScopes,
     chunk_idx::ChunkIdx,
     chunk_kind::ChunkKind,
@@ -58,8 +57,6 @@ pub use crate::{
     rendered_module::RenderedModule,
     resolved_export::ResolvedExport,
     resolved_request_info::ResolvedId,
-    rollup_pre_rendered_chunk::RollupPreRenderedChunk,
-    rollup_rendered_chunk::RollupRenderedChunk,
     side_effects,
     source::Source,
     source_joiner::SourceJoiner,

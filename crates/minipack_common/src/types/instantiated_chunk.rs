@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 
-use crate::{Asset, ChunkIdx, InstantiationKind, PreliminaryFilename};
+use arcstr::ArcStr;
+
+use crate::{Asset, ChunkIdx, PreliminaryFilename};
 
 /// `InstantiatedChunk`s are derived from `Chunk`s. Different `InstantiatedChunk`s can be derived from the same `Chunk`
 /// by different `Generator`s.
@@ -8,7 +10,7 @@ use crate::{Asset, ChunkIdx, InstantiationKind, PreliminaryFilename};
 pub struct InstantiatedChunk {
   pub origin_chunk: ChunkIdx,
   pub content: String,
-  pub kind: InstantiationKind,
+  pub kind: Option<ArcStr>,
   pub augment_chunk_hash: Option<String>,
   pub file_dir: PathBuf,
   pub preliminary_filename: PreliminaryFilename,

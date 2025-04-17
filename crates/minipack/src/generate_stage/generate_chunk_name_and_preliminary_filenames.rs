@@ -14,9 +14,7 @@ use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 
-use crate::{
-  graph::ChunkGraph, utils::chunk::generate_rendered_chunk::generate_pre_rendered_chunk,
-};
+use crate::graph::ChunkGraph;
 
 use super::GenerateStage;
 
@@ -113,7 +111,6 @@ impl GenerateStage<'_> {
       // Notice we didn't used deconflict name here, chunk names are allowed to be duplicated.
       chunk.name = Some(pre_generated_chunk_name.clone());
       index_chunk_id_to_name.insert(*chunk_id, pre_generated_chunk_name.clone());
-      let pre_rendered_chunk = generate_pre_rendered_chunk(chunk, self.link_output);
 
       let preliminary_filename = chunk.generate_preliminary_filename(
         self.options,
@@ -121,8 +118,6 @@ impl GenerateStage<'_> {
         &mut hash_placeholder_generator,
         &mut make_unique_name_for_ecma_chunk,
       )?;
-
-      chunk.pre_rendered_chunk = Some(pre_rendered_chunk);
 
       chunk.absolute_preliminary_filename = Some(
         preliminary_filename

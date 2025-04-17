@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use crate::{
   types::generator::{GenerateContext, GenerateOutput, Generator},
-  utils::{
-    chunk::generate_rendered_chunk::generate_rendered_chunk, render_ecma_module::render_ecma_module,
-  },
+  utils::render_ecma_module::render_ecma_module,
 };
 
 use minipack_common::{
@@ -67,12 +65,8 @@ impl Generator for EcmaGenerator {
       rendered_modules.insert(module_id.clone(), RenderedModule::new(sources.clone(), *exec_order));
     });
 
-    let rendered_chunk = generate_rendered_chunk(
-      ctx.chunk,
-      rendered_modules,
-      ctx.chunk.pre_rendered_chunk.as_ref().expect("Should have pre-rendered chunk"),
-      ctx.chunk_graph,
-    );
+    let rendered_chunk =
+      ctx.chunk.preliminary_filename.as_deref().expect("should have preliminary_filename").clone();
 
     let hashbang = match ctx.chunk.user_defined_entry_module(&ctx.link_output.modules) {
       Some(normal_module) => normal_module
