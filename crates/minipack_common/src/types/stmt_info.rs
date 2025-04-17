@@ -1,4 +1,3 @@
-use bitflags::bitflags;
 use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 
@@ -68,19 +67,6 @@ oxc_index::define_index_type! {
   pub struct StmtInfoIdx = u32;
 }
 
-bitflags! {
-    #[derive(Debug, Default)]
-    pub struct StmtInfoMeta: u8 {
-        const FnDecl = 1;
-        const ClassDecl = 1 << 1;
-        // Flag for `var fn = function (){}`
-        const FnExpr = 1 << 2;
-        // Flag for `var foo = class {}`
-        const ClassExpr = 1 << 3;
-        const KeepNamesType = StmtInfoMeta::FnDecl.bits() | StmtInfoMeta::ClassDecl.bits() | StmtInfoMeta::FnExpr.bits() | StmtInfoMeta::ClassExpr.bits();
-    }
-}
-
 #[derive(Default, Debug)]
 pub struct StmtInfo {
   /// The index of this statement in the module body.
@@ -100,28 +86,9 @@ pub struct StmtInfo {
   pub import_records: Vec<ImportRecordIdx>,
   #[cfg(debug_assertions)]
   pub debug_label: Option<String>,
-  pub meta: StmtInfoMeta,
 }
 
 impl StmtInfo {
-  #[must_use]
-  pub fn with_stmt_idx(mut self, stmt_idx: usize) -> Self {
-    self.stmt_idx = Some(stmt_idx.into());
-    self
-  }
-
-  #[must_use]
-  pub fn with_declared_symbols(mut self, declared_symbols: Vec<SymbolRef>) -> Self {
-    self.declared_symbols = declared_symbols;
-    self
-  }
-
-  #[must_use]
-  pub fn with_referenced_symbols(mut self, referenced_symbols: Vec<SymbolOrMemberExprRef>) -> Self {
-    self.referenced_symbols = referenced_symbols;
-    self
-  }
-
   #[inline]
   pub fn unwrap_debug_label(&self) -> &str {
     #[cfg(debug_assertions)]

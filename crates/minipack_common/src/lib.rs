@@ -63,7 +63,7 @@ pub use crate::{
     side_effects,
     source::Source,
     source_joiner::SourceJoiner,
-    stmt_info::{StmtInfo, StmtInfoIdx, StmtInfoMeta, StmtInfos},
+    stmt_info::{StmtInfo, StmtInfoIdx, StmtInfos},
     symbol_name_ref_token::SymbolNameRefToken,
     symbol_or_member_expr_ref::SymbolOrMemberExprRef,
     symbol_ref::SymbolRef,

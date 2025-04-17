@@ -11,7 +11,7 @@ use crate::{AstScopes, ChunkIdx, ModuleIdx, SymbolRef};
 
 use super::namespace_alias::NamespaceAlias;
 
-#[derive(Debug)]
+#[derive(Debug, Default, Clone)]
 pub struct SymbolRefDataClassic {
   /// For case `import {a} from 'foo.cjs';console.log(a)`, the symbol `a` reference to `module.exports.a` of `foo.cjs`.
   /// So we will transform the code into `console.log(foo_ns.a)`. `foo_ns` is the namespace symbol of `foo.cjs and `a` is the property name.
@@ -44,10 +44,8 @@ pub struct SymbolRefDbForModule {
 
 impl SymbolRefDbForModule {
   pub fn new(owner: ModuleIdx, scoping: Scoping, root_scope_id: ScopeId) -> Self {
-    let classic_data = scoping
-      .symbol_names()
-      .map(|_| SymbolRefDataClassic { link: None, chunk_id: None, namespace_alias: None })
-      .collect();
+    let classic_data =
+      IndexVec::from_vec(vec![SymbolRefDataClassic::default(); scoping.symbols_len()]);
 
     Self {
       owner,
@@ -60,20 +58,18 @@ impl SymbolRefDbForModule {
 
   // The `facade` means the symbol is actually not exist in the AST.
   pub fn create_facade_root_symbol_ref(&mut self, name: &str) -> SymbolRef {
-    self.classic_data.push(SymbolRefDataClassic {
-      link: None,
-      chunk_id: None,
-      namespace_alias: None,
-    });
-    let symbol_id = self.ast_scopes.create_symbol(
-      SPAN,
-      name,
-      SymbolFlags::empty(),
-      self.root_scope_id,
-      NodeId::DUMMY,
-    );
+    self.classic_data.push(SymbolRefDataClassic::default());
 
-    SymbolRef::from((self.owner, symbol_id))
+    SymbolRef::from((
+      self.owner,
+      self.ast_scopes.create_symbol(
+        SPAN,
+        name,
+        SymbolFlags::empty(),
+        self.root_scope_id,
+        NodeId::DUMMY,
+      ),
+    ))
   }
 
   /// This method is used to hide the `SymbolTable::create_symbol` method since

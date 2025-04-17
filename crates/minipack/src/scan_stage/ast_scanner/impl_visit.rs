@@ -1,11 +1,11 @@
 use minipack_common::{
-  ImportKind, ImportRecordMeta, StmtInfoMeta, dynamic_import_usage::DynamicImportExportsUsage,
+  ImportKind, ImportRecordMeta, dynamic_import_usage::DynamicImportExportsUsage,
 };
 use minipack_utils::option_ext::OptionExt;
 use oxc::{
   ast::{
     AstKind,
-    ast::{self, BindingPatternKind, IdentifierReference},
+    ast::{self, IdentifierReference},
   },
   ast_visit::{Visit, walk},
   semantic::SymbolId,
@@ -159,32 +159,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   }
 
   fn visit_declaration(&mut self, it: &ast::Declaration<'ast>) {
-    match it {
-      ast::Declaration::VariableDeclaration(decl) => {
-        if let [decl] = decl.declarations.as_slice() {
-          if let (BindingPatternKind::BindingIdentifier(_), Some(init)) =
-            (&decl.id.kind, &decl.init)
-          {
-            match init {
-              ast::Expression::ClassExpression(_) => {
-                self.current_stmt_info.meta.insert(StmtInfoMeta::ClassExpr);
-              }
-              ast::Expression::FunctionExpression(_) => {
-                self.current_stmt_info.meta.insert(StmtInfoMeta::FnExpr);
-              }
-              _ => {}
-            }
-          }
-        }
-      }
-      ast::Declaration::FunctionDeclaration(_) => {
-        self.current_stmt_info.meta.insert(StmtInfoMeta::FnDecl);
-      }
-      ast::Declaration::ClassDeclaration(_) => {
-        self.current_stmt_info.meta.insert(StmtInfoMeta::ClassDecl);
-      }
-      _ => {}
-    }
     walk::walk_declaration(self, it);
   }
 }

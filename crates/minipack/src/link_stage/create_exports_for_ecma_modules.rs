@@ -1,4 +1,4 @@
-use minipack_common::{OutputFormat, StmtInfo, StmtInfoMeta};
+use minipack_common::{OutputFormat, StmtInfo};
 
 use super::LinkStage;
 
@@ -31,7 +31,6 @@ impl LinkStage<'_> {
           import_records: Vec::new(),
           #[cfg(debug_assertions)]
           debug_label: None,
-          meta: StmtInfoMeta::default(),
         };
         ecma_module.stmt_infos.add_stmt_info(stmt_info);
       });
@@ -72,7 +71,6 @@ impl LinkStage<'_> {
         import_records: Vec::new(),
         #[cfg(debug_assertions)]
         debug_label: None,
-        meta: StmtInfoMeta::default(),
       };
       ecma_module.stmt_infos.replace_namespace_stmt_info(namespace_stmt_info);
     });

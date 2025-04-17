@@ -1,8 +1,8 @@
 use minipack_utils::option_ext::OptionExt;
 use oxc::semantic::SymbolId;
-use oxc_index::{Idx, IndexVec};
+use oxc_index::Idx;
 
-use crate::{Module, ModuleIdx, SymbolRefDb, SymbolRefFlags};
+use crate::{ModuleIdx, SymbolRefDb, SymbolRefFlags};
 
 use super::symbol_ref_db::{GetLocalDb, GetLocalDbMut};
 
@@ -65,34 +65,5 @@ impl SymbolRef {
   #[must_use]
   pub fn canonical_ref(&self, db: &SymbolRefDb) -> Self {
     db.canonical_ref_for(*self)
-  }
-
-  pub fn set_canonical_ref(&self, db: &mut SymbolRefDb, canonical_ref: Self) {
-    db.link(*self, canonical_ref);
-  }
-
-  pub fn is_created_by_import_stmt_that_target_external(
-    &self,
-    db: &SymbolRefDb,
-    modules: &IndexVec<ModuleIdx, Module>,
-  ) -> bool {
-    let canonical_ref = db.canonical_ref_for(*self);
-
-    let Module::Normal(owner) = &modules[canonical_ref.owner] else { return false };
-
-    let Some(named_import) = owner.named_imports.get(self) else {
-      return false;
-    };
-
-    let rec = &owner.import_records[named_import.record_id];
-
-    match &modules[rec.resolved_module] {
-      Module::Normal(_) => {
-        // This branch should be unreachable. By `par_canonical_ref_for`, we should get the canonical ref.
-        // An canonical ref is either declared by the module itself or a `import { foo } from 'bar'` statement.
-        false
-      }
-      Module::External(_) => true,
-    }
   }
 }
