@@ -108,8 +108,8 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
       .into_owned()
       .into();
 
-      if let Some(filename) = &mut asset.kind {
-        *filename = filename.clone();
+      if let Some(kind) = &mut asset.kind {
+        *kind = filename.clone();
       }
 
       asset.content =
