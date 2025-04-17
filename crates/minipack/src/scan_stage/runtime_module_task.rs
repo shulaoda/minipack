@@ -108,7 +108,6 @@ impl RuntimeModuleTask {
           ignored: false,
           is_external: true,
           package_json: None,
-          is_external_without_side_effects: true,
         }
       })
       .collect();

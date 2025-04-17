@@ -1,11 +1,8 @@
 use oxc::{
-  allocator::{self, Allocator, Box, IntoIn, TakeIn},
+  allocator::{self, Allocator, Box, IntoIn},
   ast::{
     AstBuilder, NONE,
-    ast::{
-      self, Argument, BindingIdentifier, Declaration, Expression, ImportOrExportKind,
-      ObjectPropertyKind, PropertyKind, Statement,
-    },
+    ast::{self, Argument, BindingIdentifier, ImportOrExportKind, Statement},
   },
   span::{Atom, CompactStr, SPAN, Span},
 };
@@ -126,17 +123,6 @@ impl<'ast> AstSnippet<'ast> {
     )
   }
 
-  /// `name()`
-  pub fn call_expr_expr(&self, name: PassedStr) -> ast::Expression<'ast> {
-    self.builder.expression_call(
-      SPAN,
-      self.builder.expression_identifier(SPAN, name),
-      NONE,
-      self.builder.vec(),
-      false,
-    )
-  }
-
   /// `name(arg)`
   pub fn call_expr_with_arg_expr_expr(
     &self,
@@ -169,15 +155,6 @@ impl<'ast> AstSnippet<'ast> {
     name: PassedStr,
     init: ast::Expression<'ast>,
   ) -> ast::Statement<'ast> {
-    ast::Statement::from(self.decl_var_decl(name, init))
-  }
-
-  /// `var [name] = [init]`
-  pub fn decl_var_decl(
-    &self,
-    name: PassedStr,
-    init: ast::Expression<'ast>,
-  ) -> ast::Declaration<'ast> {
     let declarations = self.builder.vec1(self.builder.variable_declarator(
       SPAN,
       ast::VariableDeclarationKind::Var,
@@ -190,11 +167,13 @@ impl<'ast> AstSnippet<'ast> {
       false,
     ));
 
-    ast::Declaration::VariableDeclaration(self.builder.alloc_variable_declaration(
-      SPAN,
-      ast::VariableDeclarationKind::Var,
-      declarations,
-      false,
+    ast::Statement::from(ast::Declaration::VariableDeclaration(
+      self.builder.alloc_variable_declaration(
+        SPAN,
+        ast::VariableDeclarationKind::Var,
+        declarations,
+        false,
+      ),
     ))
   }
 
@@ -339,76 +318,5 @@ impl<'ast> AstSnippet<'ast> {
     ast::Expression::CallExpression(
       self.builder.alloc_call_expression(span, callee, NONE, arguments, false),
     )
-  }
-
-  // create `a: () => expr` for  `{ a: () => expr }``
-  pub fn object_property_kind_object_property(
-    &self,
-    key: PassedStr,
-    expr: ast::Expression<'ast>,
-    computed: bool,
-  ) -> ObjectPropertyKind<'ast> {
-    self.builder.object_property_kind_object_property(
-      SPAN,
-      PropertyKind::Init,
-      if computed {
-        ast::PropertyKey::from(self.builder.expression_string_literal(SPAN, key, None))
-      } else {
-        self.builder.property_key_static_identifier(SPAN, key)
-      },
-      self.only_return_arrow_expr(expr),
-      true,
-      false,
-      computed,
-    )
-  }
-
-  /// convert `Expression` to
-  /// export default ${Expression}
-  pub fn export_default_expr_stmt(&self, expr: Expression<'ast>) -> Statement<'ast> {
-    let ast_builder = &self.builder;
-    Statement::from(ast_builder.module_declaration_export_default_declaration(
-      SPAN,
-      ast_builder.module_export_name_identifier_name(SPAN, "default"),
-      ast::ExportDefaultDeclarationKind::from(expr),
-    ))
-  }
-
-  pub fn expr_without_parentheses(&self, mut expr: Expression<'ast>) -> Expression<'ast> {
-    while let Expression::ParenthesizedExpression(mut paren_expr) = expr {
-      expr = paren_expr.expression.take_in(self.builder.allocator);
-    }
-    expr
-  }
-
-  #[inline]
-  pub fn statement_module_declaration_export_named_declaration<T: AsRef<str>>(
-    &self,
-    declaration: Option<Declaration<'ast>>,
-    specifiers: &[(T /*local*/, T /*exported*/, bool /*legal ident*/)],
-  ) -> Statement<'ast> {
-    Statement::from(self.builder.module_declaration_export_named_declaration(
-      SPAN,
-      declaration,
-      {
-        let mut vec = self.builder.vec_with_capacity(specifiers.len());
-        for (local, exported, legal_ident) in specifiers {
-          vec.push(self.builder.export_specifier(
-            SPAN,
-            self.builder.module_export_name_identifier_reference(SPAN, local.as_ref()),
-            if *legal_ident {
-              self.builder.module_export_name_identifier_name(SPAN, exported.as_ref())
-            } else {
-              self.builder.module_export_name_string_literal(SPAN, exported.as_ref(), None)
-            },
-            ImportOrExportKind::Value,
-          ));
-        }
-        vec
-      },
-      None,
-      ImportOrExportKind::Value,
-      NONE,
-    ))
   }
 }

@@ -1,5 +1,5 @@
 use futures::future::try_join_all;
-use minipack_common::{Asset, Output, OutputAsset, OutputChunk};
+use minipack_common::{Asset, OutputChunk};
 use minipack_ecmascript::EcmaCompiler;
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{
@@ -34,21 +34,8 @@ impl GenerateStage<'_> {
     self.minify_assets(&mut assets);
 
     let mut output = Vec::with_capacity(assets.len());
-    for Asset { meta, content: code, preliminary_filename, filename, .. } in assets {
-      if let Some(filename) = meta {
-        output.push(Output::Chunk(Box::new(OutputChunk {
-          filename,
-          code,
-          preliminary_filename: preliminary_filename.to_string(),
-        })));
-      } else {
-        output.push(Output::Asset(Box::new(OutputAsset {
-          filename: filename.clone().into(),
-          source: code,
-          original_file_names: vec![],
-          names: vec![],
-        })));
-      }
+    for Asset { content,  filename, .. } in assets {
+      output.push(OutputChunk { filename: filename.into(), content });
     }
 
     Ok(BundleOutput { assets: output, warnings })
@@ -127,9 +114,7 @@ impl GenerateStage<'_> {
   pub fn minify_assets(&mut self, assets: &mut IndexAssets) {
     if self.options.minify {
       assets.par_iter_mut().for_each(|asset| {
-        if asset.meta.is_some() {
-          asset.content = EcmaCompiler::minify(&asset.content, self.options.target.into());
-        }
+        asset.content = EcmaCompiler::minify(&asset.content, self.options.target.into());
       });
     }
   }

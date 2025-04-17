@@ -87,7 +87,6 @@ impl ModuleTask {
             ignored: false,
             is_external: false,
             package_json: None,
-            is_external_without_side_effects: false,
           });
         }
 

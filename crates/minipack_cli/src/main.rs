@@ -7,7 +7,7 @@ use ansi_term::Colour;
 use args::{EnhanceArgs, InputArgs, OutputArgs};
 use clap::Parser;
 
-use minipack::{Bundler, BundlerOptions, Output};
+use minipack::{Bundler, BundlerOptions, OutputChunk};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -22,43 +22,24 @@ struct Commands {
   enhance: EnhanceArgs,
 }
 
-fn print_output_assets(outputs: Vec<Output>) {
+fn print_output_assets(outputs: Vec<OutputChunk>) {
   let mut left = 0;
   let mut right = 0;
 
   let mut assets = Vec::with_capacity(outputs.len());
 
   for output in outputs {
-    let asset = match output {
-      minipack::Output::Chunk(output) => {
-        let size = format!("{:.2}", output.code.len() as f64 / 1024.0);
+    let size = format!("{:.2}", output.content.len() as f64 / 1024.0);
 
-        if size.len() > right {
-          right = size.len();
-        }
+    if size.len() > right {
+      right = size.len();
+    }
 
-        if output.filename.len() > left {
-          left = output.filename.len()
-        }
+    if output.filename.len() > left {
+      left = output.filename.len()
+    }
 
-        (output.filename, Colour::Cyan, size, true)
-      }
-      minipack::Output::Asset(output) => {
-        let size = format!("{:.2}", output.source.len() as f64 / 1024.0);
-
-        if size.len() > right {
-          right = size.len();
-        }
-
-        if output.filename.len() > left {
-          left = output.filename.len()
-        }
-
-        (output.filename, Colour::Green, size, false)
-      }
-    };
-
-    assets.push(asset);
+    assets.push((output.filename, Colour::Cyan, size, true));
   }
 
   let dim = Colour::White.dimmed();

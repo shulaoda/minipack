@@ -7,13 +7,18 @@ use super::rendered_module::RenderedModule;
 
 #[derive(Debug, Clone)]
 pub struct OutputChunk {
-
-  // RenderedChunk
   pub filename: ArcStr,
+  pub content: String,
+}
 
-  // OutputChunk
-  pub code: String,
-  pub preliminary_filename: String,
+impl OutputChunk {
+  pub fn filename(&self) -> &str {
+    &self.filename
+  }
+
+  pub fn content_as_bytes(&self) -> &[u8] {
+    self.content.as_bytes()
+  }
 }
 
 #[derive(Debug, Clone)]

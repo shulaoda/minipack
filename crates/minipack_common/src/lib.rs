@@ -24,7 +24,6 @@ pub use crate::{
     ecma_ast_idx::EcmaAstIdx,
     ecma_view::{EcmaModuleAstUsage, EcmaView, EcmaViewMeta},
     module_idx::{DUMMY_MODULE_IDX, ModuleIdx},
-    node_builtin_modules::is_existing_node_builtin_modules,
   },
   module::{Module, external_module::ExternalModule, normal_module::NormalModule},
   module_loader::{
@@ -40,7 +39,6 @@ pub use crate::{
     chunk_idx::ChunkIdx,
     chunk_kind::ChunkKind,
     entry_point::{EntryPoint, EntryPointKind},
-    exports_kind::ExportsKind,
     import_kind::ImportKind,
     import_record::{ImportRecordIdx, ImportRecordMeta, RawImportRecord, ResolvedImportRecord},
     importer_record::ImporterRecord,
@@ -51,7 +49,6 @@ pub use crate::{
     named_export::LocalExport,
     named_import::{NamedImport, Specifier},
     namespace_alias::NamespaceAlias,
-    output::{Output, OutputAsset},
     output_chunk::{Modules, OutputChunk},
     package_json::PackageJson,
     rendered_module::RenderedModule,

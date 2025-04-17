@@ -27,7 +27,6 @@ itertools = { workspace = true }
 memchr = { workspace = true }
 oxc = { workspace = true }
 oxc_index = { workspace = true, features = ["serde"] }
-oxc_resolver = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = { workspace = true }

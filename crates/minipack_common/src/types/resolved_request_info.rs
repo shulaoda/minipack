@@ -13,7 +13,6 @@ pub struct ResolvedId {
   pub ignored: bool,
   pub is_external: bool,
   pub package_json: Option<Arc<PackageJson>>,
-  pub is_external_without_side_effects: bool,
 }
 
 impl ResolvedId {
@@ -25,7 +24,6 @@ impl ResolvedId {
       ignored: false,
       is_external: false,
       package_json: None,
-      is_external_without_side_effects: false,
     }
   }
 
