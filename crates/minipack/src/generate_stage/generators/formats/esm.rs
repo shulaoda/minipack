@@ -22,11 +22,11 @@ pub fn render_esm<'code>(
 
   source_joiner.append_source(render_esm_chunk_imports(ctx));
 
-  if let Some(entry_module) = ctx.chunk.entry_module(&ctx.link_output.modules) {
+  if let Some(entry_module) = ctx.chunk.entry_module(&ctx.link_output.module_table) {
     entry_module
       .star_export_module_ids()
       .filter_map(|importee| {
-        let importee = &ctx.link_output.modules[importee];
+        let importee = &ctx.link_output.module_table[importee];
         importee.as_external().map(|m| &m.name)
       })
       .dedup()
@@ -92,7 +92,7 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
   // render external imports
   ctx.chunk.imports_from_external_modules.iter().for_each(|(importee_id, named_imports)| {
     let importee =
-      &ctx.link_output.modules[*importee_id].as_external().expect("Should be external module here");
+      &ctx.link_output.module_table[*importee_id].as_external().expect("Should be external module here");
     let mut has_importee_imported = false;
     let mut default_alias = vec![];
     let specifiers = named_imports

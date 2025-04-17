@@ -10,7 +10,7 @@ pub mod resolve_options;
 
 use std::path::PathBuf;
 
-use crate::{ESTarget, InputItem, OutputExports, OutputFormat, Platform, ResolveOptions};
+use crate::{ESTarget, InputItem, OutputExports, OutputFormat, Platform};
 
 #[derive(Default, Debug, Clone)]
 pub struct BundlerOptions {
@@ -31,7 +31,4 @@ pub struct BundlerOptions {
   pub minify: Option<bool>,
   pub target: Option<ESTarget>,
   pub shim_missing_exports: Option<bool>,
-
-  // --- Resolve
-  pub resolve: Option<ResolveOptions>,
 }

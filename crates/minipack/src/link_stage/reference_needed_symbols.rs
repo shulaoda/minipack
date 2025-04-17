@@ -16,7 +16,7 @@ impl LinkStage<'_> {
   pub(crate) fn reference_needed_symbols(&mut self) {
     let symbols = Mutex::new(&mut self.symbols);
     let record_meta_update_pending_pairs_list = self
-      .modules
+      .module_table
       .par_iter()
       .filter_map(Module::as_normal)
       .map(|importer| {
@@ -37,7 +37,7 @@ impl LinkStage<'_> {
               return;
             }
 
-            match &self.modules[rec.resolved_module] {
+            match &self.module_table[rec.resolved_module] {
               Module::External(importee) => {
                 // Make sure symbols from external modules are included and de_conflicted
                 if rec.kind == ImportKind::Import {
@@ -99,7 +99,7 @@ impl LinkStage<'_> {
 
     // merge import_record.meta
     for (module_idx, record_meta_pairs) in record_meta_update_pending_pairs_list {
-      let Some(module) = self.modules[module_idx].as_normal_mut() else {
+      let Some(module) = self.module_table[module_idx].as_normal_mut() else {
         continue;
       };
       for (rec_id, meta) in record_meta_pairs {

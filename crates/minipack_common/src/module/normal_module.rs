@@ -42,10 +42,6 @@ impl NormalModule {
     self.ecma_view.meta.has_star_export()
   }
 
-  pub fn is_js_type(&self) -> bool {
-    matches!(self.module_type, ModuleType::Js | ModuleType::Jsx | ModuleType::Ts | ModuleType::Tsx)
-  }
-
   pub fn ecma_ast_idx(&self) -> EcmaAstIdx {
     self.ecma_view.ecma_ast_idx.expect("ecma_ast_idx should be set in this stage")
   }

@@ -63,10 +63,10 @@ impl<'a> GenerateStage<'a> {
     let ast_table_iter = self.link_output.index_ecma_ast.par_iter_mut();
     ast_table_iter
       .filter(|(_ast, owner)| {
-        self.link_output.modules[*owner].as_normal().is_some_and(|m| m.meta.is_included())
+        self.link_output.module_table[*owner].as_normal().is_some_and(|m| m.meta.is_included())
       })
       .for_each(|(ast, owner)| {
-        let Module::Normal(module) = &self.link_output.modules[*owner] else {
+        let Module::Normal(module) = &self.link_output.module_table[*owner] else {
           return;
         };
         let ast_scope = &self.link_output.symbols[module.idx].as_ref().unwrap().ast_scopes;
@@ -84,7 +84,7 @@ impl<'a> GenerateStage<'a> {
               symbol_db: &self.link_output.symbols,
               linking_info,
               module,
-              modules: &self.link_output.modules,
+              modules: &self.link_output.module_table,
               linking_infos: &self.link_output.metadata,
               runtime: &self.link_output.runtime_module,
               chunk_graph: &chunk_graph,

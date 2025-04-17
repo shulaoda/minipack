@@ -10,7 +10,7 @@ pub struct NormalizeOptionsReturn {
   pub resolve_options: ResolveOptions,
 }
 
-pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsReturn {
+pub fn normalize_options(raw_options: BundlerOptions) -> NormalizeOptionsReturn {
   let cwd =
     raw_options.cwd.unwrap_or_else(|| std::env::current_dir().expect("Failed to get current dir"));
 
@@ -20,7 +20,7 @@ pub fn normalize_options(mut raw_options: BundlerOptions) -> NormalizeOptionsRet
     OutputFormat::Esm => Platform::Browser,
   });
 
-  let resolve_options = std::mem::take(&mut raw_options.resolve).unwrap_or_default();
+  let resolve_options = ResolveOptions::default();
 
   let dir = raw_options.file.as_ref().map_or(
     raw_options.dir.unwrap_or_else(|| "dist".to_string()),

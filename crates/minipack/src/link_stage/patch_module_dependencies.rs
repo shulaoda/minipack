@@ -11,7 +11,7 @@ impl LinkStage<'_> {
         meta.dependencies.insert(canonical_ref.owner);
       });
 
-      let Module::Normal(module) = &self.modules[module_idx] else {
+      let Module::Normal(module) = &self.module_table[module_idx] else {
         return;
       };
 

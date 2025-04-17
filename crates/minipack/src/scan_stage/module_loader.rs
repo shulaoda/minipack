@@ -56,7 +56,7 @@ pub struct ModuleLoader {
 pub struct ModuleLoaderOutput {
   // Stored all modules
   pub symbols: SymbolRefDb,
-  pub modules: IndexModules,
+  pub module_table: IndexModules,
   pub index_ecma_ast: IndexEcmaAst,
   // Entries that user defined + dynamic import entries
   pub entry_points: Vec<EntryPoint>,
@@ -283,7 +283,7 @@ impl ModuleLoader {
       },
     );
 
-    let modules: IndexVec<ModuleIdx, Module> = self
+    let module_table: IndexVec<ModuleIdx, Module> = self
       .inm
       .modules
       .into_iter()
@@ -309,7 +309,7 @@ impl ModuleLoader {
       .collect();
 
     let mut dynamic_import_entry_ids = dynamic_import_entry_ids.into_iter().collect::<Vec<_>>();
-    dynamic_import_entry_ids.sort_unstable_by_key(|(id, _)| modules[*id].stable_id());
+    dynamic_import_entry_ids.sort_unstable_by_key(|(id, _)| module_table[*id].stable_id());
 
     entry_points.extend(dynamic_import_entry_ids.into_iter().map(|(id, related_stmt_infos)| {
       EntryPoint { name: None, id, kind: EntryPointKind::DynamicImport, related_stmt_infos }
@@ -319,7 +319,7 @@ impl ModuleLoader {
       runtime_module.expect("Failed to find runtime module. This should not happen");
 
     Ok(ModuleLoaderOutput {
-      modules,
+      module_table,
       symbols: self.symbols,
       index_ecma_ast: self.inm.index_ecma_ast,
       entry_points,

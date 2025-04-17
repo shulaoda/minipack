@@ -4,7 +4,7 @@ use super::LinkStage;
 
 impl LinkStage<'_> {
   pub(crate) fn create_exports_for_ecma_modules(&mut self) {
-    self.modules.iter_mut().filter_map(|m| m.as_normal_mut()).for_each(|ecma_module| {
+    self.module_table.iter_mut().filter_map(|m| m.as_normal_mut()).for_each(|ecma_module| {
       let linking_info = &mut self.metadata[ecma_module.idx];
 
       if let Some(entry) = self.entry_points.iter().find(|entry| entry.id == ecma_module.idx) {

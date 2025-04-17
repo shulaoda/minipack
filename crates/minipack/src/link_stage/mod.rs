@@ -23,7 +23,7 @@ use super::scan_stage::ScanStageOutput;
 
 #[derive(Debug)]
 pub struct LinkStageOutput {
-  pub modules: IndexModules,
+  pub module_table: IndexModules,
   pub entry_points: Vec<EntryPoint>,
   pub index_ecma_ast: IndexEcmaAst,
   pub metadata: LinkingMetadataVec,
@@ -38,7 +38,7 @@ pub struct LinkStageOutput {
 
 #[derive(Debug)]
 pub struct LinkStage<'a> {
-  pub modules: IndexModules,
+  pub module_table: IndexModules,
   pub entry_points: Vec<EntryPoint>,
   pub symbols: SymbolRefDb,
   pub runtime_module: RuntimeModuleBrief,
@@ -55,7 +55,7 @@ pub struct LinkStage<'a> {
 impl<'a> LinkStage<'a> {
   pub fn new(scan_stage_output: ScanStageOutput, options: &'a SharedOptions) -> Self {
     let ScanStageOutput {
-      modules,
+      module_table,
       index_ecma_ast,
       symbols,
       entry_points,
@@ -64,7 +64,7 @@ impl<'a> LinkStage<'a> {
       dyn_import_usage_map,
     } = scan_stage_output;
 
-    let metadata = modules
+    let metadata = module_table
       .iter()
       .map(|module| {
         let dependencies = module
@@ -78,7 +78,7 @@ impl<'a> LinkStage<'a> {
 
         let star_exports_from_external_modules =
           module.as_normal().map_or_else(Vec::new, |inner| {
-            inner.star_exports_from_external_modules(&modules).collect()
+            inner.star_exports_from_external_modules(&module_table).collect()
           });
 
         LinkingMetadata {
@@ -91,7 +91,7 @@ impl<'a> LinkStage<'a> {
 
     Self {
       metadata,
-      modules,
+      module_table,
       entry_points,
       symbols,
       runtime_module,
@@ -118,7 +118,7 @@ impl<'a> LinkStage<'a> {
 
     LinkStageOutput {
       lived_entry_points: self.get_lived_entry(),
-      modules: self.modules,
+      module_table: self.module_table,
       entry_points: self.entry_points,
       metadata: self.metadata,
       symbols: self.symbols,
@@ -141,7 +141,7 @@ impl<'a> LinkStage<'a> {
         EntryPointKind::DynamicImport => {
           // At least one statement that create this entry is included
           let lived = item.related_stmt_infos.iter().any(|(module_idx, stmt_idx)| {
-            let module = &self.modules[*module_idx].as_normal().expect("should be a normal module");
+            let module = &self.module_table[*module_idx].as_normal().expect("should be a normal module");
             let stmt_info = &module.stmt_infos[*stmt_idx];
             stmt_info.is_included
           });
@@ -187,9 +187,9 @@ impl<'a> LinkStage<'a> {
 
     let mut visited_map = FxHashMap::default();
 
-    self.modules.iter().filter_map(|m| m.as_normal()).for_each(|module| {
+    self.module_table.iter().filter_map(|m| m.as_normal()).for_each(|module| {
       self.metadata[module.idx].is_tla_or_contains_tla_dependency =
-        is_tla(module.idx, &self.modules, &mut visited_map);
+        is_tla(module.idx, &self.module_table, &mut visited_map);
     });
   }
 }

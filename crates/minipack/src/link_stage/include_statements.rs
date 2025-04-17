@@ -11,7 +11,7 @@ use crate::types::{IndexModules, linking_metadata::LinkingMetadataVec};
 use super::LinkStage;
 
 struct Context<'a> {
-  modules: &'a IndexModules,
+  module_table: &'a IndexModules,
   symbols: &'a SymbolRefDb,
   is_included_vec: &'a mut IndexVec<ModuleIdx, IndexVec<StmtInfoIdx, bool>>,
   is_module_included_vec: &'a mut IndexVec<ModuleIdx, bool>,
@@ -62,7 +62,7 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
 
   // Include imported modules for its side effects
   module_meta.dependencies.iter().copied().for_each(|dependency_idx| {
-    match &ctx.modules[dependency_idx] {
+    match &ctx.module_table[dependency_idx] {
       Module::Normal(importee) => {
         if !ctx.tree_shaking || importee.side_effects.has_side_effects() {
           include_module(ctx, importee);
@@ -88,7 +88,7 @@ fn include_symbol(ctx: &mut Context, symbol_ref: SymbolRef) {
   ctx.used_symbol_refs.insert(canonical_ref);
 
   let mut include_symbol_impl = |symbol_ref: SymbolRef| {
-    if let Module::Normal(module) = &ctx.modules[symbol_ref.owner] {
+    if let Module::Normal(module) = &ctx.module_table[symbol_ref.owner] {
       include_module(ctx, module);
       module.stmt_infos.declared_stmts_by_symbol(&symbol_ref).iter().copied().for_each(
         |stmt_info_id| {
@@ -136,7 +136,7 @@ fn include_statement(ctx: &mut Context, module: &NormalModule, stmt_info_id: Stm
 impl LinkStage<'_> {
   pub fn include_statements(&mut self) {
     let mut is_included_vec: IndexVec<ModuleIdx, IndexVec<StmtInfoIdx, bool>> = self
-      .modules
+      .module_table
       .iter()
       .map(|m| {
         m.as_normal().map_or(IndexVec::default(), |m| {
@@ -146,10 +146,10 @@ impl LinkStage<'_> {
       .collect::<IndexVec<ModuleIdx, _>>();
 
     let mut is_module_included_vec: IndexVec<ModuleIdx, bool> =
-      oxc_index::index_vec![false; self.modules.len()];
+      oxc_index::index_vec![false; self.module_table.len()];
 
     let context = &mut Context {
-      modules: &self.modules,
+      module_table: &self.module_table,
       symbols: &self.symbols,
       is_included_vec: &mut is_included_vec,
       is_module_included_vec: &mut is_module_included_vec,
@@ -161,7 +161,7 @@ impl LinkStage<'_> {
     };
 
     self.entry_points.iter().for_each(|entry| {
-      let module = match &self.modules[entry.id] {
+      let module = match &self.module_table[entry.id] {
         Module::Normal(module) => module,
         Module::External(_module) => {
           // Case: import('external').
@@ -175,7 +175,7 @@ impl LinkStage<'_> {
       include_module(context, module);
     });
 
-    self.modules.par_iter_mut().filter_map(Module::as_normal_mut).for_each(|module| {
+    self.module_table.par_iter_mut().filter_map(Module::as_normal_mut).for_each(|module| {
       let idx = module.idx;
       module.meta.set(EcmaViewMeta::INCLUDED, is_module_included_vec[idx]);
       is_included_vec[module.idx].iter_enumerated().for_each(|(stmt_info_id, is_included)| {

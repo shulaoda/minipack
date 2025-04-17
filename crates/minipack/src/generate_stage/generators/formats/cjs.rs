@@ -71,7 +71,7 @@ pub fn render_cjs<'code>(
   // We also need to get the export mode for rendering the namespace markers.
   // So we determine the export mode (from auto) here and use it in the following code.
   let export_mode =
-    if let Some(entry_module) = ctx.chunk.user_defined_entry_module(&ctx.link_output.modules) {
+    if let Some(entry_module) = ctx.chunk.user_defined_entry_module(&ctx.link_output.module_table) {
       let export_names = get_chunk_export_names(ctx.chunk, ctx.link_output);
       let has_default_export = export_names.iter().any(|name| name.as_str() == "default");
       let export_mode = determine_export_mode(warnings, ctx, entry_module, &export_names)?;
@@ -125,7 +125,7 @@ fn render_cjs_chunk_imports(ctx: &GenerateContext<'_>) -> String {
   // render external imports
   ctx.chunk.imports_from_external_modules.iter().for_each(|(importee_id, _)| {
     let importee =
-      ctx.link_output.modules[*importee_id].as_external().expect("Should be external module here");
+      ctx.link_output.module_table[*importee_id].as_external().expect("Should be external module here");
 
     let require_path_str = concat_string!("require(\"", &importee.name, "\")");
 

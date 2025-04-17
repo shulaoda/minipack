@@ -25,7 +25,7 @@ impl GenerateStage<'_> {
     &self,
     chunk_graph: &mut ChunkGraph,
   ) -> BuildResult<FxHashMap<ChunkIdx, ArcStr>> {
-    let modules = &self.link_output.modules;
+    let module_table = &self.link_output.module_table;
 
     let mut index_chunk_id_to_name = FxHashMap::default();
     let mut index_pre_generated_names: IndexVec<ChunkIdx, ArcStr> = chunk_graph
@@ -37,7 +37,7 @@ impl GenerateStage<'_> {
         }
         match chunk.kind {
           ChunkKind::EntryPoint { module: entry_module_id, is_user_defined, .. } => {
-            let module = &modules[entry_module_id];
+            let module = &module_table[entry_module_id];
             let generated = if is_user_defined {
               let id = module.id();
               let path = id.as_path();
@@ -64,7 +64,7 @@ impl GenerateStage<'_> {
             first_executed_non_runtime_module.map_or_else(
               || arcstr::literal!("chunk"),
               |module_id| {
-                let module = &modules[*module_id];
+                let module = &module_table[*module_id];
                 ArcStr::from(sanitize_file_name(&module.id().as_path().representative_file_name()))
               },
             )

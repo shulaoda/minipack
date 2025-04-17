@@ -63,7 +63,7 @@ pub fn render_chunk_exports(
       let mut s = String::new();
       match chunk.kind {
         ChunkKind::EntryPoint { module, .. } => {
-          let module = &link_output.modules[module].as_normal().expect("should be normal module");
+          let module = &link_output.module_table[module].as_normal().expect("should be normal module");
 
           let rendered_items = export_items
             .into_iter()
@@ -75,7 +75,7 @@ pub fn render_chunk_exports(
                 let canonical_ns_name = &chunk.canonical_names[&ns_alias.namespace_ref];
                 let property_name = &ns_alias.property_name;
                 Cow::Owned(property_access_str(canonical_ns_name, property_name).into())
-              } else if link_output.modules[canonical_ref.owner].is_external() {
+              } else if link_output.module_table[canonical_ref.owner].is_external() {
                 let namespace = &chunk.canonical_names[&canonical_ref];
                 Cow::Owned(namespace.as_str().into())
               } else {
@@ -129,7 +129,7 @@ pub fn render_chunk_exports(
             .map(|rec_idx| module.ecma_view.import_records[*rec_idx].resolved_module)
             .collect::<FxIndexSet<ModuleIdx>>();
           external_modules.iter().for_each(|idx| {
-          let external = &ctx.link_output.modules[*idx].as_external().expect("Should be external module here");
+          let external = &ctx.link_output.module_table[*idx].as_external().expect("Should be external module here");
           let binding_ref_name =
           &ctx.chunk.canonical_names[&external.namespace_ref];
             let import_stmt =

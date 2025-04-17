@@ -114,7 +114,7 @@ impl LinkStage<'_> {
   pub fn bind_imports_and_exports(&mut self) {
     // Initialize `resolved_exports` to prepare for matching imports with exports
     self.metadata.iter_mut_enumerated().for_each(|(module_id, meta)| {
-      let Module::Normal(module) = &self.modules[module_id] else {
+      let Module::Normal(module) = &self.module_table[module_id] else {
         return;
       };
       let mut resolved_exports = module
@@ -132,7 +132,7 @@ impl LinkStage<'_> {
       let mut module_stack = vec![];
       if module.has_star_export() {
         Self::add_exports_for_export_star(
-          &self.modules,
+          &self.module_table,
           &mut resolved_exports,
           module_id,
           &mut module_stack,
@@ -141,14 +141,14 @@ impl LinkStage<'_> {
       meta.resolved_exports = resolved_exports;
     });
     let side_effects_modules = self
-      .modules
+      .module_table
       .iter_enumerated()
       .filter(|(_, item)| item.side_effects().has_side_effects())
       .map(|(idx, _)| idx)
       .collect::<FxHashSet<ModuleIdx>>();
     let mut normal_symbol_exports_chain_map = FxHashMap::default();
     let mut binding_ctx = BindImportsAndExportsContext {
-      index_modules: &self.modules,
+      module_table: &self.module_table,
       metas: &mut self.metadata,
       symbol_db: &mut self.symbols,
       options: self.options,
@@ -158,7 +158,7 @@ impl LinkStage<'_> {
       side_effects_modules: &side_effects_modules,
       normal_symbol_exports_chain_map: &mut normal_symbol_exports_chain_map,
     };
-    self.modules.iter().for_each(|module| {
+    self.module_table.iter().for_each(|module| {
       binding_ctx.match_imports_with_exports(module.idx());
     });
 
@@ -284,7 +284,7 @@ impl LinkStage<'_> {
   ) {
     let warnings = append_only_vec::AppendOnlyVec::new();
     let resolved_meta_data = self
-      .modules
+      .module_table
       .par_iter()
       .map(|module| match module {
         Module::Normal(module) => {
@@ -296,7 +296,7 @@ impl LinkStage<'_> {
                 // First get the canonical ref of `foo_ns`, then we get the `NormalModule#namespace_object_ref` of `foo.js`.
                 let mut canonical_ref = self.symbols.canonical_ref_for(member_expr_ref.object_ref);
                 let mut canonical_ref_owner: &NormalModule =
-                  match &self.modules[canonical_ref.owner] {
+                  match &self.module_table[canonical_ref.owner] {
                     Module::Normal(module) => module,
                     Module::External(_) => return,
                   };
@@ -343,7 +343,7 @@ impl LinkStage<'_> {
                   ns_symbol_list.push((canonical_ref, name.to_rstr()));
                   canonical_ref = self.symbols.canonical_ref_for(export_symbol.symbol_ref);
                   canonical_ref_owner =
-                    self.modules[canonical_ref.owner].as_normal().unwrap();
+                    self.module_table[canonical_ref.owner].as_normal().unwrap();
                   cursor += 1;
                   is_namespace_ref = canonical_ref_owner.namespace_object_ref == canonical_ref;
                 }
@@ -375,7 +375,7 @@ impl LinkStage<'_> {
 }
 
 struct BindImportsAndExportsContext<'a> {
-  pub index_modules: &'a IndexModules,
+  pub module_table: &'a IndexModules,
   pub metas: &'a mut LinkingMetadataVec,
   pub symbol_db: &'a mut SymbolRefDb,
   pub options: &'a SharedOptions,
@@ -389,13 +389,13 @@ struct BindImportsAndExportsContext<'a> {
 
 impl BindImportsAndExportsContext<'_> {
   fn match_imports_with_exports(&mut self, module_id: ModuleIdx) {
-    let Module::Normal(module) = &self.index_modules[module_id] else {
+    let Module::Normal(module) = &self.module_table[module_id] else {
       return;
     };
     let is_esm = matches!(self.options.format, OutputFormat::Esm);
     for (imported_as_ref, named_import) in &module.named_imports {
       let rec = &module.import_records[named_import.record_id];
-      let is_external = matches!(self.index_modules[rec.resolved_module], Module::External(_));
+      let is_external = matches!(self.module_table[rec.resolved_module], Module::External(_));
       if is_esm && is_external {
         if let Specifier::Literal(ref name) = named_import.imported {
           self
@@ -408,7 +408,7 @@ impl BindImportsAndExportsContext<'_> {
         }
       }
       let ret = self.match_import_with_export(
-        self.index_modules,
+        self.module_table,
         &mut MatchingContext { tracker_stack: Vec::default() },
         ImportTracker {
           importer: module_id,
@@ -420,17 +420,17 @@ impl BindImportsAndExportsContext<'_> {
       match ret {
         MatchImportKind::_Ignore | MatchImportKind::Cycle => {}
         MatchImportKind::Ambiguous { symbol_ref, potentially_ambiguous_symbol_refs } => {
-          let importee = self.index_modules[rec.resolved_module].stable_id().to_string();
+          let importee = self.module_table[rec.resolved_module].stable_id().to_string();
 
           let mut exporter = Vec::with_capacity(potentially_ambiguous_symbol_refs.len() + 1);
-          if let Some(owner) = self.index_modules[symbol_ref.owner].as_normal() {
+          if let Some(owner) = self.module_table[symbol_ref.owner].as_normal() {
             if let Specifier::Literal(_) = &named_import.imported {
               exporter.push(owner.stable_id.to_string());
             }
           }
 
           exporter.extend(potentially_ambiguous_symbol_refs.iter().filter_map(|&symbol_ref| {
-            let normal_module = self.index_modules[symbol_ref.owner].as_normal()?;
+            let normal_module = self.module_table[symbol_ref.owner].as_normal()?;
             if let Specifier::Literal(_) = &named_import.imported {
               return Some(normal_module.stable_id.to_string());
             }
@@ -463,7 +463,7 @@ impl BindImportsAndExportsContext<'_> {
             Some(NamespaceAlias { property_name: alias, namespace_ref });
         }
         MatchImportKind::NoMatch => {
-          let importee = &self.index_modules[rec.resolved_module];
+          let importee = &self.module_table[rec.resolved_module];
           self.errors.push(anyhow::anyhow!(
             r#""{}" is not exported by "{}", imported by "{}"."#,
             module.stable_id,
@@ -477,14 +477,14 @@ impl BindImportsAndExportsContext<'_> {
 
   fn advance_import_tracker(&self, ctx: &mut MatchingContext) -> ImportStatus {
     let tracker = ctx.current_tracker();
-    let importer = &self.index_modules[tracker.importer]
+    let importer = &self.module_table[tracker.importer]
       .as_normal()
       .expect("only normal module can be importer");
     let named_import = &importer.named_imports[&tracker.imported_as];
 
     // Is this an external file?
     let importee_id = importer.import_records[named_import.record_id].resolved_module;
-    let importee = match &self.index_modules[importee_id] {
+    let importee = match &self.module_table[importee_id] {
       Module::Normal(importee) => importee.as_ref(),
       Module::External(external) => return ImportStatus::External(external.namespace_ref),
     };
@@ -578,7 +578,7 @@ impl BindImportsAndExportsContext<'_> {
           if let Some(another_named_import) = owner.as_normal().unwrap().named_imports.get(&symbol)
           {
             let rec = &owner.as_normal().unwrap().import_records[another_named_import.record_id];
-            match &self.index_modules[rec.resolved_module] {
+            match &self.module_table[rec.resolved_module] {
               Module::External(_) => {
                 break MatchImportKind::Normal(MatchImportKindNormal {
                   symbol: another_named_import.imported_as,
@@ -642,7 +642,7 @@ impl BindImportsAndExportsContext<'_> {
       }
     }
 
-    if let Module::Normal(importee) = &self.index_modules[tracker.importee] {
+    if let Module::Normal(importee) = &self.module_table[tracker.importee] {
       if (self.options.shim_missing_exports || matches!(importee.module_type, ModuleType::Empty))
         && matches!(ret, MatchImportKind::NoMatch)
       {

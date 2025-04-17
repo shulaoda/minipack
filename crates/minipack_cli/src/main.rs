@@ -69,9 +69,7 @@ async fn main() {
 
   let InputArgs { cwd, input, platform } = args.input;
 
-  let input = input.map(|files| {
-    files.into_iter().map(|file| file.as_os_str().to_string_lossy().into_owned().into()).collect()
-  });
+  let input = input.map(|files| files.iter().map(|file| file.to_string_lossy().into()).collect());
 
   let options = BundlerOptions {
     cwd,
@@ -86,7 +84,6 @@ async fn main() {
     minify: args.enhance.minify,
     target: args.enhance.target.map(Into::into),
     shim_missing_exports: args.enhance.shim_missing_exports,
-    resolve: None,
   };
 
   let start = Instant::now();

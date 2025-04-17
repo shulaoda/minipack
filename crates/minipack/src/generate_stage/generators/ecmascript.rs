@@ -1,9 +1,6 @@
 use std::sync::Arc;
 
-use crate::{
-  types::generator::{GenerateContext, GenerateOutput, Generator},
-  utils::render_ecma_module::render_ecma_module,
-};
+use crate::types::generator::{GenerateContext, GenerateOutput, Generator};
 
 use minipack_common::{
   InstantiatedChunk, ModuleId, ModuleIdx, OutputFormat, RenderedModule, Source,
@@ -46,17 +43,14 @@ impl Generator for EcmaGenerator {
       .copied()
       .zip(module_id_to_codegen_ret)
       .filter_map(|(id, codegen_ret)| {
-        ctx.link_output.modules[id]
+        ctx.link_output.module_table[id]
           .as_normal()
           .map(|m| (m, codegen_ret.expect("should have codegen_ret")))
       })
-      .map(|(m, codegen_ret)| {
-        RenderedModuleSource::new(
-          m.idx,
-          m.id.clone(),
-          m.exec_order,
-          render_ecma_module(m, codegen_ret),
-        )
+      .map(|(m, code)| {
+        let sources = (!code.is_empty())
+          .then_some(Arc::from([Box::new(code) as Box<dyn Source + Send + Sync>]));
+        RenderedModuleSource::new(m.idx, m.id.clone(), m.exec_order, sources)
       })
       .collect::<Vec<_>>();
 
@@ -68,13 +62,14 @@ impl Generator for EcmaGenerator {
     let rendered_chunk =
       ctx.chunk.preliminary_filename.as_deref().expect("should have preliminary_filename").clone();
 
-    let hashbang = match ctx.chunk.user_defined_entry_module(&ctx.link_output.modules) {
-      Some(normal_module) => normal_module
-        .ecma_view
-        .hashbang_range
-        .map(|range| &normal_module.source[range.start as usize..range.end as usize]),
-      None => None,
-    };
+    let hashbang = ctx.chunk.user_defined_entry_module(&ctx.link_output.module_table).and_then(
+      |normal_module| {
+        normal_module
+          .ecma_view
+          .hashbang_range
+          .map(|range| &normal_module.source[range.start as usize..range.end as usize])
+      },
+    );
 
     let mut warnings = vec![];
 

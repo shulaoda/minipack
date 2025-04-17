@@ -9,7 +9,7 @@ async fn main() {
   let root = root.join("crates/minipack/examples/basic");
 
   let mut bundler = Bundler::new(BundlerOptions {
-    input: Some(vec!["./entry.js".to_string().into()]),
+    input: Some(vec!["./entry.js".into()]),
     cwd: Some(root.normalize()),
     ..Default::default()
   });
