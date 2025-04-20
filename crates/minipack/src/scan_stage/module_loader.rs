@@ -13,7 +13,7 @@ use minipack_common::{
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 use minipack_utils::rstr::Rstr;
-use minipack_utils::{ecmascript::legitimize_identifier_name, rustc_hash::FxHashSetExt};
+use minipack_utils::rustc_hash::FxHashSetExt;
 use oxc::semantic::{ScopeId, Scoping};
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -24,6 +24,7 @@ use super::runtime_module_task::RuntimeModuleTask;
 use super::task_context::TaskContext;
 
 use crate::types::{DynImportUsageMap, IndexEcmaAst, IndexModules, SharedOptions, SharedResolver};
+use crate::utils::ecmascript::legitimize_identifier_name;
 
 pub struct IntermediateNormalModules {
   pub modules: IndexVec<ModuleIdx, Option<Module>>,

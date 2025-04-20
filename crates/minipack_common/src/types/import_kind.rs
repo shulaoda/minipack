@@ -6,8 +6,6 @@ pub enum ImportKind {
   Import,
   /// `import('foo')`
   DynamicImport,
-  // `new URL('path', import.meta.url)`
-  NewUrl,
 }
 
 impl ImportKind {
@@ -34,7 +32,6 @@ impl Display for ImportKind {
     match self {
       Self::Import => write!(f, "import-statement"),
       Self::DynamicImport => write!(f, "dynamic-import"),
-      Self::NewUrl => write!(f, "new-url"),
     }
   }
 }

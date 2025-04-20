@@ -55,7 +55,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
   }
 
   pub fn finalized_expr_for_runtime_symbol(&self, name: &str) -> ast::Expression<'ast> {
-    self.finalized_expr_for_symbol_ref(self.ctx.runtime.resolve_symbol(name), false, None)
+    self.finalized_expr_for_symbol_ref(self.ctx.runtime.resolve_symbol(name), false)
   }
 
   fn try_get_valid_namespace_alias_ref_id_from_member_expr(
@@ -87,7 +87,6 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     &self,
     symbol_ref: SymbolRef,
     preserve_this_semantic_if_needed: bool,
-    original_reference_id: Option<ReferenceId>,
   ) -> ast::Expression<'ast> {
     if !symbol_ref.is_declared_in_root_scope(self.ctx.symbol_db) {
       // No fancy things on none root scope symbols
@@ -141,22 +140,14 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     };
 
     if let Some(ns_alias) = namespace_alias {
-      let meta = &self.ctx.linking_infos[ns_alias.namespace_ref.owner];
-      expr = if meta.safe_cjs_to_eliminate_interop_default
-        && original_reference_id
-          .is_some_and(|item| self.interested_namespace_alias_ref_id.contains(&item))
-      {
-        expr
-      } else {
-        ast::Expression::StaticMemberExpression(
-          self.snippet.builder.alloc_static_member_expression(
-            SPAN,
-            expr,
-            self.snippet.id_name(&ns_alias.property_name, SPAN),
-            false,
-          ),
-        )
-      };
+      expr = ast::Expression::StaticMemberExpression(
+        self.snippet.builder.alloc_static_member_expression(
+          SPAN,
+          expr,
+          self.snippet.id_name(&ns_alias.property_name, SPAN),
+          false,
+        ),
+      );
 
       if preserve_this_semantic_if_needed {
         expr = self.snippet.seq2_in_paren_expr(self.snippet.number_expr(0.0, "0"), expr);
@@ -219,7 +210,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
             let re_export_fn_ref = self.finalized_expr_for_runtime_symbol("__reExport");
             // importer_exports
             let importer_namespace_ref_expr =
-              self.finalized_expr_for_symbol_ref(self.ctx.module.namespace_object_ref, false, None);
+              self.finalized_expr_for_symbol_ref(self.ctx.module.namespace_object_ref, false);
             let rec = &self.ctx.module.import_records[idx];
             let importee = &self.ctx.modules[rec.resolved_module];
             let expression = self.snippet.call_expr_with_2arg_expr(
@@ -252,7 +243,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     self.ctx.linking_info.canonical_exports().for_each(|(export, resolved_export)| {
       // prop_name: () => returned
       let prop_name = export;
-      let returned = self.finalized_expr_for_symbol_ref(resolved_export.symbol_ref, false, None);
+      let returned = self.finalized_expr_for_symbol_ref(resolved_export.symbol_ref, false);
       arg_obj_expr.properties.push(ast::ObjectPropertyKind::ObjectProperty(
         ast::ObjectProperty {
           key: if is_validate_identifier_name(prop_name) {
@@ -376,7 +367,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
         {
           match object_ref {
             Some(object_ref) => {
-              let object_ref_expr = self.finalized_expr_for_symbol_ref(*object_ref, false, None);
+              let object_ref_expr = self.finalized_expr_for_symbol_ref(*object_ref, false);
 
               let replaced_expr =
                 self.snippet.member_expr_or_ident_ref(object_ref_expr, props, inner_expr.span);
@@ -395,7 +386,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
         {
           match object_ref {
             Some(object_ref) => {
-              let object_ref_expr = self.finalized_expr_for_symbol_ref(*object_ref, false, None);
+              let object_ref_expr = self.finalized_expr_for_symbol_ref(*object_ref, false);
 
               let replaced_expr =
                 self.snippet.member_expr_or_ident_ref(object_ref_expr, props, inner_expr.span);
@@ -536,14 +527,11 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
                 if importee_linking_info.has_dynamic_exports {
                   let re_export_fn_ref = self.finalized_expr_for_runtime_symbol("__reExport");
                   // exports
-                  let importer_namespace_ref = self.finalized_expr_for_symbol_ref(
-                    self.ctx.module.namespace_object_ref,
-                    false,
-                    None,
-                  );
+                  let importer_namespace_ref =
+                    self.finalized_expr_for_symbol_ref(self.ctx.module.namespace_object_ref, false);
                   // otherExports
                   let importee_namespace_ref =
-                    self.finalized_expr_for_symbol_ref(importee.namespace_object_ref, false, None);
+                    self.finalized_expr_for_symbol_ref(importee.namespace_object_ref, false);
                   // __reExport(exports, otherExports)
                   let expression = self.snippet.call_expr_with_2arg_expr(
                     re_export_fn_ref,

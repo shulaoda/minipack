@@ -1,7 +1,7 @@
 use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 
-use crate::{ImportRecordIdx, SymbolOrMemberExprRef, SymbolRef};
+use crate::{ImportRecordIdx, StmtInfoIdx, SymbolOrMemberExprRef, SymbolRef};
 
 #[derive(Debug, Default)]
 pub struct StmtInfos {
@@ -60,11 +60,6 @@ impl std::ops::DerefMut for StmtInfos {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.infos
   }
-}
-
-oxc_index::define_index_type! {
-  #[derive(Default)]
-  pub struct StmtInfoIdx = u32;
 }
 
 #[derive(Default, Debug)]

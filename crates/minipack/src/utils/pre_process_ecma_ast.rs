@@ -9,7 +9,7 @@ use oxc::minifier::{CompressOptions, Compressor};
 use oxc::semantic::{SemanticBuilder, Stats};
 use oxc::transformer::Transformer;
 
-use super::ecma_visitors::EnsureSpanUniqueness;
+use super::ecmascript::EnsureSpanUniqueness;
 use super::parse_to_ecma_ast::ParseToEcmaAstResult;
 
 use crate::scan_stage::ast_scanner::pre_processor::PreProcessor;

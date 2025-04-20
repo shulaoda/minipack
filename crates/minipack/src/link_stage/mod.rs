@@ -8,8 +8,8 @@ mod sort_modules;
 mod wrap_modules;
 
 use minipack_common::{
-  EntryPoint, EntryPointKind, ImportKind, Module, ModuleIdx, RuntimeModuleBrief, SymbolRef,
-  SymbolRefDb, dynamic_import_usage::DynamicImportExportsUsage,
+  EntryPoint, EntryPointKind, ImportKind, ModuleIdx, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
+  dynamic_import_usage::DynamicImportExportsUsage,
 };
 use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -107,7 +107,6 @@ impl<'a> LinkStage<'a> {
 
   pub fn link(mut self) -> LinkStageOutput {
     self.sort_modules();
-    self.compute_tla();
     self.wrap_modules();
     self.determine_side_effects();
     self.bind_imports_and_exports();
@@ -141,7 +140,8 @@ impl<'a> LinkStage<'a> {
         EntryPointKind::DynamicImport => {
           // At least one statement that create this entry is included
           let lived = item.related_stmt_infos.iter().any(|(module_idx, stmt_idx)| {
-            let module = &self.module_table[*module_idx].as_normal().expect("should be a normal module");
+            let module =
+              &self.module_table[*module_idx].as_normal().expect("should be a normal module");
             let stmt_info = &module.stmt_infos[*stmt_idx];
             stmt_info.is_included
           });
@@ -149,47 +149,5 @@ impl<'a> LinkStage<'a> {
         }
       })
       .collect::<FxHashSet<ModuleIdx>>()
-  }
-
-  fn compute_tla(&mut self) {
-    fn is_tla(
-      module_idx: ModuleIdx,
-      module_table: &IndexVec<ModuleIdx, Module>,
-      // `None` means the module is in visiting
-      visited_map: &mut FxHashMap<ModuleIdx, Option<bool>>,
-    ) -> bool {
-      if let Some(memorized) = visited_map.get(&module_idx) {
-        memorized.unwrap_or(false)
-      } else {
-        visited_map.insert(module_idx, None);
-        let module = &module_table[module_idx];
-        let is_self_tla = module.as_normal().is_some_and(|module| module.has_top_level_await);
-        if is_self_tla {
-          // If the module itself contains top-level await, then it is TLA.
-          visited_map.insert(module_idx, Some(true));
-          return true;
-        }
-
-        let contains_tla_dependency = module
-          .import_records()
-          .iter()
-          // TODO: require TLA module should give a error
-          .filter(|rec| matches!(rec.kind, ImportKind::Import))
-          .any(|rec| {
-            let importee = &module_table[rec.resolved_module];
-            is_tla(importee.idx(), module_table, visited_map)
-          });
-
-        visited_map.insert(module_idx, Some(contains_tla_dependency));
-        contains_tla_dependency
-      }
-    }
-
-    let mut visited_map = FxHashMap::default();
-
-    self.module_table.iter().filter_map(|m| m.as_normal()).for_each(|module| {
-      self.metadata[module.idx].is_tla_or_contains_tla_dependency =
-        is_tla(module.idx, &self.module_table, &mut visited_map);
-    });
   }
 }

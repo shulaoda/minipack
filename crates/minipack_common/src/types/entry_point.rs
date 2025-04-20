@@ -7,7 +7,6 @@ pub struct EntryPoint {
   pub id: ModuleIdx,
   pub name: Option<ArcStr>,
   pub kind: EntryPointKind,
-  /// which stmts create this entry point
   pub related_stmt_infos: Vec<(ModuleIdx, StmtInfoIdx)>,
 }
 

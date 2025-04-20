@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use minipack_common::{ImportKind, ResolvedId};
+use minipack_common::ResolvedId;
 use minipack_error::BuildResult;
 use minipack_resolver::{ResolveError, Resolver};
 
@@ -18,7 +18,6 @@ pub fn resolve_id(
   resolver: &Resolver,
   request: &str,
   importer: Option<&str>,
-  import_kind: ImportKind,
   is_user_defined_entry: bool,
 ) -> BuildResult<ResolvedId> {
   // Auto external http url or data url
@@ -31,8 +30,7 @@ pub fn resolve_id(
     });
   }
 
-  let resolved =
-    resolver.resolve(importer.map(Path::new), request, import_kind, is_user_defined_entry);
+  let resolved = resolver.resolve(importer.map(Path::new), request, is_user_defined_entry);
 
   match resolved {
     Ok(resolved) => Ok(ResolvedId {

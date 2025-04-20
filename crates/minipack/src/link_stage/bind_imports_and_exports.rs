@@ -7,7 +7,7 @@ use minipack_common::{
   Specifier, SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
 };
 use minipack_utils::{
-  ecmascript::{is_validate_identifier_name, legitimize_identifier_name},
+  ecmascript::is_validate_identifier_name,
   rayon::{IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator},
   rstr::{Rstr, ToRstr},
 };
@@ -15,7 +15,7 @@ use oxc::span::CompactStr;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::types::{IndexModules, SharedOptions, linking_metadata::LinkingMetadataVec};
+use crate::{types::{linking_metadata::LinkingMetadataVec, IndexModules, SharedOptions}, utils::ecmascript::legitimize_identifier_name};
 
 use super::LinkStage;
 
@@ -477,9 +477,8 @@ impl BindImportsAndExportsContext<'_> {
 
   fn advance_import_tracker(&self, ctx: &mut MatchingContext) -> ImportStatus {
     let tracker = ctx.current_tracker();
-    let importer = &self.module_table[tracker.importer]
-      .as_normal()
-      .expect("only normal module can be importer");
+    let importer =
+      &self.module_table[tracker.importer].as_normal().expect("only normal module can be importer");
     let named_import = &importer.named_imports[&tracker.imported_as];
 
     // Is this an external file?

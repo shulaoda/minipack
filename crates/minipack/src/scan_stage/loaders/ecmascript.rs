@@ -3,9 +3,7 @@ use minipack_common::{
   side_effects::DeterminedSideEffects,
 };
 use minipack_error::BuildResult;
-use minipack_utils::{
-  ecmascript::legitimize_identifier_name, indexmap::FxIndexSet, path_ext::PathExt,
-};
+use minipack_utils::{indexmap::FxIndexSet, path_ext::PathExt};
 use oxc_index::IndexVec;
 
 use sugar_path::SugarPath;
@@ -13,7 +11,7 @@ use sugar_path::SugarPath;
 use crate::{
   scan_stage::ast_scanner::{AstScanResult, AstScanner},
   types::module_factory::CreateModuleContext,
-  utils::parse_to_ecma_ast::{ParseToEcmaAstResult, parse_to_ecma_ast},
+  utils::{ecmascript::legitimize_identifier_name, parse_to_ecma_ast::{parse_to_ecma_ast, ParseToEcmaAstResult}},
 };
 
 pub struct CreateEcmaViewReturn {

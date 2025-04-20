@@ -15,7 +15,7 @@ use minipack_common::{
 use minipack_ecmascript_utils::{BindingIdentifierExt, BindingPatternExt};
 use minipack_error::BuildResult;
 use minipack_utils::{
-  concat_string, ecmascript::legitimize_identifier_name, path_ext::PathExt, rstr::Rstr,
+  concat_string,  path_ext::PathExt, rstr::Rstr,
 };
 use oxc::{
   ast::{
@@ -33,7 +33,7 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
 
-use crate::types::SharedOptions;
+use crate::{types::SharedOptions, utils::ecmascript::legitimize_identifier_name};
 
 #[derive(Debug)]
 pub struct AstScanResult {

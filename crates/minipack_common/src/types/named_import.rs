@@ -3,9 +3,7 @@ use std::fmt::Display;
 use minipack_utils::rstr::Rstr;
 use oxc::span::Span;
 
-use crate::SymbolRef;
-
-use super::import_record::ImportRecordIdx;
+use crate::{ImportRecordIdx, SymbolRef};
 
 /// This is a representation for statements like
 /// - Case A: `import { foo } from 'foo'`

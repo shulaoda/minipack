@@ -6,9 +6,10 @@ use minipack_common::{
 };
 use minipack_utils::{
   concat_string,
-  ecmascript::legitimize_identifier_name,
   rayon::{IntoParallelRefIterator, ParallelIterator},
 };
+
+use crate::utils::ecmascript::legitimize_identifier_name;
 
 use super::LinkStage;
 

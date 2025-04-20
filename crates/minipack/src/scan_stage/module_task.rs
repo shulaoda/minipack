@@ -5,14 +5,14 @@ use minipack_common::{
 };
 use minipack_error::BuildResult;
 use minipack_fs::FileSystem;
-use minipack_utils::{ecmascript::legitimize_identifier_name, path_ext::PathExt, rstr::Rstr};
+use minipack_utils::{path_ext::PathExt, rstr::Rstr};
 use oxc_index::IndexVec;
 use std::sync::Arc;
 use sugar_path::SugarPath;
 
 use super::loaders::ecmascript::{CreateEcmaViewReturn, create_ecma_view};
 
-use crate::{types::module_factory::CreateModuleContext, utils::resolve_id::resolve_id};
+use crate::{types::module_factory::CreateModuleContext, utils::{ecmascript::legitimize_identifier_name, resolve_id::resolve_id}};
 
 use super::task_context::TaskContext;
 
@@ -90,7 +90,7 @@ impl ModuleTask {
           });
         }
 
-        resolve_id(&self.ctx.resolver, specifier, Some(&self.resolved_id.id), item.kind, false)
+        resolve_id(&self.ctx.resolver, specifier, Some(&self.resolved_id.id), false)
       })
       .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
 
@@ -100,7 +100,7 @@ impl ModuleTask {
       .zip(&resolved_deps)
     {
       match record.kind {
-        ImportKind::Import | ImportKind::NewUrl => {
+        ImportKind::Import => {
           ecma_view.imported_ids.insert(ArcStr::clone(&info.id).into());
         }
         ImportKind::DynamicImport => {

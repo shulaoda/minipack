@@ -7,12 +7,12 @@ use crate::{ImportRecordIdx, ModuleIdx, ResolvedImportRecord, SymbolRef};
 #[derive(Debug)]
 pub struct ExternalModule {
   pub idx: ModuleIdx,
+  pub name: ArcStr,
   pub exec_order: u32,
   /// Usages:
   /// - Used for iife format to inject symbol and deconflict.
   /// - Used for for rewrite `import { foo } from 'external';console.log(foo)` to `var external = require('external'); console.log(external.foo)` in cjs format.
   pub namespace_ref: SymbolRef,
-  pub name: ArcStr,
   pub import_records: IndexVec<ImportRecordIdx, ResolvedImportRecord>,
   pub side_effects: DeterminedSideEffects,
 }

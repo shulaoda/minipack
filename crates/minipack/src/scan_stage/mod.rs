@@ -9,7 +9,7 @@ mod runtime_module_task;
 use module_loader::{ModuleLoader, ModuleLoaderOutput};
 
 use arcstr::ArcStr;
-use minipack_common::{ImportKind, ResolvedId};
+use minipack_common::ResolvedId;
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 
@@ -42,7 +42,7 @@ impl ScanStage {
       .input
       .iter()
       .map(|input_item| {
-        resolve_id(&self.resolver, &input_item.import, None, ImportKind::Import, true)
+        resolve_id(&self.resolver, &input_item.import, None, true)
           .map_err(|e| anyhow::anyhow!("ResolveError: {:?}", e))
           .and_then(|resolved_id| {
             if resolved_id.is_external {

@@ -3,10 +3,13 @@ use std::borrow::Cow;
 use arcstr::ArcStr;
 
 use minipack_common::{Chunk, ChunkIdx, ChunkKind, GetLocalDb, OutputFormat};
-use minipack_utils::{ecmascript::legitimize_identifier_name, rstr::ToRstr};
+use minipack_utils::rstr::ToRstr;
 use rustc_hash::FxHashMap;
 
-use crate::{link_stage::LinkStageOutput, utils::renamer::Renamer};
+use crate::{
+  link_stage::LinkStageOutput,
+  utils::{ecmascript::legitimize_identifier_name, renamer::Renamer},
+};
 
 pub fn deconflict_chunk_symbols(
   chunk: &mut Chunk,
@@ -28,7 +31,8 @@ pub fn deconflict_chunk_symbols(
       });
 
     if let Some(module) = chunk.entry_module_idx() {
-      let entry_module = link_output.module_table[module].as_normal().expect("should be normal module");
+      let entry_module =
+        link_output.module_table[module].as_normal().expect("should be normal module");
       link_output.metadata[entry_module.idx].star_exports_from_external_modules.iter().for_each(
         |rec_idx| {
           let rec = &entry_module.ecma_view.import_records[*rec_idx];

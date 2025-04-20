@@ -2,6 +2,8 @@ use crate::{AstScopes, ModuleIdx, SymbolRef};
 use oxc::{semantic::SymbolId, span::CompactStr as CompactString};
 use rustc_hash::FxHashMap;
 
+pub static RUNTIME_MODULE_ID: &str = "minipack:runtime";
+
 #[derive(Debug)]
 pub struct RuntimeModuleBrief {
   id: ModuleIdx,
@@ -10,14 +12,12 @@ pub struct RuntimeModuleBrief {
 
 impl RuntimeModuleBrief {
   pub fn new(id: ModuleIdx, scope: &AstScopes) -> Self {
-    Self {
-      id,
-      name_to_symbol: scope
-        .get_bindings(scope.root_scope_id())
-        .into_iter()
-        .map(|(name, &symbol_id)| (CompactString::new(name), symbol_id))
-        .collect(),
-    }
+    let name_to_symbol = scope
+      .get_bindings(scope.root_scope_id())
+      .into_iter()
+      .map(|(name, &symbol_id)| (CompactString::new(name), symbol_id))
+      .collect();
+    Self { id, name_to_symbol }
   }
 
   pub fn id(&self) -> ModuleIdx {
@@ -30,5 +30,3 @@ impl RuntimeModuleBrief {
     (self.id, *symbol_id).into()
   }
 }
-
-pub static RUNTIME_MODULE_ID: &str = "minipack:runtime";

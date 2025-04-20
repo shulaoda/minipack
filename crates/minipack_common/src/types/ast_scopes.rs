@@ -5,6 +5,20 @@ pub struct AstScopes {
   scoping: Scoping,
 }
 
+impl std::ops::Deref for AstScopes {
+  type Target = Scoping;
+
+  fn deref(&self) -> &Self::Target {
+    &self.scoping
+  }
+}
+
+impl std::ops::DerefMut for AstScopes {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.scoping
+  }
+}
+
 impl AstScopes {
   pub fn new(inner: Scoping) -> Self {
     Self { scoping: inner }
@@ -24,19 +38,5 @@ impl AstScopes {
     scoping: &'table Scoping,
   ) -> impl Iterator<Item = &'table Reference> + 'table {
     scoping.get_resolved_references(symbol_id)
-  }
-}
-
-impl std::ops::Deref for AstScopes {
-  type Target = Scoping;
-
-  fn deref(&self) -> &Self::Target {
-    &self.scoping
-  }
-}
-
-impl std::ops::DerefMut for AstScopes {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.scoping
   }
 }

@@ -1,6 +1,7 @@
-use std::{borrow::Cow, path::Path};
+mod cross_chunk_import_item;
+mod preliminary_filename;
 
-pub mod types;
+use std::{borrow::Cow, path::Path};
 
 use arcstr::ArcStr;
 
@@ -16,7 +17,7 @@ use crate::{
   NormalizedBundlerOptions, SymbolNameRefToken, SymbolRef,
 };
 
-use self::types::{
+pub use self::{
   cross_chunk_import_item::CrossChunkImportItem, preliminary_filename::PreliminaryFilename,
 };
 

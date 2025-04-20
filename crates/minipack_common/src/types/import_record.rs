@@ -8,10 +8,6 @@ use oxc::span::Span;
 
 use crate::{DUMMY_MODULE_IDX, ImportKind, ModuleIdx, ModuleType, StmtInfoIdx, SymbolRef};
 
-oxc_index::define_index_type! {
-  pub struct ImportRecordIdx = u32;
-}
-
 #[derive(Debug)]
 pub struct ImportRecordStateInit {
   pub span: Span,

@@ -34,7 +34,7 @@ impl GenerateStage<'_> {
     self.minify_assets(&mut assets);
 
     let mut output = Vec::with_capacity(assets.len());
-    for Asset { content,  filename, .. } in assets {
+    for Asset { content, filename } in assets {
       output.push(OutputChunk { filename: filename.into(), content });
     }
 

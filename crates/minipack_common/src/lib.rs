@@ -13,17 +13,10 @@ pub use bundler_options::{
 };
 
 pub use crate::{
-  chunk::{
-    Chunk,
-    types::{
-      cross_chunk_import_item::CrossChunkImportItem, preliminary_filename::PreliminaryFilename,
-    },
-  },
+  chunk::{Chunk, CrossChunkImportItem, PreliminaryFilename},
   ecmascript::{
     dynamic_import_usage,
-    ecma_ast_idx::EcmaAstIdx,
     ecma_view::{EcmaModuleAstUsage, EcmaView, EcmaViewMeta},
-    module_idx::{DUMMY_MODULE_IDX, ModuleIdx},
   },
   module::{Module, external_module::ExternalModule, normal_module::NormalModule},
   module_loader::{
@@ -34,13 +27,11 @@ pub use crate::{
   },
   types::{
     asset::Asset,
-    asset_idx::AssetIdx,
     ast_scopes::AstScopes,
-    chunk_idx::ChunkIdx,
     chunk_kind::ChunkKind,
     entry_point::{EntryPoint, EntryPointKind},
     import_kind::ImportKind,
-    import_record::{ImportRecordIdx, ImportRecordMeta, RawImportRecord, ResolvedImportRecord},
+    import_record::{ImportRecordMeta, RawImportRecord, ResolvedImportRecord},
     importer_record::ImporterRecord,
     instantiated_chunk::InstantiatedChunk,
     member_expr_ref::MemberExprRef,
@@ -51,13 +42,16 @@ pub use crate::{
     namespace_alias::NamespaceAlias,
     output_chunk::{Modules, OutputChunk},
     package_json::PackageJson,
+    raw_idx::{
+      AssetIdx, ChunkIdx, DUMMY_MODULE_IDX, EcmaAstIdx, ImportRecordIdx, ModuleIdx, StmtInfoIdx,
+    },
     rendered_module::RenderedModule,
     resolved_export::ResolvedExport,
     resolved_request_info::ResolvedId,
     side_effects,
     source::Source,
     source_joiner::SourceJoiner,
-    stmt_info::{StmtInfo, StmtInfoIdx, StmtInfos},
+    stmt_info::{StmtInfo, StmtInfos},
     symbol_name_ref_token::SymbolNameRefToken,
     symbol_or_member_expr_ref::SymbolOrMemberExprRef,
     symbol_ref::SymbolRef,

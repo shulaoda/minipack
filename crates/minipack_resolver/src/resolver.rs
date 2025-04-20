@@ -13,7 +13,7 @@ use oxc_resolver::{
   ResolveOptions as OxcResolverOptions, ResolverGeneric, TsConfigSerde, TsconfigOptions,
 };
 
-use minipack_common::{ImportKind, PackageJson, Platform, ResolveOptions};
+use minipack_common::{PackageJson, Platform, ResolveOptions};
 use minipack_fs::{FileSystem, OsFileSystem};
 
 #[derive(Debug)]
@@ -22,8 +22,6 @@ pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
   default_resolver: ResolverGeneric<FsCache<T>>,
   // Resolver for `import '...'` and `import(...)`
   import_resolver: ResolverGeneric<FsCache<T>>,
-  // Resolver for `new URL(..., import.meta.url)`
-  new_url_resolver: ResolverGeneric<FsCache<T>>,
   package_json_cache: DashMap<PathBuf, Arc<PackageJson>>,
 }
 
@@ -119,11 +117,6 @@ impl<F: FileSystem + Default> Resolver<F> {
       ..resolve_options_with_default_conditions.clone()
     };
 
-    let resolve_options_for_new_url = OxcResolverOptions {
-      prefer_relative: true,
-      ..resolve_options_with_default_conditions.clone()
-    };
-
     let default_resolver = ResolverGeneric::new_with_cache(
       Arc::new(FsCache::new(fs)),
       resolve_options_with_default_conditions,
@@ -131,15 +124,8 @@ impl<F: FileSystem + Default> Resolver<F> {
 
     let import_resolver =
       default_resolver.clone_with_options(resolve_options_with_import_conditions);
-    let new_url_resolver = default_resolver.clone_with_options(resolve_options_for_new_url);
 
-    Self {
-      cwd,
-      default_resolver,
-      import_resolver,
-      new_url_resolver,
-      package_json_cache: DashMap::default(),
-    }
+    Self { cwd, default_resolver, import_resolver, package_json_cache: DashMap::default() }
   }
 
   pub fn cwd(&self) -> &PathBuf {
@@ -165,13 +151,9 @@ impl<F: FileSystem + Default> Resolver<F> {
     &self,
     importer: Option<&Path>,
     specifier: &str,
-    import_kind: ImportKind,
     is_user_defined_entry: bool,
   ) -> Result<ResolveReturn, ResolveError> {
-    let resolver = match import_kind {
-      ImportKind::NewUrl => &self.new_url_resolver,
-      ImportKind::Import | ImportKind::DynamicImport => &self.import_resolver,
-    };
+    let resolver = &self.import_resolver;
 
     let dir = importer
       .and_then(|importer| importer.parent())

@@ -1,10 +1,8 @@
 pub mod asset;
-pub mod asset_idx;
 pub mod ast_scopes;
-pub mod chunk_idx;
 pub mod chunk_kind;
-pub mod ecma_ast_idx;
 pub mod entry_point;
+pub mod raw_idx;
 pub mod import_kind;
 pub mod import_record;
 pub mod importer_record;
