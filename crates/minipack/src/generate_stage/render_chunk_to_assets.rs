@@ -12,7 +12,7 @@ use super::generators::ecmascript::EcmaGenerator;
 use crate::{
   graph::ChunkGraph,
   types::{
-    IndexAssets, IndexInstantiatedChunks,
+    IndexInstantiatedChunks,
     bundle_output::BundleOutput,
     generator::{GenerateContext, Generator},
   },
@@ -27,11 +27,16 @@ impl GenerateStage<'_> {
     chunk_graph: &mut ChunkGraph,
   ) -> BuildResult<BundleOutput> {
     let mut warnings = std::mem::take(&mut self.link_output.warnings);
+    
     let instantiated_chunks = self.instantiate_chunks(chunk_graph, &mut warnings).await?;
 
     let mut assets = finalize_assets(instantiated_chunks);
 
-    self.minify_assets(&mut assets);
+    if self.options.minify {
+      assets.par_iter_mut().for_each(|asset| {
+        asset.content = EcmaCompiler::minify(&asset.content, self.options.target.into());
+      });
+    }
 
     let mut output = Vec::with_capacity(assets.len());
     for Asset { content, filename } in assets {
@@ -46,9 +51,8 @@ impl GenerateStage<'_> {
     chunk_graph: &ChunkGraph,
     warnings: &mut Vec<anyhow::Error>,
   ) -> BuildResult<IndexInstantiatedChunks> {
-    let mut index_preliminary_assets: IndexInstantiatedChunks =
-      IndexVec::with_capacity(chunk_graph.chunk_table.len());
     let chunk_index_to_codegen_rets = self.create_chunk_to_codegen_ret_map(chunk_graph);
+    let mut index_preliminary_assets = IndexVec::with_capacity(chunk_graph.chunk_table.len());
 
     try_join_all(
       chunk_graph
@@ -109,13 +113,5 @@ impl GenerateStage<'_> {
       })
       .collect::<Vec<_>>();
     chunk_to_codegen_ret
-  }
-
-  pub fn minify_assets(&mut self, assets: &mut IndexAssets) {
-    if self.options.minify {
-      assets.par_iter_mut().for_each(|asset| {
-        asset.content = EcmaCompiler::minify(&asset.content, self.options.target.into());
-      });
-    }
   }
 }

@@ -74,8 +74,6 @@ impl GenerateStage<'_> {
       .collect::<Vec<_>>()
       .into();
 
-    let mut hash_placeholder_generator = HashPlaceholderGenerator::default();
-
     let create_make_unique_name = |mut used_name_counts: FxHashMap<ArcStr, u32>| {
       move |name: &ArcStr| {
         let mut candidate = name.clone();
@@ -98,17 +96,18 @@ impl GenerateStage<'_> {
         }
       }
     };
+
+    let mut hash_placeholder_generator = HashPlaceholderGenerator::default();
     let mut make_unique_name_for_ecma_chunk = create_make_unique_name(FxHashMap::default());
 
     for chunk_id in &chunk_graph.sorted_chunk_idx_vec {
       let chunk = &mut chunk_graph.chunk_table[*chunk_id];
       if chunk.preliminary_filename.is_some() {
-        // Already generated
         continue;
       }
 
       let pre_generated_chunk_name = &mut index_pre_generated_names[*chunk_id];
-      // Notice we didn't used deconflict name here, chunk names are allowed to be duplicated.
+      
       chunk.name = Some(pre_generated_chunk_name.clone());
       index_chunk_id_to_name.insert(*chunk_id, pre_generated_chunk_name.clone());
 

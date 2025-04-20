@@ -38,14 +38,9 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   fn visit_program(&mut self, program: &ast::Program<'ast>) {
     for (idx, stmt) in program.body.iter().enumerate() {
       self.current_stmt_info.stmt_idx = Some(idx.into());
-      self.current_stmt_info.side_effect = SideEffectDetector::new(
-        &self.result.symbols.ast_scopes,
-        self.source,
-        self.comments,
-        true,
-        &self.result.symbols,
-      )
-      .detect_side_effect_of_stmt(stmt);
+      self.current_stmt_info.side_effect =
+        SideEffectDetector::new(&self.result.symbols.ast_scopes, self.source, self.comments, true)
+          .detect_side_effect_of_stmt(stmt);
 
       self.visit_statement(stmt);
       self.result.stmt_infos.add_stmt_info(std::mem::take(&mut self.current_stmt_info));

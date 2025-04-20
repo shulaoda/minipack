@@ -14,9 +14,7 @@ use minipack_common::{
 };
 use minipack_ecmascript_utils::{BindingIdentifierExt, BindingPatternExt};
 use minipack_error::BuildResult;
-use minipack_utils::{
-  concat_string,  path_ext::PathExt, rstr::Rstr,
-};
+use minipack_utils::{concat_string, path_ext::PathExt, rstr::Rstr};
 use oxc::{
   ast::{
     AstKind, Comment,
@@ -81,6 +79,16 @@ pub struct AstScanner<'me, 'ast> {
   dynamic_import_usage_info: DynamicImportUsageInfo,
   /// A flag to resolve `this` appear with propertyKey in class
   is_nested_this_inside_class: bool,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum IdentifierReferenceKind {
+  /// global variable
+  Global,
+  /// top level variable
+  Root(SymbolRef),
+  /// rest
+  Other,
 }
 
 impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
@@ -436,14 +444,11 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
 
   // If the reference is a global variable, `None` will be returned.
   fn resolve_symbol_from_reference(&self, id_ref: &IdentifierReference) -> Option<SymbolId> {
-    let ref_id = id_ref.reference_id.get().unwrap_or_else(|| {
-      panic!(
-        "{id_ref:#?} must have reference id in code```\n{}\n```\n",
-        self.current_stmt_info.unwrap_debug_label()
-      )
-    });
-    self.result.symbols.ast_scopes.symbol_id_for(ref_id, &self.result.symbols)
+    let reference_id =
+      id_ref.reference_id.get().unwrap_or_else(|| panic!("{id_ref:#?} must have reference id"));
+    self.result.symbols.ast_scopes.symbol_id_for(reference_id)
   }
+
   fn scan_export_default_decl(&mut self, decl: &ExportDefaultDeclaration) {
     use oxc::ast::ast::ExportDefaultDeclarationKind;
     let local_binding_for_default_export = match &decl.declaration {
@@ -524,7 +529,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         self.scan_export_default_decl(decl);
         if let ast::ExportDefaultDeclarationKind::ClassDeclaration(class) = &decl.declaration {
           self.visit_class(class);
-          // walk::walk_declaration(self, &ast::Declaration::ClassDeclaration(func));
         }
       }
       _ => {}
@@ -560,7 +564,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         self.result.errors.push(anyhow::anyhow!(
           "Unexpected re-assignment of const variable `{0}` at {1}",
           self.result.symbols.symbol_name(symbol_id),
-          self.id.to_string()
+          self.id.resource_id()
         ));
       }
     }
@@ -621,14 +625,4 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         })
       })
   }
-}
-
-#[derive(Debug, Clone, Copy)]
-pub enum IdentifierReferenceKind {
-  /// global variable
-  Global,
-  /// top level variable
-  Root(SymbolRef),
-  /// rest
-  Other,
 }

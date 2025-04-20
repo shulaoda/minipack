@@ -29,8 +29,6 @@ impl LinkStage<'_> {
           side_effect: false,
           is_included: false,
           import_records: Vec::new(),
-          #[cfg(debug_assertions)]
-          debug_label: None,
         };
         ecma_module.stmt_infos.add_stmt_info(stmt_info);
       });
@@ -41,9 +39,11 @@ impl LinkStage<'_> {
       // Though Module Namespace Object is created in runtime, as a bundler, we have stimulus the behavior in compile-time and generate a
       // real statement to construct the Module Namespace Object and assign it to a variable.
       // This is only a concept of esm, so no need to care about this in commonjs.
-      let meta = &self.metadata[ecma_module.idx];
-      let mut referenced_symbols = vec![];
       let mut declared_symbols = vec![];
+      let mut referenced_symbols = vec![];
+
+      let meta = &self.metadata[ecma_module.idx];
+
       if !meta.is_canonical_exports_empty() {
         referenced_symbols.push(self.runtime_module.resolve_symbol("__export").into());
         referenced_symbols
@@ -54,25 +54,22 @@ impl LinkStage<'_> {
 
         if let OutputFormat::Esm = self.options.format {
           meta.star_exports_from_external_modules.iter().copied().for_each(|rec_idx| {
-            referenced_symbols.push(ecma_module.import_records[rec_idx].namespace_ref.into());
             declared_symbols.push(ecma_module.import_records[rec_idx].namespace_ref);
+            referenced_symbols.push(ecma_module.import_records[rec_idx].namespace_ref.into());
           });
         }
       };
       // Create a StmtInfo to represent the statement that declares and constructs the Module Namespace Object.
       // Corresponding AST for this statement will be created by the finalizer.
       declared_symbols.push(ecma_module.namespace_object_ref);
-      let namespace_stmt_info = StmtInfo {
+      ecma_module.stmt_infos.replace_namespace_stmt_info(StmtInfo {
         stmt_idx: None,
         declared_symbols,
         referenced_symbols,
         side_effect: false,
         is_included: false,
         import_records: Vec::new(),
-        #[cfg(debug_assertions)]
-        debug_label: None,
-      };
-      ecma_module.stmt_infos.replace_namespace_stmt_info(namespace_stmt_info);
+      });
     });
   }
 }

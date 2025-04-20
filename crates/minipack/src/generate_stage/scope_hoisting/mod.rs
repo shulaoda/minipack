@@ -44,10 +44,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
       // But we don't care about them in this method. This method is only used to check if a `IdentifierReference` from user code is a global variable.
       return false;
     };
-    self.scope.is_unresolved(
-      reference_id,
-      self.ctx.symbol_db.this_method_should_be_removed_get_symbol_table(self.ctx.id),
-    )
+    self.scope.is_unresolved(reference_id)
   }
 
   pub fn canonical_name_for(&self, symbol: SymbolRef) -> &'me str {
@@ -73,10 +70,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     };
 
     let reference_id = ident_ref.reference_id.get()?;
-    let symbol_id = self.scope.symbol_id_for(
-      reference_id,
-      self.ctx.symbol_db.this_method_should_be_removed_get_symbol_table(self.ctx.id),
-    )?;
+    let symbol_id = self.scope.symbol_id_for(reference_id)?;
     if !self.namespace_alias_symbol_id.contains(&symbol_id) {
       return None;
     }

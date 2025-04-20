@@ -18,10 +18,7 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     let reference_id = id_ref.reference_id.get()?;
 
     // we will hit this branch if the reference points to a global variable
-    let symbol_id = self.scope.symbol_id_for(
-      reference_id,
-      self.ctx.symbol_db.this_method_should_be_removed_get_symbol_table(self.ctx.id),
-    )?;
+    let symbol_id = self.scope.symbol_id_for(reference_id)?;
 
     let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
     let mut expr = self.finalized_expr_for_symbol_ref(symbol_ref, is_callee);
@@ -49,7 +46,7 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
   /// - the reference is for a global variable/the reference doesn't have a `SymbolId`
   /// - the reference doesn't have a `ReferenceId`
   /// - the canonical name is the same as the original name
-  pub fn generate_finalized_simple_assignment_target_for_reference(
+  pub fn generate_finalized_simple_assignment_target(
     &self,
     id_ref: &IdentifierReference,
   ) -> Option<ast::SimpleAssignmentTarget<'ast>> {
@@ -57,10 +54,7 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     let reference_id = id_ref.reference_id.get()?;
 
     // we will hit this branch if the reference points to a global variable
-    let symbol_id = self.scope.symbol_id_for(
-      reference_id,
-      self.ctx.symbol_db.this_method_should_be_removed_get_symbol_table(self.ctx.id),
-    )?;
+    let symbol_id = self.scope.symbol_id_for(reference_id)?;
 
     let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
     let canonical_ref = self.ctx.symbol_db.canonical_ref_for(symbol_ref);
@@ -75,13 +69,11 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     }
 
     let canonical_name = self.canonical_name_for(canonical_ref);
-    if id_ref.name != canonical_name {
-      return Some(ast::SimpleAssignmentTarget::AssignmentTargetIdentifier(
+    (id_ref.name != canonical_name).then(|| {
+      ast::SimpleAssignmentTarget::AssignmentTargetIdentifier(
         self.snippet.alloc_id_ref(canonical_name, id_ref.span),
-      ));
-    }
-
-    None
+      )
+    })
   }
 
   pub fn try_rewrite_identifier_reference_expr(
@@ -89,47 +81,38 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     ident_ref: &mut ast::IdentifierReference<'ast>,
     is_callee: bool,
   ) -> Option<Expression<'ast>> {
-    if let Some(new_expr) = self.generate_finalized_expr_for_reference(ident_ref, is_callee) {
-      Some(new_expr)
-    } else {
-      // Nevertheless, this identifier is processed and don't need to be processed again.
+    self.generate_finalized_expr_for_reference(ident_ref, is_callee).or_else(|| {
       ident_ref.reference_id.take();
       None
-    }
+    })
   }
 
   pub fn rewrite_simple_assignment_target(
     &mut self,
-    simple_target: &mut ast::SimpleAssignmentTarget<'ast>,
+    target: &mut ast::SimpleAssignmentTarget<'ast>,
   ) -> Option<()> {
     // Some `IdentifierReference`s constructed by bundler don't have `ReferenceId` and we just ignore them.
-    let ast::SimpleAssignmentTarget::AssignmentTargetIdentifier(target_id_ref) = simple_target
-    else {
-      return None;
-    };
+    if let ast::SimpleAssignmentTarget::AssignmentTargetIdentifier(target_id_ref) = target {
+      let reference_id = target_id_ref.reference_id.get()?;
 
-    let reference_id = target_id_ref.reference_id.get()?;
+      let symbol_id = self.scope.symbol_id_for(reference_id)?;
 
-    let symbol_id = self.scope.symbol_id_for(
-      reference_id,
-      self.ctx.symbol_db.this_method_should_be_removed_get_symbol_table(self.ctx.id),
-    )?;
+      let symbol_ref = (self.ctx.id, symbol_id).into();
+      let canonical_ref = self.ctx.symbol_db.canonical_ref_for(symbol_ref);
+      let symbol = self.ctx.symbol_db.get(canonical_ref);
 
-    let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
-    let canonical_ref = self.ctx.symbol_db.canonical_ref_for(symbol_ref);
-    let symbol = self.ctx.symbol_db.get(canonical_ref);
-
-    if let Some(ns_alias) = &symbol.namespace_alias {
-      let canonical_ns_name = self.canonical_name_for(ns_alias.namespace_ref);
-      let prop_name = &ns_alias.property_name;
-      let access_expr = self.snippet.literal_prop_access_member_expr(canonical_ns_name, prop_name);
-      *simple_target = ast::SimpleAssignmentTarget::from(access_expr);
-    } else {
-      let canonical_name = self.canonical_name_for(canonical_ref);
-      if target_id_ref.name != canonical_name {
-        target_id_ref.name = self.snippet.atom(canonical_name);
+      if let Some(ns_alias) = &symbol.namespace_alias {
+        *target = ast::SimpleAssignmentTarget::from(self.snippet.literal_prop_access_member_expr(
+          self.canonical_name_for(ns_alias.namespace_ref),
+          &ns_alias.property_name,
+        ));
+      } else {
+        let canonical_name = self.canonical_name_for(canonical_ref);
+        if target_id_ref.name != canonical_name {
+          target_id_ref.name = self.snippet.atom(canonical_name);
+        }
+        target_id_ref.reference_id.take();
       }
-      *target_id_ref.reference_id.get_mut() = None;
     }
     None
   }

@@ -79,20 +79,4 @@ pub struct StmtInfo {
   pub side_effect: bool,
   pub is_included: bool,
   pub import_records: Vec<ImportRecordIdx>,
-  #[cfg(debug_assertions)]
-  pub debug_label: Option<String>,
-}
-
-impl StmtInfo {
-  #[inline]
-  pub fn unwrap_debug_label(&self) -> &str {
-    #[cfg(debug_assertions)]
-    {
-      self.debug_label.as_deref().unwrap_or("<Noop>")
-    }
-    #[cfg(not(debug_assertions))]
-    {
-      "<Noop>"
-    }
-  }
 }
