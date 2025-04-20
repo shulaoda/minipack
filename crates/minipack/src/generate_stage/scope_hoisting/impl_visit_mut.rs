@@ -179,7 +179,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
   }
 
   fn visit_import_expression(&mut self, expr: &mut ast::ImportExpression<'ast>) {
-    if expr.options.is_empty() {
+    if expr.options.is_none() {
       // Make sure the import expression is in correct form. If it's not, we should leave it as it is.
       if let ast::Expression::StringLiteral(str) = &mut expr.source {
         let rec_id = self.ctx.module.imports[&expr.span];
