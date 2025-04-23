@@ -23,18 +23,10 @@ struct Context<'a> {
 
 /// if no export is used, and the module has no side effects, the module should not be included
 fn include_module(ctx: &mut Context, module: &NormalModule) {
-  fn forcefully_include_all_statements(ctx: &mut Context, module: &NormalModule) {
-    // Skip the first statement, which is the namespace object. It should be included only if it is used no matter
-    // tree shaking is enabled or not.
-    module.stmt_infos.iter_enumerated().skip(1).for_each(|(stmt_info_id, _stmt_info)| {
-      include_statement(ctx, module, stmt_info_id);
-    });
-  }
-
-  let is_included = ctx.is_module_included_vec[module.idx];
-  if is_included {
+  if ctx.is_module_included_vec[module.idx] {
     return;
   }
+
   ctx.is_module_included_vec[module.idx] = true;
 
   if module.idx == ctx.runtime_id {
@@ -55,7 +47,11 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
       }
     });
   } else {
-    forcefully_include_all_statements(ctx, module);
+    // Skip the first statement, which is the namespace object. It should be included only if it is used no matter
+    // tree shaking is enabled or not.
+    module.stmt_infos.iter_enumerated().skip(1).for_each(|(stmt_info_id, _stmt_info)| {
+      include_statement(ctx, module, stmt_info_id);
+    });
   }
 
   let module_meta = &ctx.metas[module.idx];

@@ -8,13 +8,10 @@ impl LinkStage<'_> {
       let linking_info = &mut self.metadata[ecma_module.idx];
 
       if let Some(entry) = self.entry_points.iter().find(|entry| entry.id == ecma_module.idx) {
-        let mut referenced_symbols = vec![];
-
-        referenced_symbols.extend(
-          linking_info
-            .referenced_canonical_exports_symbols(entry.id, entry.kind, &self.dyn_import_usage_map)
-            .map(|(_, resolved_export)| resolved_export.symbol_ref),
-        );
+        let referenced_symbols = linking_info
+          .referenced_canonical_exports_symbols(entry.id, entry.kind, &self.dyn_import_usage_map)
+          .map(|(_, resolved_export)| resolved_export.symbol_ref)
+          .collect::<Vec<_>>();
 
         linking_info.referenced_symbols_by_entry_point_chunk.extend(referenced_symbols);
       }
@@ -22,15 +19,14 @@ impl LinkStage<'_> {
       // Create facade StmtInfo that declares variables based on the missing exports, so they can participate in the symbol de-conflict and
       // tree-shaking process.
       linking_info.shimmed_missing_exports.iter().for_each(|(_name, symbol_ref)| {
-        let stmt_info = StmtInfo {
+        ecma_module.stmt_infos.add_stmt_info(StmtInfo {
           stmt_idx: None,
           declared_symbols: vec![*symbol_ref],
           referenced_symbols: vec![],
           side_effect: false,
           is_included: false,
           import_records: Vec::new(),
-        };
-        ecma_module.stmt_infos.add_stmt_info(stmt_info);
+        });
       });
 
       // Generate export of Module Namespace Object for Namespace Import
@@ -49,6 +45,7 @@ impl LinkStage<'_> {
         referenced_symbols
           .extend(meta.canonical_exports().map(|(_, export)| export.symbol_ref.into()));
       }
+      
       if !meta.star_exports_from_external_modules.is_empty() {
         referenced_symbols.push(self.runtime_module.resolve_symbol("__reExport").into());
 

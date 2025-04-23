@@ -214,9 +214,9 @@ impl ModuleLoader {
             resolved_deps,
           } = task_result;
           let import_records: IndexVec<ImportRecordIdx, ResolvedImportRecord> = raw_import_records
-            .into_iter_enumerated()
+            .into_iter()
             .zip(resolved_deps)
-            .map(|((_rec_idx, raw_rec), info)| {
+            .map(|(raw_rec, info)| {
               let id =
                 self.try_spawn_new_task(info, None, false, raw_rec.asserted_module_type.clone());
               // Dynamic imported module will be considered as an entry
@@ -291,7 +291,6 @@ impl ModuleLoader {
       .enumerate()
       .map(|(id, module)| {
         let mut module = module.expect("Module tasks did't complete as expected");
-
         if let Some(module) = module.as_normal_mut() {
           let id = ModuleIdx::from(id);
           // Note: (Compat to rollup)

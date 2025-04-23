@@ -63,7 +63,7 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
   let index_asset_hashers: IndexVec<AssetIdx, Xxh3> =
     index_vec![Xxh3::default(); preliminary_assets.len()];
 
-  let index_final_hashes: IndexVec<AssetIdx, (String, u128)> = index_asset_hashers
+  let index_final_hashes: IndexVec<AssetIdx, String> = index_asset_hashers
     .into_par_iter()
     .enumerate()
     .map(|(asset_idx, mut hasher)| {
@@ -80,14 +80,14 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
       });
 
       let digested = hasher.digest128();
-      (xxhash_with_base(&digested.to_le_bytes(), 64), digested)
+      xxhash_with_base(&digested.to_le_bytes(), 64)
     })
     .collect::<Vec<_>>()
     .into();
 
   let final_hashes_by_placeholder = index_final_hashes
     .iter_enumerated()
-    .filter_map(|(idx, (hash, _))| {
+    .filter_map(|(idx, hash)| {
       let asset = &preliminary_assets[idx];
       asset.preliminary_filename.hash_placeholder().map(|placeholders| {
         placeholders
