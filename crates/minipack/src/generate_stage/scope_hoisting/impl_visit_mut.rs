@@ -26,7 +26,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       .iter()
       .filter_map(|(symbol_ref, v)| {
         let rec_id = v.record_id;
-        let importee_idx = self.ctx.module.ecma_view.import_records[rec_id].resolved_module;
+        let importee_idx = self.ctx.module.ecma_view.import_records[rec_id].state;
         self.ctx.modules[importee_idx].as_normal()?;
         self.ctx.symbol_db.get(*symbol_ref).namespace_alias.as_ref().and_then(|alias| {
           (alias.property_name.as_str() == "default").then_some(symbol_ref.symbol)
@@ -67,6 +67,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
         program.body.push(self.snippet.var_decl_stmt(canonical_name, self.snippet.void_zero()));
       }
     });
+
     walk_mut::walk_program(self, program);
 
     program.body.extend(declaration_of_module_namespace_object);
@@ -160,21 +161,20 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
   fn visit_object_property(&mut self, prop: &mut ast::ObjectProperty<'ast>) {
     // Ensure `{ a }` would be rewritten to `{ a: a$1 }` instead of `{ a$1 }`
     if prop.shorthand {
-      let ast::Expression::Identifier(id_ref) = &mut prop.value else { unreachable!() };
-      if let Some(expr) = self.generate_finalized_expr_for_reference(id_ref, false) {
-        prop.value = expr;
-        prop.shorthand = false;
-      } else {
-        id_ref.reference_id.get_mut().take();
+      if let ast::Expression::Identifier(id_ref) = &mut prop.value {
+        if let Some(expr) = self.generate_finalized_expr_for_reference(id_ref, false) {
+          prop.value = expr;
+          prop.shorthand = false;
+        } else {
+          id_ref.reference_id.get_mut().take();
+        }
       }
     }
-
     walk_mut::walk_object_property(self, prop);
   }
 
   fn visit_object_pattern(&mut self, pat: &mut ast::ObjectPattern<'ast>) {
     self.rewrite_object_pat_shorthand(pat);
-
     walk_mut::walk_object_pattern(self, pat);
   }
 
@@ -184,7 +184,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       if let ast::Expression::StringLiteral(str) = &mut expr.source {
         let rec_id = self.ctx.module.imports[&expr.span];
         let rec = &self.ctx.module.import_records[rec_id];
-        let importee_id = rec.resolved_module;
+        let importee_id = rec.state;
         match &self.ctx.modules[importee_id] {
           Module::Normal(_importee) => {
             let importer_chunk = &self.ctx.chunk_graph.chunk_table[self.ctx.chunk_id];
@@ -245,7 +245,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
 
   fn visit_simple_assignment_target(&mut self, target: &mut SimpleAssignmentTarget<'ast>) {
     self.rewrite_simple_assignment_target(target);
-
     walk_mut::walk_simple_assignment_target(self, target);
   }
 

@@ -16,7 +16,7 @@ fn has_dynamic_exports_due_to_export_star(
   }
   visited_modules[target] = true;
 
-  let has_dynamic_exports = if let Some(module) = module_table[target].as_normal() {
+  let has_dynamic_exports = module_table[target].as_normal().is_none_or(|module| {
     module.star_export_module_ids().any(|importee_id| {
       target != importee_id
         && has_dynamic_exports_due_to_export_star(
@@ -26,9 +26,7 @@ fn has_dynamic_exports_due_to_export_star(
           visited_modules,
         )
     })
-  } else {
-    true
-  };
+  });
 
   if has_dynamic_exports {
     linking_infos[target].has_dynamic_exports = true;

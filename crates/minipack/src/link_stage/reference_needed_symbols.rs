@@ -33,7 +33,7 @@ impl LinkStage<'_> {
             return;
           }
 
-          match &self.module_table[rec.resolved_module] {
+          match &self.module_table[rec.state] {
             Module::External(importee) => {
               // Make sure symbols from external modules are included and de_conflicted
               if rec.kind == ImportKind::Import {

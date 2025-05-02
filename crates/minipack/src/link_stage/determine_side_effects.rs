@@ -50,7 +50,7 @@ impl LinkStage<'_> {
         let side_effects = DeterminedSideEffects::Analyzed(
           module.import_records.iter().filter(|rec| !rec.is_dummy()).any(|import_record| {
             self
-              .determine_side_effects_for_module(import_record.resolved_module, cache)
+              .determine_side_effects_for_module(import_record.state, cache)
               .has_side_effects()
           }),
         );

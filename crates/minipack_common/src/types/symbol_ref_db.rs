@@ -27,7 +27,6 @@ bitflags::bitflags! {
   #[derive(Debug, Default)]
   pub struct SymbolRefFlags: u8 {
     const IS_NOT_REASSIGNED = 1;
-    /// If this symbol is declared by `const`. Eg. `const a = 1;`
     const IS_CONST = 1 << 1;
   }
 }

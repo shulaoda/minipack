@@ -45,7 +45,7 @@ impl LinkStage<'_> {
         referenced_symbols
           .extend(meta.canonical_exports().map(|(_, export)| export.symbol_ref.into()));
       }
-      
+
       if !meta.star_exports_from_external_modules.is_empty() {
         referenced_symbols.push(self.runtime_module.resolve_symbol("__reExport").into());
 

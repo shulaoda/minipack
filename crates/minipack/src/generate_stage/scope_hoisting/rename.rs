@@ -23,8 +23,6 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
     let mut expr = self.finalized_expr_for_symbol_ref(symbol_ref, is_callee);
 
-    // See https://github.com/oxc-project/oxc/issues/4606
-
     match &mut expr {
       ast::Expression::Identifier(it) => {
         it.span = id_ref.span;
@@ -94,7 +92,6 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     // Some `IdentifierReference`s constructed by bundler don't have `ReferenceId` and we just ignore them.
     if let ast::SimpleAssignmentTarget::AssignmentTargetIdentifier(target_id_ref) = target {
       let reference_id = target_id_ref.reference_id.get()?;
-
       let symbol_id = self.scope.symbol_id_for(reference_id)?;
 
       let symbol_ref = (self.ctx.id, symbol_id).into();

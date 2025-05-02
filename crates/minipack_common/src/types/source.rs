@@ -3,8 +3,7 @@ use memchr::memmem;
 pub trait Source {
   fn content(&self) -> &str;
   fn lines_count(&self) -> u32 {
-    let haystack = self.content().as_bytes();
-    u32::try_from(memmem::find_iter(haystack, "\n").count()).unwrap()
+    u32::try_from(memmem::find_iter(self.content().as_bytes(), "\n").count()).unwrap()
   }
 }
 

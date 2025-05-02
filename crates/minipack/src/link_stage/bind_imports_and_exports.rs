@@ -397,12 +397,12 @@ impl BindImportsAndExportsContext<'_> {
     let is_esm = matches!(self.options.format, OutputFormat::Esm);
     for (imported_as_ref, named_import) in &module.named_imports {
       let rec = &module.import_records[named_import.record_id];
-      let is_external = matches!(self.module_table[rec.resolved_module], Module::External(_));
+      let is_external = matches!(self.module_table[rec.state], Module::External(_));
       if is_esm && is_external {
         if let Specifier::Literal(ref name) = named_import.imported {
           self
             .external_import_binding_merger
-            .entry(rec.resolved_module)
+            .entry(rec.state)
             .or_default()
             .entry(name.inner().clone())
             .or_default()
@@ -414,14 +414,14 @@ impl BindImportsAndExportsContext<'_> {
         &mut MatchingContext { tracker_stack: Vec::default() },
         ImportTracker {
           importer: module_id,
-          importee: rec.resolved_module,
+          importee: rec.state,
           imported: named_import.imported.clone(),
           imported_as: *imported_as_ref,
         },
       );
       match ret {
         MatchImportKind::Ambiguous { symbol_ref, potentially_ambiguous_symbol_refs } => {
-          let importee = self.module_table[rec.resolved_module].stable_id().to_string();
+          let importee = self.module_table[rec.state].stable_id().to_string();
 
           let mut exporter = Vec::with_capacity(potentially_ambiguous_symbol_refs.len() + 1);
           if let Some(owner) = self.module_table[symbol_ref.owner].as_normal() {
@@ -464,12 +464,12 @@ impl BindImportsAndExportsContext<'_> {
             Some(NamespaceAlias { property_name: alias, namespace_ref });
         }
         MatchImportKind::NoMatch => {
-          let importee = &self.module_table[rec.resolved_module];
+          let importee = &self.module_table[rec.state];
           self.errors.push(anyhow::anyhow!(
             r#""{}" is not exported by "{}", imported by "{}"."#,
-            module.stable_id,
+            named_import.imported,
             importee.stable_id(),
-            named_import.imported
+            module.stable_id
           ));
         }
         MatchImportKind::_Ignore | MatchImportKind::Cycle => {}
@@ -484,7 +484,7 @@ impl BindImportsAndExportsContext<'_> {
     let named_import = &importer.named_imports[&tracker.imported_as];
 
     // Is this an external file?
-    let importee_id = importer.import_records[named_import.record_id].resolved_module;
+    let importee_id = importer.import_records[named_import.record_id].state;
     let importee = match &self.module_table[importee_id] {
       Module::Normal(importee) => importee.as_ref(),
       Module::External(external) => return ImportStatus::External(external.namespace_ref),
@@ -559,7 +559,7 @@ impl BindImportsAndExportsContext<'_> {
                 &mut MatchingContext { tracker_stack: ctx.tracker_stack.clone() },
                 ImportTracker {
                   importer: ambiguous_ref_owner.idx(),
-                  importee: rec.resolved_module,
+                  importee: rec.state,
                   imported: another_named_import.imported.clone(),
                   imported_as: another_named_import.imported_as,
                 },
@@ -579,7 +579,7 @@ impl BindImportsAndExportsContext<'_> {
           if let Some(another_named_import) = owner.as_normal().unwrap().named_imports.get(&symbol)
           {
             let rec = &owner.as_normal().unwrap().import_records[another_named_import.record_id];
-            match &self.module_table[rec.resolved_module] {
+            match &self.module_table[rec.state] {
               Module::External(_) => {
                 break MatchImportKind::Normal(MatchImportKindNormal {
                   symbol: another_named_import.imported_as,

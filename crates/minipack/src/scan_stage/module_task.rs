@@ -1,3 +1,5 @@
+use std::{path::Path, sync::Arc};
+
 use arcstr::ArcStr;
 use minipack_common::{
   ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
@@ -7,13 +9,13 @@ use minipack_error::BuildResult;
 use minipack_fs::FileSystem;
 use minipack_utils::{path_ext::PathExt, rstr::Rstr};
 use oxc_index::IndexVec;
-use std::sync::Arc;
-use sugar_path::SugarPath;
+
+use crate::{
+  types::module_factory::CreateModuleContext,
+  utils::{ecmascript::legitimize_identifier_name, resolve_id::resolve_id},
+};
 
 use super::loaders::ecmascript::{CreateEcmaViewReturn, create_ecma_view};
-
-use crate::{types::module_factory::CreateModuleContext, utils::{ecmascript::legitimize_identifier_name, resolve_id::resolve_id}};
-
 use super::task_context::TaskContext;
 
 pub struct ModuleTask {
@@ -22,8 +24,6 @@ pub struct ModuleTask {
   owner: Option<Rstr>,
   resolved_id: ResolvedId,
   is_user_defined_entry: bool,
-  /// The module is asserted to be this specific module type.
-  asserted_module_type: Option<ModuleType>,
 }
 
 impl ModuleTask {
@@ -33,9 +33,8 @@ impl ModuleTask {
     owner: Option<Rstr>,
     resolved_id: ResolvedId,
     is_user_defined_entry: bool,
-    asserted_module_type: Option<ModuleType>,
   ) -> Self {
-    Self { ctx, idx, owner, resolved_id, is_user_defined_entry, asserted_module_type }
+    Self { ctx, idx, owner, resolved_id, is_user_defined_entry }
   }
 
   pub async fn run(mut self) {
@@ -109,7 +108,7 @@ impl ModuleTask {
       }
     }
 
-    let repr_name = self.resolved_id.id.as_path().representative_file_name();
+    let repr_name = Path::new(self.resolved_id.id.as_str()).representative_file_name();
     let repr_name = legitimize_identifier_name(&repr_name).into_owned();
 
     let debug_id = self.resolved_id.debug_id(&self.ctx.options.cwd);
@@ -141,22 +140,19 @@ impl ModuleTask {
     let fs: &dyn FileSystem = &self.ctx.fs;
 
     if self.resolved_id.ignored {
-      return Ok((String::new(), self.asserted_module_type.clone().unwrap_or(ModuleType::Empty)));
+      return Ok((String::new(), ModuleType::Empty));
     }
 
     let id = &self.resolved_id.id;
-    let ext: &str = id.rsplit('.').next().filter(|ext| *ext != id).unwrap_or("");
+    let content = fs.read_to_string(Path::new(id.as_str()))?;
 
-    let module_type = match ext {
-      "js" | "mjs" => ModuleType::Js,
-      "ts" | "mts" => ModuleType::Ts,
-      "jsx" => ModuleType::Jsx,
-      "tsx" => ModuleType::Tsx,
+    let final_type = match id.rsplit('.').next().filter(|ext| *ext != id) {
+      Some("js" | "cjs" | "mjs") => ModuleType::Js,
+      Some("ts" | "cts" | "mts") => ModuleType::Ts,
+      Some("jsx") => ModuleType::Jsx,
+      Some("tsx") => ModuleType::Tsx,
       _ => ModuleType::Js,
     };
-
-    let content = fs.read_to_string(id.as_path())?;
-    let final_type = self.asserted_module_type.clone().unwrap_or(module_type);
 
     Ok((content, final_type))
   }

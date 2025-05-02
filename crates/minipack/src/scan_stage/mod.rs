@@ -48,7 +48,7 @@ impl ScanStage {
             if resolved_id.is_external {
               Err(anyhow::anyhow!(
                 "Failed to resolve {:?} - entry can't be external",
-                resolved_id.id.to_string()
+                resolved_id.id
               ))
             } else {
               Ok((input_item.name.as_ref().map(ArcStr::from), resolved_id))

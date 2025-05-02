@@ -11,7 +11,10 @@ use sugar_path::SugarPath;
 use crate::{
   scan_stage::ast_scanner::{AstScanResult, AstScanner},
   types::module_factory::CreateModuleContext,
-  utils::{ecmascript::legitimize_identifier_name, parse_to_ecma_ast::{parse_to_ecma_ast, ParseToEcmaAstResult}},
+  utils::{
+    ecmascript::legitimize_identifier_name,
+    parse_to_ecma_ast::{ParseToEcmaAstResult, parse_to_ecma_ast},
+  },
 };
 
 pub struct CreateEcmaViewReturn {
@@ -95,6 +98,9 @@ pub async fn create_ecma_view(
     this_expr_replace_map,
   };
 
-  let ecma_related = EcmaRelated { ast, symbols, dynamic_import_exports_usage };
-  Ok(CreateEcmaViewReturn { ecma_view, ecma_related, raw_import_records })
+  Ok(CreateEcmaViewReturn {
+    ecma_view,
+    ecma_related: EcmaRelated { ast, symbols, dynamic_import_exports_usage },
+    raw_import_records,
+  })
 }

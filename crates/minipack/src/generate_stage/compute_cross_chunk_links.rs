@@ -169,7 +169,7 @@ impl GenerateStage<'_> {
             .filter(|rec| !rec.is_dummy())
             .inspect(|rec| {
               if let Module::Normal(importee_module) =
-                &self.link_output.module_table[rec.resolved_module]
+                &self.link_output.module_table[rec.state]
               {
                 // the the resolved module is not included in module graph, skip
                 if !importee_module.meta.is_included() {
@@ -186,7 +186,7 @@ impl GenerateStage<'_> {
               matches!(rec.kind, ImportKind::Import)
                 && !rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR)
             })
-            .filter_map(|rec| self.link_output.module_table[rec.resolved_module].as_external())
+            .filter_map(|rec| self.link_output.module_table[rec.state].as_external())
             .for_each(|importee| {
               // Ensure the external module is imported in case it has side effects.
               imports_from_external_modules.entry(importee.idx).or_default();
@@ -194,7 +194,7 @@ impl GenerateStage<'_> {
 
           module.named_imports.iter().for_each(|(_, import)| {
             let rec = &module.import_records[import.record_id];
-            if let Module::External(importee) = &self.link_output.module_table[rec.resolved_module]
+            if let Module::External(importee) = &self.link_output.module_table[rec.state]
             {
               imports_from_external_modules.entry(importee.idx).or_default().push(import.clone());
             }

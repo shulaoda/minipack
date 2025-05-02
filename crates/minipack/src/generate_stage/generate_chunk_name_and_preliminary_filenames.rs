@@ -56,18 +56,20 @@ impl GenerateStage<'_> {
           ChunkKind::Common => {
             // - rollup use the first entered/last executed module as the `[name]` of common chunks.
             // - esbuild always use 'chunk' as the `[name]`. However we try to make the name more meaningful here.
-            let first_executed_non_runtime_module = chunk
+            chunk
               .modules
               .iter()
               .rev()
-              .find(|each| **each != self.link_output.runtime_module.id());
-            first_executed_non_runtime_module.map_or_else(
-              || arcstr::literal!("chunk"),
-              |module_id| {
-                let module = &module_table[*module_id];
-                ArcStr::from(sanitize_file_name(&module.id().as_path().representative_file_name()))
-              },
-            )
+              .find(|each| **each != self.link_output.runtime_module.id())
+              .map_or_else(
+                || arcstr::literal!("chunk"),
+                |module_id| {
+                  let module = &module_table[*module_id];
+                  ArcStr::from(sanitize_file_name(
+                    &module.id().as_path().representative_file_name(),
+                  ))
+                },
+              )
           }
         }
       })
@@ -107,7 +109,7 @@ impl GenerateStage<'_> {
       }
 
       let pre_generated_chunk_name = &mut index_pre_generated_names[*chunk_id];
-      
+
       chunk.name = Some(pre_generated_chunk_name.clone());
       index_chunk_id_to_name.insert(*chunk_id, pre_generated_chunk_name.clone());
 

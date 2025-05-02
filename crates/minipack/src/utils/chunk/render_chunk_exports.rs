@@ -126,7 +126,7 @@ pub fn render_chunk_exports(
           let external_modules = meta
             .star_exports_from_external_modules
             .iter()
-            .map(|rec_idx| module.ecma_view.import_records[*rec_idx].resolved_module)
+            .map(|rec_idx| module.ecma_view.import_records[*rec_idx].state)
             .collect::<FxIndexSet<ModuleIdx>>();
           external_modules.iter().for_each(|idx| {
           let external = &ctx.link_output.module_table[*idx].as_external().expect("Should be external module here");

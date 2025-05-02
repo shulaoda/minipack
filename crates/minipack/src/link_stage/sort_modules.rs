@@ -58,7 +58,7 @@ impl LinkStage<'_> {
                 .import_records()
                 .iter()
                 .filter(|rec| rec.kind.is_static() && !rec.is_dummy())
-                .map(|rec| rec.resolved_module)
+                .map(|rec| rec.state)
                 .rev()
                 .map(Status::ToBeExecuted),
             );

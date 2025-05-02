@@ -1,4 +1,4 @@
-use oxc::transformer::ESTarget as OxcEstarget;
+use oxc::transformer::ESTarget as OxcESTarget;
 use std::str::FromStr;
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -40,7 +40,7 @@ impl FromStr for ESTarget {
   }
 }
 
-impl From<ESTarget> for OxcEstarget {
+impl From<ESTarget> for OxcESTarget {
   fn from(value: ESTarget) -> Self {
     match value {
       ESTarget::Es5 => Self::ES5,

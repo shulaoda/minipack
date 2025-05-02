@@ -177,7 +177,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
             let rec = &self.ctx.module.import_records[idx];
             // importee_exports
             let importee_namespace_name = self.canonical_name_for(rec.namespace_ref);
-            let m = self.ctx.modules.get(rec.resolved_module);
+            let m = self.ctx.modules.get(rec.state);
             let Some(Module::External(module)) = m else {
               return vec![];
             };
@@ -206,7 +206,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
             let importer_namespace_ref_expr =
               self.finalized_expr_for_symbol_ref(self.ctx.module.namespace_object_ref, false);
             let rec = &self.ctx.module.import_records[idx];
-            let importee = &self.ctx.modules[rec.resolved_module];
+            let importee = &self.ctx.modules[rec.state];
             let expression = self.snippet.call_expr_with_2arg_expr(
               re_export_fn_ref,
               importer_namespace_ref_expr,
@@ -456,7 +456,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
       // Convert `import('./foo.mjs')` to `Promise.resolve().then(function() { return require('foo.mjs') })`
       let rec_id = self.ctx.module.imports.get(&import_expr.span)?;
       let rec = &self.ctx.module.import_records[*rec_id];
-      let importee_id = rec.resolved_module;
+      let importee_id = rec.state;
       match &self.ctx.modules[importee_id] {
         Module::Normal(_importee) => {
           let importer_chunk = &self.ctx.chunk_graph.chunk_table[self.ctx.chunk_id];
@@ -514,7 +514,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
           } else {
             // "export * from 'path'"
             let rec = &self.ctx.module.import_records[rec_id];
-            match &self.ctx.modules[rec.resolved_module] {
+            match &self.ctx.modules[rec.state] {
               Module::Normal(importee) => {
                 let importee_linking_info = &self.ctx.linking_infos[importee.idx];
 

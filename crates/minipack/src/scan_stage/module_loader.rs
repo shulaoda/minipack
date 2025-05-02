@@ -6,9 +6,8 @@ use minipack_common::StmtInfoIdx;
 use minipack_common::{
   DUMMY_MODULE_IDX, EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind,
   ImportRecordIdx, ImportRecordMeta, ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
-  ModuleType, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId, ResolvedImportRecord,
-  RuntimeModuleBrief, RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule,
-  side_effects::DeterminedSideEffects,
+  NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief,
+  RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule, side_effects::DeterminedSideEffects,
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
@@ -108,7 +107,7 @@ impl ModuleLoader {
     let mut entry_points = user_defined_entries
       .into_iter()
       .map(|(name, info)| {
-        let id = self.try_spawn_new_task(info, None, true, None);
+        let id = self.try_spawn_new_task(info, None, true);
         user_defined_entry_ids.insert(id);
         EntryPoint { id, name, kind: EntryPointKind::UserDefined, related_stmt_infos: vec![] }
       })
@@ -154,12 +153,7 @@ impl ModuleLoader {
               }
               let normal_module = module.as_normal().unwrap();
               let owner = normal_module.stable_id.as_str().into();
-              let id = self.try_spawn_new_task(
-                info,
-                Some(owner),
-                false,
-                raw_rec.asserted_module_type.clone(),
-              );
+              let id = self.try_spawn_new_task(info, Some(owner), false);
               // Dynamic imported module will be considered as an entry
               self.inm.importers[id].push(ImporterRecord {
                 kind: raw_rec.kind,
@@ -170,8 +164,8 @@ impl ModuleLoader {
               if let Some(usage) = dynamic_import_rec_exports_usage.remove(&rec_idx) {
                 dynamic_import_exports_usage_pairs.push((id, usage));
               }
-              if matches!(raw_rec.kind, ImportKind::DynamicImport)
-                && !user_defined_entry_ids.contains(&id)
+
+              if raw_rec.kind == ImportKind::DynamicImport && !user_defined_entry_ids.contains(&id)
               {
                 match dynamic_import_entry_ids.entry(id) {
                   Entry::Vacant(vac) => match raw_rec.related_stmt_info_idx {
@@ -218,7 +212,7 @@ impl ModuleLoader {
             .zip(resolved_deps)
             .map(|(raw_rec, info)| {
               let id =
-                self.try_spawn_new_task(info, None, false, raw_rec.asserted_module_type.clone());
+                self.try_spawn_new_task(info, None, false);
               // Dynamic imported module will be considered as an entry
               self.inm.importers[id]
                 .push(ImporterRecord { kind: raw_rec.kind, importer_path: module.id.clone() });
@@ -334,7 +328,6 @@ impl ModuleLoader {
     resolved_id: ResolvedId,
     owner: Option<Rstr>,
     is_user_defined_entry: bool,
-    assert_module_type: Option<ModuleType>,
   ) -> ModuleIdx {
     match self.visited.entry(resolved_id.id.clone()) {
       Entry::Occupied(visited) => *visited.get(),
@@ -359,17 +352,15 @@ impl ModuleLoader {
             symbol_ref,
           )));
         } else {
-          self.remaining += 1;
-
           let task = ModuleTask::new(
             self.shared_context.clone(),
             idx,
             owner,
             resolved_id,
             is_user_defined_entry,
-            assert_module_type,
           );
 
+          self.remaining += 1;
           tokio::spawn(task.run());
         }
 

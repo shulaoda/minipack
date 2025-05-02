@@ -72,7 +72,7 @@ impl<'a> LinkStage<'a> {
           .iter()
           .filter_map(|rec| match rec.kind {
             ImportKind::DynamicImport => None,
-            _ => Some(rec.resolved_module),
+            _ => Some(rec.state),
           })
           .collect();
 

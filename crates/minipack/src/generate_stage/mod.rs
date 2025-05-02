@@ -61,45 +61,46 @@ impl<'a> GenerateStage<'a> {
     });
 
     let ast_table_iter = self.link_output.index_ecma_ast.par_iter_mut();
-    ast_table_iter
-      .filter(|(_ast, owner)| {
-        self.link_output.module_table[*owner].as_normal().is_some_and(|m| m.meta.is_included())
-      })
-      .for_each(|(ast, owner)| {
-        let Module::Normal(module) = &self.link_output.module_table[*owner] else {
-          return;
+    ast_table_iter.for_each(|(ast, owner)| {
+      let Module::Normal(module) = &self.link_output.module_table[*owner] else {
+        return;
+      };
+
+      if !module.meta.is_included() {
+        return;
+      }
+
+      let ast_scope = &self.link_output.symbols[module.idx].as_ref().unwrap().ast_scopes;
+      let chunk_id = chunk_graph.module_to_chunk[module.idx].unwrap();
+      let chunk = &chunk_graph.chunk_table[chunk_id];
+      let linking_info = &self.link_output.metadata[module.idx];
+      ast.program.with_mut(|fields| {
+        let (oxc_program, alloc) = (fields.program, fields.allocator);
+        let mut finalizer = ScopeHoistingFinalizer {
+          alloc,
+          ctx: ScopeHoistingFinalizerContext {
+            canonical_names: &chunk.canonical_names,
+            id: module.idx,
+            chunk_id,
+            symbol_db: &self.link_output.symbols,
+            linking_info,
+            module,
+            modules: &self.link_output.module_table,
+            linking_infos: &self.link_output.metadata,
+            runtime: &self.link_output.runtime_module,
+            chunk_graph: &chunk_graph,
+            options: self.options,
+          },
+          scope: ast_scope,
+          snippet: AstSnippet::new(alloc),
+          comments: oxc_program.comments.take_in(alloc),
+          namespace_alias_symbol_id: FxHashSet::default(),
+          interested_namespace_alias_ref_id: FxHashSet::default(),
         };
-        let ast_scope = &self.link_output.symbols[module.idx].as_ref().unwrap().ast_scopes;
-        let chunk_id = chunk_graph.module_to_chunk[module.idx].unwrap();
-        let chunk = &chunk_graph.chunk_table[chunk_id];
-        let linking_info = &self.link_output.metadata[module.idx];
-        ast.program.with_mut(|fields| {
-          let (oxc_program, alloc) = (fields.program, fields.allocator);
-          let mut finalizer = ScopeHoistingFinalizer {
-            alloc,
-            ctx: ScopeHoistingFinalizerContext {
-              canonical_names: &chunk.canonical_names,
-              id: module.idx,
-              chunk_id,
-              symbol_db: &self.link_output.symbols,
-              linking_info,
-              module,
-              modules: &self.link_output.module_table,
-              linking_infos: &self.link_output.metadata,
-              runtime: &self.link_output.runtime_module,
-              chunk_graph: &chunk_graph,
-              options: self.options,
-            },
-            scope: ast_scope,
-            snippet: AstSnippet::new(alloc),
-            comments: oxc_program.comments.take_in(alloc),
-            namespace_alias_symbol_id: FxHashSet::default(),
-            interested_namespace_alias_ref_id: FxHashSet::default(),
-          };
-          finalizer.visit_program(oxc_program);
-          oxc_program.comments = finalizer.comments.take_in(alloc);
-        });
+        finalizer.visit_program(oxc_program);
+        oxc_program.comments = finalizer.comments.take_in(alloc);
       });
+    });
 
     self.render_chunk_to_assets(&mut chunk_graph).await
   }

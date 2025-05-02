@@ -1,24 +1,9 @@
-use std::{
-  fmt::Debug,
-  ops::{Deref, DerefMut},
-};
+use std::fmt::Debug;
 
 use minipack_utils::rstr::Rstr;
 use oxc::span::Span;
 
-use crate::{DUMMY_MODULE_IDX, ImportKind, ModuleIdx, ModuleType, StmtInfoIdx, SymbolRef};
-
-#[derive(Debug)]
-pub struct ImportRecordStateInit {
-  pub span: Span,
-  /// The importee of this import record is asserted to be this specific module type.
-  pub asserted_module_type: Option<ModuleType>,
-}
-
-#[derive(Debug)]
-pub struct ImportRecordStateResolved {
-  pub resolved_module: ModuleIdx,
-}
+use crate::{DUMMY_MODULE_IDX, ImportKind, ModuleIdx, StmtInfoIdx, SymbolRef};
 
 bitflags::bitflags! {
   #[derive(Debug)]
@@ -59,21 +44,7 @@ impl<State: Debug> ImportRecord<State> {
   }
 }
 
-impl<T: Debug> Deref for ImportRecord<T> {
-  type Target = T;
-
-  fn deref(&self) -> &Self::Target {
-    &self.state
-  }
-}
-
-impl<T: Debug> DerefMut for ImportRecord<T> {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.state
-  }
-}
-
-pub type RawImportRecord = ImportRecord<ImportRecordStateInit>;
+pub type RawImportRecord = ImportRecord<Span>;
 
 impl RawImportRecord {
   pub fn new(
@@ -81,7 +52,6 @@ impl RawImportRecord {
     kind: ImportKind,
     namespace_ref: SymbolRef,
     span: Span,
-    asserted_module_type: Option<ModuleType>,
     related_stmt_info_idx: Option<StmtInfoIdx>,
   ) -> Self {
     Self {
@@ -89,7 +59,7 @@ impl RawImportRecord {
       kind,
       namespace_ref,
       meta: ImportRecordMeta::empty(),
-      state: ImportRecordStateInit { span, asserted_module_type },
+      state: span,
       related_stmt_info_idx,
     }
   }
@@ -101,7 +71,7 @@ impl RawImportRecord {
 
   pub fn into_resolved(self, resolved_module: ModuleIdx) -> ResolvedImportRecord {
     ResolvedImportRecord {
-      state: ImportRecordStateResolved { resolved_module },
+      state: resolved_module,
       module_request: self.module_request,
       kind: self.kind,
       namespace_ref: self.namespace_ref,
@@ -111,10 +81,10 @@ impl RawImportRecord {
   }
 }
 
-pub type ResolvedImportRecord = ImportRecord<ImportRecordStateResolved>;
+pub type ResolvedImportRecord = ImportRecord<ModuleIdx>;
 
 impl ResolvedImportRecord {
   pub fn is_dummy(&self) -> bool {
-    self.state.resolved_module == DUMMY_MODULE_IDX
+    self.state == DUMMY_MODULE_IDX
   }
 }

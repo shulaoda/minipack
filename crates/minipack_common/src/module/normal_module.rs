@@ -31,7 +31,7 @@ impl NormalModule {
           .import_records
           .iter()
           .filter(|&rec| rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR))
-          .map(|rec| rec.resolved_module),
+          .map(|rec| rec.state),
       )
     } else {
       itertools::Either::Right(std::iter::empty())
@@ -56,7 +56,7 @@ impl NormalModule {
       {
         return None;
       }
-      match modules[rec.resolved_module] {
+      match modules[rec.state] {
         Module::External(_) => Some(rec_id),
         Module::Normal(_) => None,
       }

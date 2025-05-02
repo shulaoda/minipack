@@ -26,7 +26,6 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
   if ctx.is_module_included_vec[module.idx] {
     return;
   }
-
   ctx.is_module_included_vec[module.idx] = true;
 
   if module.idx == ctx.runtime_id {
@@ -35,8 +34,7 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
     return;
   }
 
-  let forced_no_treeshake = matches!(module.side_effects, DeterminedSideEffects::NoTreeshake);
-  if ctx.tree_shaking && !forced_no_treeshake {
+  if ctx.tree_shaking && !matches!(module.side_effects, DeterminedSideEffects::NoTreeshake) {
     module.stmt_infos.iter_enumerated().for_each(|(stmt_info_id, stmt_info)| {
       // No need to handle the first statement specially, which is the namespace object, because it doesn't have side effects and will only be included if it is used.
       let bail_eval = module.meta.has_eval()
@@ -54,10 +52,8 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
     });
   }
 
-  let module_meta = &ctx.metas[module.idx];
-
   // Include imported modules for its side effects
-  module_meta.dependencies.iter().copied().for_each(|dependency_idx| {
+  ctx.metas[module.idx].dependencies.iter().copied().for_each(|dependency_idx| {
     match &ctx.module_table[dependency_idx] {
       Module::Normal(importee) => {
         if !ctx.tree_shaking || importee.side_effects.has_side_effects() {
@@ -67,6 +63,7 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
       Module::External(_) => {}
     }
   });
+
   if module.meta.has_eval() && matches!(module.module_type, ModuleType::Js | ModuleType::Jsx) {
     module.named_imports.keys().for_each(|symbol| {
       include_symbol(ctx, *symbol);
@@ -110,20 +107,19 @@ fn include_statement(ctx: &mut Context, module: &NormalModule, stmt_info_id: Stm
     return;
   }
 
-  let stmt_info = module.stmt_infos.get(stmt_info_id);
-
   // include the statement itself
   *is_included = true;
 
-  stmt_info.referenced_symbols.iter().for_each(|reference_ref| match reference_ref {
-    SymbolOrMemberExprRef::Symbol(symbol_ref) => {
-      include_symbol(ctx, *symbol_ref);
-    }
-    SymbolOrMemberExprRef::MemberExpr(member_expr) => {
-      if let Some(symbol) =
-        member_expr.resolved_symbol_ref(&ctx.metas[module.idx].resolved_member_expr_refs)
-      {
-        include_symbol(ctx, symbol);
+  let resolved_map = &ctx.metas[module.idx].resolved_member_expr_refs;
+  module.stmt_infos.get(stmt_info_id).referenced_symbols.iter().for_each(|reference_ref| {
+    match reference_ref {
+      SymbolOrMemberExprRef::Symbol(symbol_ref) => {
+        include_symbol(ctx, *symbol_ref);
+      }
+      SymbolOrMemberExprRef::MemberExpr(member_expr) => {
+        if let Some(symbol) = member_expr.resolved_symbol_ref(resolved_map) {
+          include_symbol(ctx, symbol);
+        }
       }
     }
   });
@@ -131,7 +127,7 @@ fn include_statement(ctx: &mut Context, module: &NormalModule, stmt_info_id: Stm
 
 impl LinkStage<'_> {
   pub fn include_statements(&mut self) {
-    let mut is_included_vec: IndexVec<ModuleIdx, IndexVec<StmtInfoIdx, bool>> = self
+    let mut is_included_vec = self
       .module_table
       .iter()
       .map(|m| {
@@ -141,8 +137,7 @@ impl LinkStage<'_> {
       })
       .collect::<IndexVec<ModuleIdx, _>>();
 
-    let mut is_module_included_vec: IndexVec<ModuleIdx, bool> =
-      oxc_index::index_vec![false; self.module_table.len()];
+    let mut is_module_included_vec = oxc_index::index_vec![false; self.module_table.len()];
 
     let context = &mut Context {
       module_table: &self.module_table,
@@ -157,26 +152,23 @@ impl LinkStage<'_> {
     };
 
     self.entry_points.iter().for_each(|entry| {
-      let module = match &self.module_table[entry.id] {
-        Module::Normal(module) => module,
-        Module::External(_module) => {
-          // Case: import('external').
-          return;
-        }
-      };
-      let meta = &self.metadata[entry.id];
-      meta.referenced_symbols_by_entry_point_chunk.iter().for_each(|symbol_ref| {
-        include_symbol(context, *symbol_ref);
-      });
-      include_module(context, module);
+      if let Module::Normal(module) = &self.module_table[entry.id] {
+        let meta = &self.metadata[entry.id];
+        meta.referenced_symbols_by_entry_point_chunk.iter().for_each(|symbol_ref| {
+          include_symbol(context, *symbol_ref);
+        });
+        include_module(context, module);
+      }
     });
 
-    self.module_table.par_iter_mut().filter_map(Module::as_normal_mut).for_each(|module| {
-      let idx = module.idx;
-      module.meta.set(EcmaViewMeta::INCLUDED, is_module_included_vec[idx]);
-      is_included_vec[module.idx].iter_enumerated().for_each(|(stmt_info_id, is_included)| {
-        module.stmt_infos.get_mut(stmt_info_id).is_included = *is_included;
-      });
+    self.module_table.par_iter_mut().for_each(|module| {
+      if let Module::Normal(module) = module {
+        let value = is_module_included_vec[module.idx];
+        module.meta.set(EcmaViewMeta::INCLUDED, value);
+        is_included_vec[module.idx].iter_enumerated().for_each(|(stmt_info_id, is_included)| {
+          module.stmt_infos.get_mut(stmt_info_id).is_included = *is_included;
+        });
+      }
     });
   }
 }
