@@ -28,8 +28,8 @@ impl GenerateContext<'_> {
     let symbol_db = &self.link_output.symbols;
     let canonical_ref = symbol_db.canonical_ref_for(symbol_ref);
     let canonical_symbol = symbol_db.get(canonical_ref);
-    let namespace_alias = &canonical_symbol.namespace_alias;
-    if let Some(_ns_alias) = namespace_alias {
+
+    if canonical_symbol.namespace_alias.is_some() {
       // canonical_ref = ns_alias.namespace_ref;
       // canonical_symbol = symbol_db.get(canonical_ref);
       // Not sure if we need to handle this case

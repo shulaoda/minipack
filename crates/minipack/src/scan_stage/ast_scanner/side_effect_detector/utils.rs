@@ -1,93 +1,11 @@
-use std::sync::LazyLock;
-
-use daachorse::DoubleArrayAhoCorasick;
 use minipack_common::AstScopes;
-use minipack_ecmascript::{ExpressionExt, SpanExt};
+use minipack_ecmascript::ExpressionExt;
 use oxc::{
-  ast::{
-    Comment, CommentKind,
-    ast::{self, Expression, MemberExpression},
-    comments_range,
-  },
+  ast::ast::{self, Expression, MemberExpression},
   semantic::ReferenceId,
-  span::{Atom, Span},
+  span::Atom,
   syntax::operator::{BinaryOperator, LogicalOperator, UnaryOperator, UpdateOperator},
 };
-
-use super::SideEffectDetector;
-
-static PURE_COMMENTS: LazyLock<DoubleArrayAhoCorasick<usize>> = LazyLock::new(|| {
-  let patterns = vec!["@__PURE__", "#__PURE__"];
-
-  DoubleArrayAhoCorasick::new(patterns).unwrap()
-});
-
-impl SideEffectDetector<'_> {
-  /// Get the nearest comment before the `span`, return `None` if no leading comment is founded.
-  ///
-  ///  # Examples
-  /// ```javascript
-  /// /* valid comment for `a`  */ let a = 1;
-  ///
-  /// // valid comment for `b`
-  /// let b = 1;
-  ///
-  /// // valid comment for `c`
-  ///
-  ///
-  /// let c = 1;
-  ///
-  /// let d = 1; /* valid comment for `e` */
-  /// let e = 2
-  /// ```
-  /// Derived from https://github.com/oxc-project/oxc/blob/147864cfeb112df526bb83d5b8671b465c005066/crates/oxc_linter/src/utils/tree_shaking.rs#L204
-  pub fn leading_comment_for(&self, span: Span) -> Option<(&Comment, &str)> {
-    let comment = comments_range(self.comments, ..span.start).next_back()?;
-
-    let comment_span = comment.content_span();
-    let comment_text = comment_span.source_text(self.source);
-
-    // If there are non-whitespace characters between the `comment` and the `span`,
-    // we treat the `comment` not belongs to the `span`.
-    let leading_comment_span = Span::new(comment_span.end, span.start);
-    if !leading_comment_span.is_valid(self.source) {
-      return None;
-    }
-
-    let range_text = leading_comment_span.source_text(self.source);
-    let only_whitespace = match comment.kind {
-      CommentKind::Line => range_text.trim().is_empty(),
-      CommentKind::Block => {
-        range_text
-          .strip_prefix("*/") // for multi-line comment
-          .is_some_and(|s| s.trim().is_empty())
-      }
-    };
-
-    if !only_whitespace {
-      return None;
-    }
-
-    Some((comment, comment_text))
-  }
-
-  /// Comments containing @__PURE__ or #__PURE__ mark a specific function call
-  /// or constructor invocation as side effect free.
-  ///
-  /// Such an annotation is considered valid if it directly
-  /// precedes a function call or constructor invocation
-  /// and is only separated from the callee by white-space or comments.
-  ///
-  /// The only exception are parentheses that wrap a call or invocation.
-  ///
-  /// <https://rollupjs.org/configuration-options/#pure>
-  /// Derived from https://github.com/oxc-project/oxc/blob/147864cfeb112df526bb83d5b8671b465c005066/crates/oxc_linter/src/utils/tree_shaking.rs#L162-L171
-  pub fn is_pure_function_or_constructor_call(&self, span: Span) -> bool {
-    let leading_comment = self.leading_comment_for(span);
-
-    leading_comment.is_some_and(|(_, text)| PURE_COMMENTS.find_iter(text).next().is_some())
-  }
-}
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 pub(crate) enum PrimitiveType {

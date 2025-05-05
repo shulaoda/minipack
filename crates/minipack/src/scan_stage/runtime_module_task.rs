@@ -17,21 +17,15 @@ use minipack_common::{ModuleId, ModuleLoaderMsg};
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 
 use super::ast_scanner::{AstScanResult, AstScanner, pre_processor::PreProcessor};
-use crate::types::SharedNormalizedBundlerOptions;
 
 pub struct RuntimeModuleTask {
   idx: ModuleIdx,
   tx: Sender<ModuleLoaderMsg>,
-  options: SharedNormalizedBundlerOptions,
 }
 
 impl RuntimeModuleTask {
-  pub fn new(
-    idx: ModuleIdx,
-    tx: Sender<ModuleLoaderMsg>,
-    options: SharedNormalizedBundlerOptions,
-  ) -> Self {
-    Self { idx, tx, options }
+  pub fn new(idx: ModuleIdx, tx: Sender<ModuleLoaderMsg>) -> Self {
+    Self { idx, tx }
   }
 
   pub fn run(mut self) {
@@ -51,12 +45,10 @@ impl RuntimeModuleTask {
       stmt_infos,
       default_export_ref,
       namespace_object_ref,
-      has_top_level_await,
       symbols,
       imports,
       import_records: raw_import_records,
       has_star_exports,
-      has_eval,
       ..
     } = scan_result;
 
@@ -85,12 +77,10 @@ impl RuntimeModuleTask {
         imports,
         default_export_ref,
         namespace_object_ref,
-        has_top_level_await,
         self_referenced_class_decl_symbol_ids: FxHashSet::default(),
         hashbang_range: None,
         meta: {
           let mut meta = EcmaViewMeta::default();
-          meta.set(self::EcmaViewMeta::EVAL, has_eval);
           meta.set(self::EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
           meta
         },
@@ -103,12 +93,7 @@ impl RuntimeModuleTask {
       .map(|rec| {
         // We assume the runtime module only has external dependencies.
         let id = rec.module_request.as_str().into();
-        ResolvedId {
-          id,
-          ignored: false,
-          is_external: true,
-          package_json: None,
-        }
+        ResolvedId { id, ignored: false, is_external: true, package_json: None }
       })
       .collect();
 
@@ -138,20 +123,13 @@ impl RuntimeModuleTask {
       ast.contains_use_strict = pre_processor.contains_use_strict;
     });
 
-    let scoping = ast.program.with_dependent(|_owner, dep| {
-      SemanticBuilder::new().build(&dep.program).semantic.into_scoping()
-    });
+    let scoping = ast
+      .program
+      .with_dependent(|_, dep| SemanticBuilder::new().build(&dep.program).semantic.into_scoping());
 
     let facade_path = ModuleId::new(RUNTIME_MODULE_ID);
-    let scanner = AstScanner::new(
-      self.idx,
-      scoping,
-      "minipack_runtime",
-      source,
-      &facade_path,
-      ast.comments(),
-      &self.options,
-    );
+    let scanner = AstScanner::new(self.idx, scoping, "minipack_runtime", &facade_path);
+
     let scan_result = scanner.scan(ast.program())?;
 
     Ok((ast, scan_result))

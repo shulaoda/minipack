@@ -106,42 +106,6 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
 
   fn visit_expression(&mut self, it: &mut ast::Expression<'ast>) {
     let to_replaced = match it {
-      // transpose `require(test ? 'a' : 'b')` into `test ? require('a') : require('b')`
-      ast::Expression::CallExpression(expr)
-        if expr.callee.is_specific_id("require") && expr.arguments.len() == 1 =>
-      {
-        let arg = expr.arguments.get_mut(0).unwrap();
-        if let Some(cond_expr) = arg.as_expression_mut().and_then(|item| match item {
-          ast::Expression::ConditionalExpression(cond) => Some(cond),
-          _ => None,
-        }) {
-          let test = cond_expr.test.take_in(self.snippet.alloc());
-          let consequent = cond_expr.consequent.take_in(self.snippet.alloc());
-          let alternative = cond_expr.alternate.take_in(self.snippet.alloc());
-          let new_cond_expr = self.snippet.builder.alloc_conditional_expression(
-            SPAN,
-            test,
-            self.snippet.builder.expression_call(
-              SPAN,
-              self.snippet.builder.expression_identifier(SPAN, "require"),
-              NONE,
-              self.snippet.builder.vec1(ast::Argument::from(consequent)),
-              false,
-            ),
-            self.snippet.builder.expression_call(
-              SPAN,
-              self.snippet.builder.expression_identifier(SPAN, "require"),
-              NONE,
-              self.snippet.builder.vec1(ast::Argument::from(alternative)),
-              false,
-            ),
-          );
-
-          Some(ast::Expression::ConditionalExpression(new_cond_expr))
-        } else {
-          None
-        }
-      }
       // transpose `import(test ? 'a' : 'b')` into `test ? import('a') : import('b')`
       ast::Expression::ImportExpression(expr) if expr.options.is_none() => {
         let source = &mut expr.source;

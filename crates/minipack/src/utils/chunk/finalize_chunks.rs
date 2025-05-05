@@ -101,21 +101,19 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
   preliminary_assets
     .into_par_iter()
     .map(|mut asset| {
-      let filename: ArcStr = replace_placeholder_with_hash(
+      let filename = replace_placeholder_with_hash(
         asset.preliminary_filename.as_str(),
         &final_hashes_by_placeholder,
       )
-      .into_owned()
-      .into();
+      .into_owned();
 
       if let Some(kind) = &mut asset.kind {
-        *kind = filename.clone();
+        *kind = filename.as_str().into();
       }
 
       asset.content =
         replace_placeholder_with_hash(asset.content, &final_hashes_by_placeholder).into_owned();
-
-      asset.finalize(filename.to_string())
+      asset.finalize(filename)
     })
     .collect::<Vec<_>>()
     .into()

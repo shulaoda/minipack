@@ -5,7 +5,6 @@ mod side_effect_detector;
 
 use std::borrow::Cow;
 
-use arcstr::ArcStr;
 use minipack_common::{
   ImportKind, ImportRecordIdx, ImportRecordMeta, LocalExport, MemberExprRef, ModuleId, ModuleIdx,
   NamedImport, RawImportRecord, Specifier, StmtInfo, StmtInfos, SymbolRef, SymbolRefDbForModule,
@@ -17,7 +16,7 @@ use minipack_error::BuildResult;
 use minipack_utils::{concat_string, path_ext::PathExt, rstr::Rstr};
 use oxc::{
   ast::{
-    AstKind, Comment,
+    AstKind,
     ast::{
       self, ExportAllDeclaration, ExportDefaultDeclaration, ExportNamedDeclaration,
       IdentifierReference, ImportDeclaration, MemberExpression, ModuleDeclaration, Program,
@@ -31,7 +30,7 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 use sugar_path::SugarPath;
 
-use crate::{types::SharedOptions, utils::ecmascript::legitimize_identifier_name};
+use crate::utils::ecmascript::legitimize_identifier_name;
 
 #[derive(Debug)]
 pub struct AstScanResult {
@@ -45,8 +44,6 @@ pub struct AstScanResult {
   pub imports: FxHashMap<Span, ImportRecordIdx>,
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
-  pub has_eval: bool,
-  pub has_top_level_await: bool,
   pub symbols: SymbolRefDbForModule,
   /// https://github.com/evanw/esbuild/blob/d34e79e2a998c21bb71d57b92b0017ca11756912/internal/js_parser/js_parser_lower_class.go#L2277-L2283
   /// used for check if current class decl symbol was referenced in its class scope
@@ -59,15 +56,13 @@ pub struct AstScanResult {
   pub hashbang_range: Option<Span>,
   pub has_star_exports: bool,
   /// We don't know the ImportRecord related ModuleIdx yet, so use ImportRecordIdx as key temporarily
-  pub dynamic_import_rec_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
+  pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
   pub this_expr_replace_map: FxHashSet<Span>,
 }
 
 pub struct AstScanner<'me, 'ast> {
   idx: ModuleIdx,
-  source: &'me ArcStr,
   id: &'me ModuleId,
-  comments: &'me oxc::allocator::Vec<'me, Comment>,
   current_stmt_info: StmtInfo,
   result: AstScanResult,
   esm_export_keyword: Option<Span>,
@@ -75,32 +70,17 @@ pub struct AstScanner<'me, 'ast> {
   cur_class_decl: Option<SymbolId>,
   visit_path: Vec<AstKind<'ast>>,
   scope_stack: Vec<Option<ScopeId>>,
-  options: &'me SharedOptions,
   dynamic_import_usage_info: DynamicImportUsageInfo,
   /// A flag to resolve `this` appear with propertyKey in class
   is_nested_this_inside_class: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub enum IdentifierReferenceKind {
-  /// global variable
-  Global,
-  /// top level variable
-  Root(SymbolRef),
-  /// rest
-  Other,
-}
-
 impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
-  #[allow(clippy::too_many_arguments)]
   pub fn new(
     idx: ModuleIdx,
     scoping: Scoping,
     repr_name: &'me str,
-    source: &'me ArcStr,
     file_path: &'me ModuleId,
-    comments: &'me oxc::allocator::Vec<'me, Comment>,
-    options: &'me SharedOptions,
   ) -> Self {
     let root_scope_id = scoping.root_scope_id();
     let mut symbol_ref_db = SymbolRefDbForModule::new(idx, scoping, root_scope_id);
@@ -128,15 +108,13 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       default_export_ref,
       imports: FxHashMap::default(),
       warnings: Vec::new(),
-      has_eval: false,
       errors: Vec::new(),
       symbols: symbol_ref_db,
       namespace_object_ref,
       self_referenced_class_decl_symbol_ids: FxHashSet::default(),
       hashbang_range: None,
       has_star_exports: false,
-      has_top_level_await: false,
-      dynamic_import_rec_exports_usage: FxHashMap::default(),
+      dynamic_import_exports_usage: FxHashMap::default(),
       this_expr_replace_map: FxHashSet::default(),
     };
 
@@ -146,24 +124,13 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       result,
       esm_export_keyword: None,
       esm_import_keyword: None,
-      source,
       id: file_path,
-      comments,
       cur_class_decl: None,
       visit_path: vec![],
-      options,
       scope_stack: vec![],
       dynamic_import_usage_info: DynamicImportUsageInfo::default(),
       is_nested_this_inside_class: false,
     }
-  }
-
-  /// if current visit path is top level
-  pub fn is_valid_tla_scope(&self) -> bool {
-    self.scope_stack.iter().rev().filter_map(|item| *item).all(|scope| {
-      let flag = self.result.symbols.scope_flags(scope);
-      flag.is_block() || flag.is_top()
-    })
   }
 
   pub fn scan(mut self, program: &Program<'ast>) -> BuildResult<AstScanResult> {
@@ -571,20 +538,10 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   }
 
   /// return a `Some(SymbolRef)` if the identifier referenced a top level `IdentBinding`
-  fn resolve_identifier_reference(
-    &mut self,
-    ident: &IdentifierReference,
-  ) -> IdentifierReferenceKind {
-    match self.resolve_symbol_from_reference(ident) {
-      Some(symbol_id) => {
-        if self.is_root_symbol(symbol_id) {
-          IdentifierReferenceKind::Root((self.idx, symbol_id).into())
-        } else {
-          IdentifierReferenceKind::Other
-        }
-      }
-      None => IdentifierReferenceKind::Global,
-    }
+  fn resolve_identifier_reference(&mut self, ident: &IdentifierReference) -> Option<SymbolRef> {
+    self
+      .resolve_symbol_from_reference(ident)
+      .and_then(|symbol_id| self.is_root_symbol(symbol_id).then_some((self.idx, symbol_id).into()))
   }
 
   /// StaticMemberExpression or ComputeMemberExpression with static key

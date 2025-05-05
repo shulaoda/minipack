@@ -1,6 +1,6 @@
 use minipack_common::{
-  EcmaViewMeta, Module, ModuleIdx, ModuleType, NormalModule, StmtInfoIdx, SymbolOrMemberExprRef,
-  SymbolRef, SymbolRefDb, side_effects::DeterminedSideEffects,
+  EcmaViewMeta, Module, ModuleIdx, NormalModule, StmtInfoIdx, SymbolOrMemberExprRef, SymbolRef,
+  SymbolRefDb, side_effects::DeterminedSideEffects,
 };
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
 use oxc_index::IndexVec;
@@ -36,18 +36,14 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
 
   if ctx.tree_shaking && !matches!(module.side_effects, DeterminedSideEffects::NoTreeshake) {
     module.stmt_infos.iter_enumerated().for_each(|(stmt_info_id, stmt_info)| {
-      // No need to handle the first statement specially, which is the namespace object, because it doesn't have side effects and will only be included if it is used.
-      let bail_eval = module.meta.has_eval()
-        && !stmt_info.declared_symbols.is_empty()
-        && stmt_info_id.index() != 0;
-      if stmt_info.side_effect || bail_eval {
+      if stmt_info.side_effect {
         include_statement(ctx, module, stmt_info_id);
       }
     });
   } else {
     // Skip the first statement, which is the namespace object. It should be included only if it is used no matter
     // tree shaking is enabled or not.
-    module.stmt_infos.iter_enumerated().skip(1).for_each(|(stmt_info_id, _stmt_info)| {
+    module.stmt_infos.iter_enumerated().skip(1).for_each(|(stmt_info_id, _)| {
       include_statement(ctx, module, stmt_info_id);
     });
   }
@@ -63,12 +59,6 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
       Module::External(_) => {}
     }
   });
-
-  if module.meta.has_eval() && matches!(module.module_type, ModuleType::Js) {
-    module.named_imports.keys().for_each(|symbol| {
-      include_symbol(ctx, *symbol);
-    });
-  }
 }
 
 fn include_symbol(ctx: &mut Context, symbol_ref: SymbolRef) {

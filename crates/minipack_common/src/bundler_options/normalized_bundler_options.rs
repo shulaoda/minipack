@@ -1,8 +1,6 @@
 use std::path::PathBuf;
 
-use oxc::transformer::TransformOptions;
-
-use crate::{ESTarget, InputItem, OutputExports, OutputFormat, Platform};
+use crate::{InputItem, OutputFormat, Platform};
 
 // Using raw booleans is more clear in this case
 #[derive(Debug)]
@@ -16,15 +14,11 @@ pub struct NormalizedBundlerOptions {
   pub dir: String,
   pub file: Option<String>,
   pub format: OutputFormat,
-  pub exports: OutputExports,
   pub entry_filenames: String,
   pub chunk_filenames: String,
 
   // --- Enhance
   pub minify: bool,
-  pub target: ESTarget,
-  pub shim_missing_exports: bool,
-  pub base_transform_options: TransformOptions,
 }
 
 impl NormalizedBundlerOptions {

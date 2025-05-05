@@ -20,9 +20,6 @@ struct Commands {
 
   #[clap(flatten)]
   enhance: EnhanceArgs,
-
-  #[clap(long, short = 's')]
-  silent: bool,
 }
 
 fn print_output_assets(outputs: Vec<OutputChunk>) {
@@ -81,12 +78,9 @@ async fn main() {
     dir: args.output.dir,
     file: args.output.file,
     format: args.output.format.map(Into::into),
-    exports: args.output.exports.map(Into::into),
     entry_filenames: args.output.entry_filenames,
     chunk_filenames: args.output.chunk_filenames,
     minify: args.enhance.minify,
-    target: args.enhance.target.map(Into::into),
-    shim_missing_exports: args.enhance.shim_missing_exports,
   };
 
   let start = Instant::now();
@@ -94,7 +88,7 @@ async fn main() {
 
   match bundler.write().await {
     Ok(output) => {
-      if !args.silent {
+      if !args.enhance.silent {
         // Print warnings
         for warning in output.warnings {
           println!("{} {}", Colour::Yellow.paint("Warning:"), warning);

@@ -20,7 +20,6 @@ pub struct LinkingMetadata {
   // The unknown export name will be resolved at runtime.
   // esbuild add it to `ExportKind`, but the linker shouldn't mutate the module.
   pub has_dynamic_exports: bool,
-  pub shimmed_missing_exports: FxHashMap<Rstr, SymbolRef>,
 
   // Entry chunks need to generate code that doesn't belong to any module. This is the list of symbols are referenced by the
   // generated code. Tree-shaking will cares about these symbols to make sure they are not removed.

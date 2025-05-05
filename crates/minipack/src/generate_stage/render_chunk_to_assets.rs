@@ -5,6 +5,7 @@ use minipack_error::BuildResult;
 use minipack_utils::rayon::{
   IntoParallelRefIterator, IntoParallelRefMutIterator, ParallelIterator,
 };
+use oxc::transformer::ESTarget;
 use oxc_index::IndexVec;
 
 use super::generators::ecmascript::EcmaGenerator;
@@ -30,7 +31,7 @@ impl GenerateStage<'_> {
 
     if self.options.minify {
       assets.par_iter_mut().for_each(|asset| {
-        asset.content = EcmaCompiler::minify(&asset.content, self.options.target.into());
+        asset.content = EcmaCompiler::minify(&asset.content, ESTarget::ESNext);
       });
     }
 

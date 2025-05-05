@@ -3,8 +3,8 @@ use std::borrow::Cow;
 use arcstr::ArcStr;
 use indexmap::IndexSet;
 use minipack_common::{
-  Module, ModuleIdx, ModuleType, NamespaceAlias, NormalModule, OutputFormat, ResolvedExport,
-  Specifier, SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
+  Module, ModuleIdx, NamespaceAlias, NormalModule, OutputFormat, ResolvedExport, Specifier,
+  SymbolOrMemberExprRef, SymbolRef, SymbolRefDb,
 };
 use minipack_utils::{
   ecmascript::is_validate_identifier_name,
@@ -640,28 +640,6 @@ impl BindImportsAndExportsContext<'_> {
         }
 
         unreachable!("symbol should always exist");
-      }
-    }
-
-    if let Module::Normal(importee) = &self.module_table[tracker.importee] {
-      if (self.options.shim_missing_exports || matches!(importee.module_type, ModuleType::Empty))
-        && matches!(ret, MatchImportKind::NoMatch)
-      {
-        match &tracker.imported {
-          Specifier::Star => unreachable!("star should always exist, no need to shim"),
-          Specifier::Literal(imported) => {
-            let shimmed_symbol_ref = self.metas[tracker.importee]
-              .shimmed_missing_exports
-              .entry(imported.clone())
-              .or_insert_with(|| {
-                self.symbol_db.create_facade_root_symbol_ref(tracker.importee, imported.as_str())
-              });
-            return MatchImportKind::Normal(MatchImportKindNormal {
-              symbol: *shimmed_symbol_ref,
-              reexports: vec![],
-            });
-          }
-        }
       }
     }
 

@@ -1,13 +1,13 @@
 use std::path::Path;
 
-use minipack_common::{ESTarget, ModuleType, NormalizedBundlerOptions};
+use minipack_common::ModuleType;
 use minipack_ecmascript::EcmaAst;
 use minipack_error::BuildResult;
 use oxc::ast_visit::VisitMut;
 use oxc::diagnostics::Severity as OxcSeverity;
 use oxc::minifier::{CompressOptions, Compressor};
 use oxc::semantic::{SemanticBuilder, Stats};
-use oxc::transformer::Transformer;
+use oxc::transformer::{ESTarget, TransformOptions, Transformer};
 
 use super::ecmascript::EnsureSpanUniqueness;
 use super::parse_to_ecma_ast::ParseToEcmaAstResult;
@@ -29,7 +29,6 @@ impl PreProcessEcmaAst {
     mut ast: EcmaAst,
     source_path: &Path,
     module_type: &ModuleType,
-    bundle_options: &NormalizedBundlerOptions,
   ) -> BuildResult<ParseToEcmaAstResult> {
     let mut warning = vec![];
 
@@ -49,9 +48,9 @@ impl PreProcessEcmaAst {
     let mut scoping = semantic_ret.semantic.into_scoping();
 
     // Transform TypeScript.
-    if matches!(module_type, ModuleType::Ts) || !matches!(bundle_options.target, ESTarget::EsNext) {
+    if matches!(module_type, ModuleType::Ts) {
       let ret = ast.program.with_mut(|fields| {
-        Transformer::new(fields.allocator, source_path, &bundle_options.base_transform_options)
+        Transformer::new(fields.allocator, source_path, &TransformOptions::from(ESTarget::ESNext))
           .build_with_scoping(scoping, fields.program)
       });
 

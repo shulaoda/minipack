@@ -6,25 +6,19 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  EcmaAstIdx, ImportRecordIdx, LocalExport, ModuleId, NamedImport, ResolvedImportRecord,
-  StmtInfos, SymbolRef, side_effects::DeterminedSideEffects,
+  EcmaAstIdx, ImportRecordIdx, LocalExport, ModuleId, NamedImport, ResolvedImportRecord, StmtInfos,
+  SymbolRef, side_effects::DeterminedSideEffects,
 };
 
 bitflags! {
     #[derive(Debug, Default)]
     pub struct EcmaViewMeta: u8 {
-        const EVAL = 1;
-        const INCLUDED = 1 << 1;
-        const HAS_STAR_EXPORT = 1 << 3;
+        const INCLUDED = 1;
+        const HAS_STAR_EXPORT = 1 << 1;
     }
 }
 
 impl EcmaViewMeta {
-  #[inline]
-  pub fn has_eval(&self) -> bool {
-    self.contains(Self::EVAL)
-  }
-
   #[inline]
   pub fn is_included(&self) -> bool {
     self.contains(Self::INCLUDED)
@@ -47,8 +41,7 @@ pub struct EcmaView {
   /// `stmt_infos[0]` represents the namespace binding statement
   pub stmt_infos: StmtInfos,
   pub import_records: IndexVec<ImportRecordIdx, ResolvedImportRecord>,
-  /// The key is the `Span` of `ImportDeclaration`, `ImportExpression`, `ExportNamedDeclaration`, `ExportAllDeclaration`
-  /// and `CallExpression`(only when the callee is `require`).
+  /// The key is the `Span` of `ImportDeclaration`, `ImportExpression`, `ExportNamedDeclaration`, `ExportAllDeclaration`.
   pub imports: FxHashMap<Span, ImportRecordIdx>,
   pub default_export_ref: SymbolRef,
   // the ids of all modules that statically import this module
@@ -60,7 +53,6 @@ pub struct EcmaView {
   // the module ids imported by this module via dynamic import()
   pub dynamically_imported_ids: FxIndexSet<ModuleId>,
   pub side_effects: DeterminedSideEffects,
-  pub has_top_level_await: bool,
   pub self_referenced_class_decl_symbol_ids: FxHashSet<SymbolId>,
   // the range of hashbang in source
   pub hashbang_range: Option<Span>,

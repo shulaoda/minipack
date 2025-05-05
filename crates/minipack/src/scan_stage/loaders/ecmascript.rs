@@ -35,15 +35,7 @@ pub async fn create_ecma_view(
   let repr_name = module_id.as_path().representative_file_name();
   let repr_name = legitimize_identifier_name(&repr_name);
 
-  let scanner = AstScanner::new(
-    ctx.module_idx,
-    scoping,
-    &repr_name,
-    ast.source(),
-    &module_id,
-    ast.comments(),
-    ctx.options,
-  );
+  let scanner = AstScanner::new(ctx.module_idx, scoping, &repr_name, &module_id);
 
   let AstScanResult {
     named_imports,
@@ -54,14 +46,12 @@ pub async fn create_ecma_view(
     imports,
     namespace_object_ref,
     warnings: scan_warnings,
-    has_eval,
     errors,
-    has_top_level_await,
     symbols,
     self_referenced_class_decl_symbol_ids,
     hashbang_range,
     has_star_exports,
-    dynamic_import_rec_exports_usage: dynamic_import_exports_usage,
+    dynamic_import_exports_usage,
     this_expr_replace_map,
   } = scanner.scan(ast.program())?;
 
@@ -86,12 +76,10 @@ pub async fn create_ecma_view(
     imported_ids: FxIndexSet::default(),
     dynamically_imported_ids: FxIndexSet::default(),
     side_effects: DeterminedSideEffects::NoTreeshake,
-    has_top_level_await,
     self_referenced_class_decl_symbol_ids,
     hashbang_range,
     meta: {
       let mut meta = EcmaViewMeta::default();
-      meta.set(EcmaViewMeta::EVAL, has_eval);
       meta.set(EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
       meta
     },

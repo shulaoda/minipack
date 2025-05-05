@@ -1,6 +1,4 @@
-use minipack_common::{
-  ImportKind, ImportRecordMeta, dynamic_import_usage::DynamicImportExportsUsage,
-};
+use minipack_common::{ImportKind, ImportRecordMeta};
 use minipack_utils::option_ext::OptionExt;
 use oxc::{
   ast::{
@@ -39,22 +37,15 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
     for (idx, stmt) in program.body.iter().enumerate() {
       self.current_stmt_info.stmt_idx = Some(idx.into());
       self.current_stmt_info.side_effect =
-        SideEffectDetector::new(&self.result.symbols.ast_scopes, self.source, self.comments, true)
-          .detect_side_effect_of_stmt(stmt);
+        SideEffectDetector::new(&self.result.symbols.ast_scopes).detect_side_effect_of_stmt(stmt);
 
       self.visit_statement(stmt);
       self.result.stmt_infos.add_stmt_info(std::mem::take(&mut self.current_stmt_info));
     }
 
     self.result.hashbang_range = program.hashbang.as_ref().map(GetSpan::span);
-    self.result.dynamic_import_rec_exports_usage =
+    self.result.dynamic_import_exports_usage =
       std::mem::take(&mut self.dynamic_import_usage_info.dynamic_import_exports_usage);
-    if self.result.has_eval {
-      // if there exists `eval` in current module, assume all dynamic import are completely used;
-      for usage in self.result.dynamic_import_rec_exports_usage.values_mut() {
-        *usage = DynamicImportExportsUsage::Complete;
-      }
-    }
   }
 
   fn visit_binding_identifier(&mut self, ident: &ast::BindingIdentifier) {
@@ -62,34 +53,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
     if self.is_root_symbol(symbol_id) {
       self.add_declared_id(symbol_id);
     }
-  }
-
-  fn visit_for_of_statement(&mut self, it: &ast::ForOfStatement<'ast>) {
-    let is_top_level_await = it.r#await && self.is_valid_tla_scope();
-    if is_top_level_await && !self.options.format.is_esm() {
-      self.result.errors.push(anyhow::anyhow!(
-        "Top-level await is currently not supported with the '{format}' output format",
-        format = self.options.format
-      ));
-    }
-    if is_top_level_await {
-      self.result.has_top_level_await = true
-    }
-    walk::walk_for_of_statement(self, it);
-  }
-
-  fn visit_await_expression(&mut self, it: &ast::AwaitExpression<'ast>) {
-    let is_top_level_await = self.is_valid_tla_scope();
-    if !self.options.format.is_esm() && is_top_level_await {
-      self.result.errors.push(anyhow::anyhow!(
-        "Top-level await is currently not supported with the '{format}' output format",
-        format = self.options.format
-      ));
-    }
-    if is_top_level_await {
-      self.result.has_top_level_await = true;
-    }
-    walk::walk_await_expression(self, it);
   }
 
   fn visit_identifier_reference(&mut self, ident: &IdentifierReference) {
@@ -167,50 +130,29 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   }
 
   fn process_identifier_ref_by_scope(&mut self, ident_ref: &IdentifierReference) {
-    match self.resolve_identifier_reference(ident_ref) {
-      super::IdentifierReferenceKind::Global => {
-        self.process_global_identifier_ref_by_ancestor(ident_ref);
-      }
-      super::IdentifierReferenceKind::Root(root_symbol_id) => {
-        // if the identifier_reference is a NamedImport MemberExpr access, we store it as a `MemberExpr`
-        // use this flag to avoid insert it as `Symbol` at the same time.
-        let mut is_inserted_before = false;
-        if self.result.named_imports.contains_key(&root_symbol_id) {
-          if let Some((span, props)) = self.try_extract_parent_static_member_expr_chain(usize::MAX)
-          {
-            if !span.is_unspanned() {
-              is_inserted_before = true;
-              self.add_member_expr_reference(root_symbol_id, props, span);
-            }
+    if let Some(root_symbol_id) = self.resolve_identifier_reference(ident_ref) {
+      // if the identifier_reference is a NamedImport MemberExpr access, we store it as a `MemberExpr`
+      // use this flag to avoid insert it as `Symbol` at the same time.
+      let mut is_inserted_before = false;
+      if self.result.named_imports.contains_key(&root_symbol_id) {
+        if let Some((span, props)) = self.try_extract_parent_static_member_expr_chain(usize::MAX) {
+          if !span.is_unspanned() {
+            is_inserted_before = true;
+            self.add_member_expr_reference(root_symbol_id, props, span);
           }
         }
-        if !is_inserted_before {
-          self.add_referenced_symbol(root_symbol_id);
-        }
-
-        match (self.cur_class_decl, self.resolve_symbol_from_reference(ident_ref)) {
-          (Some(cur_class_decl), Some(referenced_to)) if cur_class_decl == referenced_to => {
-            self.result.self_referenced_class_decl_symbol_ids.insert(cur_class_decl);
-          }
-          _ => {}
-        }
       }
-      super::IdentifierReferenceKind::Other => {}
-    };
-  }
 
-  fn process_global_identifier_ref_by_ancestor(
-    &mut self,
-    ident_ref: &IdentifierReference,
-  ) -> Option<()> {
-    if let AstKind::CallExpression(_) = self.visit_path.last()? {
-      if ident_ref.name == "eval" {
-        self.result.has_eval = true;
-        self.result.warnings.push(
-          anyhow::anyhow!("Use of eval in '{}' is strongly discouraged as it poses security risks and may cause issues with minification.", self.id.as_ref())
-        );
+      if !is_inserted_before {
+        self.add_referenced_symbol(root_symbol_id);
+      }
+
+      match (self.cur_class_decl, self.resolve_symbol_from_reference(ident_ref)) {
+        (Some(cur_class_decl), Some(referenced_to)) if cur_class_decl == referenced_to => {
+          self.result.self_referenced_class_decl_symbol_ids.insert(cur_class_decl);
+        }
+        _ => {}
       }
     }
-    None
   }
 }

@@ -19,7 +19,7 @@ pub fn parse_to_ecma_ast(
   ctx: &CreateModuleContext<'_>,
   source: String,
 ) -> BuildResult<ParseToEcmaAstResult> {
-  let CreateModuleContext { options, stable_id, module_type, .. } = ctx;
+  let CreateModuleContext { stable_id, module_type, .. } = ctx;
 
   let source = if matches!(module_type, ModuleType::Empty) { ArcStr::new() } else { source.into() };
   let oxc_source_type = {
@@ -28,5 +28,5 @@ pub fn parse_to_ecma_ast(
   };
 
   let ecma_ast = EcmaCompiler::parse(&source, oxc_source_type)?;
-  PreProcessEcmaAst::default().build(ecma_ast, stable_id.as_path(), module_type, options)
+  PreProcessEcmaAst::default().build(ecma_ast, stable_id.as_path(), module_type)
 }

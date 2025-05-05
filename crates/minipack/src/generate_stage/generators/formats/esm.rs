@@ -46,7 +46,7 @@ pub fn render_esm<'code>(
     },
   );
 
-  if let Some(exports) = render_chunk_exports(ctx, None) {
+  if let Some(exports) = render_chunk_exports(ctx) {
     if !exports.is_empty() {
       source_joiner.append_source(exports);
     }
@@ -91,8 +91,9 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
 
   // render external imports
   ctx.chunk.imports_from_external_modules.iter().for_each(|(importee_id, named_imports)| {
-    let importee =
-      &ctx.link_output.module_table[*importee_id].as_external().expect("Should be external module here");
+    let importee = &ctx.link_output.module_table[*importee_id]
+      .as_external()
+      .expect("Should be external module here");
     let mut has_importee_imported = false;
     let mut default_alias = vec![];
     let specifiers = named_imports

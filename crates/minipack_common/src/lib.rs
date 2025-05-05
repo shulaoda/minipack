@@ -6,9 +6,9 @@ mod module_loader;
 mod types;
 
 pub use bundler_options::{
-  BundlerOptions, es_target::ESTarget, filename_template::FilenameTemplate, input_item::InputItem,
+  BundlerOptions, filename_template::FilenameTemplate, input_item::InputItem,
   module_type::ModuleType, normalized_bundler_options::NormalizedBundlerOptions,
-  output_exports::OutputExports, output_format::OutputFormat, platform::Platform,
+  output_format::OutputFormat, platform::Platform,
 };
 
 pub use crate::{

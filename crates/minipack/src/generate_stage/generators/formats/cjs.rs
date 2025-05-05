@@ -1,15 +1,11 @@
-use minipack_common::{OutputExports, SourceJoiner};
+use minipack_common::SourceJoiner;
 use minipack_error::BuildResult;
 use minipack_utils::concat_string;
 
 use crate::{
   generate_stage::generators::ecmascript::{RenderedModuleSource, RenderedModuleSources},
   types::generator::GenerateContext,
-  utils::chunk::{
-    determine_export_mode::determine_export_mode,
-    namespace_marker::render_namespace_markers,
-    render_chunk_exports::{get_chunk_export_names, render_chunk_exports},
-  },
+  utils::chunk::render_chunk_exports::render_chunk_exports,
 };
 
 fn render_modules_with_peek_runtime_module_at_first<'a>(
@@ -50,7 +46,6 @@ pub fn render_cjs<'code>(
   ctx: &GenerateContext<'_>,
   hashbang: Option<&'code str>,
   module_sources: &'code RenderedModuleSources,
-  warnings: &mut Vec<anyhow::Error>,
 ) -> BuildResult<SourceJoiner<'code>> {
   let mut source_joiner = SourceJoiner::default();
 
@@ -65,27 +60,6 @@ pub fn render_cjs<'code>(
     source_joiner.append_source("\"use strict\";");
   }
 
-  // Note that the determined `export_mode` should be used in `render_chunk_exports` to render exports.
-  // We also need to get the export mode for rendering the namespace markers.
-  // So we determine the export mode (from auto) here and use it in the following code.
-  let export_mode = if let Some(entry_module) =
-    ctx.chunk.user_defined_entry_module(&ctx.link_output.module_table)
-  {
-    let export_names = get_chunk_export_names(ctx.chunk, ctx.link_output);
-    let has_default_export = export_names.iter().any(|name| name.as_str() == "default");
-    let export_mode = determine_export_mode(warnings, ctx, entry_module, &export_names)?;
-    // Only `named` export can we render the namespace markers.
-    if matches!(&export_mode, OutputExports::Named) {
-      if let Some(marker) = render_namespace_markers(has_default_export, false) {
-        source_joiner.append_source(marker.to_string());
-      }
-    }
-    Some(export_mode)
-  } else {
-    // The common chunks should be `named`.
-    Some(OutputExports::Named)
-  };
-
   // Runtime module should be placed before the generated `requires` in CJS format.
   // Because, we might need to generate `__toESM(require(...))` that relies on the runtime module.
   render_modules_with_peek_runtime_module_at_first(
@@ -95,7 +69,7 @@ pub fn render_cjs<'code>(
     render_cjs_chunk_imports(ctx),
   );
 
-  if let Some(exports) = render_chunk_exports(ctx, export_mode.as_ref()) {
+  if let Some(exports) = render_chunk_exports(ctx) {
     source_joiner.append_source(exports);
   }
 

@@ -62,7 +62,6 @@ impl ModuleTask {
         stable_id: &stable_id,
         module_idx: self.idx,
         resolved_id: &self.resolved_id,
-        options: &self.ctx.options,
         warnings: &mut warnings,
         module_type: module_type.clone(),
       },

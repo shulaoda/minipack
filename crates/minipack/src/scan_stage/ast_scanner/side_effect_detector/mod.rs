@@ -7,8 +7,8 @@ use minipack_utils::global_reference::{
 };
 use oxc::ast::ast::{
   self, Argument, ArrayExpressionElement, AssignmentTarget, AssignmentTargetPattern,
-  BindingPatternKind, CallExpression, ChainElement, Comment, Expression, IdentifierReference,
-  PropertyKey, UnaryOperator, VariableDeclarationKind,
+  BindingPatternKind, ChainElement, Expression, IdentifierReference, PropertyKey, UnaryOperator,
+  VariableDeclarationKind,
 };
 use oxc::ast::{match_expression, match_member_expression};
 use utils::{
@@ -22,19 +22,11 @@ use self::utils::{PrimitiveType, known_primitive_type};
 /// Detect if a statement "may" have side effect.
 pub struct SideEffectDetector<'a> {
   pub scope: &'a AstScopes,
-  pub source: &'a str,
-  pub comments: &'a oxc::allocator::Vec<'a, Comment>,
-  pub ignore_annotations: bool,
 }
 
 impl<'a> SideEffectDetector<'a> {
-  pub fn new(
-    scope: &'a AstScopes,
-    source: &'a str,
-    comments: &'a oxc::allocator::Vec<'a, Comment>,
-    ignore_annotations: bool,
-  ) -> Self {
-    Self { scope, source, comments, ignore_annotations }
+  pub fn new(scope: &'a AstScopes) -> Self {
+    Self { scope }
   }
 
   fn is_unresolved_reference(&self, ident_ref: &IdentifierReference) -> bool {
@@ -137,18 +129,6 @@ impl<'a> SideEffectDetector<'a> {
       AssignmentTargetPattern::ObjectAssignmentTarget(object_pattern) => {
         !object_pattern.properties.is_empty() || object_pattern.rest.is_some()
       }
-    }
-  }
-
-  fn detect_side_effect_of_call_expr(&self, expr: &CallExpression) -> bool {
-    let is_pure = !self.ignore_annotations && self.is_pure_function_or_constructor_call(expr.span);
-    if is_pure {
-      expr.arguments.iter().any(|arg| match arg {
-        Argument::SpreadElement(_) => true,
-        _ => self.detect_side_effect_of_expr(arg.to_expression()),
-      })
-    } else {
-      true
     }
   }
 
@@ -302,7 +282,7 @@ impl<'a> SideEffectDetector<'a> {
           || self.detect_side_effect_of_expr(&expr.right)
       }
       Expression::ChainExpression(expr) => match &expr.expression {
-        ChainElement::CallExpression(call_expr) => self.detect_side_effect_of_call_expr(call_expr),
+        ChainElement::CallExpression(_) => true,
         ChainElement::TSNonNullExpression(expr) => {
           self.detect_side_effect_of_expr(&expr.expression)
         }
@@ -322,9 +302,7 @@ impl<'a> SideEffectDetector<'a> {
       }
       Expression::ArrayExpression(expr) => self.detect_side_effect_of_array_expr(expr),
       Expression::NewExpression(expr) => {
-        let is_pure = maybe_side_effect_free_global_constructor(self.scope, expr)
-          || self.is_pure_function_or_constructor_call(expr.span);
-        if is_pure {
+        if maybe_side_effect_free_global_constructor(self.scope, expr) {
           expr.arguments.iter().any(|arg| match arg {
             Argument::SpreadElement(_) => true,
             _ => self.detect_side_effect_of_expr(arg.to_expression()),
@@ -333,7 +311,7 @@ impl<'a> SideEffectDetector<'a> {
           true
         }
       }
-      Expression::CallExpression(expr) => self.detect_side_effect_of_call_expr(expr),
+      Expression::CallExpression(_) => true,
     }
   }
 

@@ -18,9 +18,7 @@ bitflags::bitflags! {
     const IS_UNSPANNED_IMPORT = 1 << 3;
     /// `export * from 'mod'` only
     const IS_EXPORT_STAR = 1 << 4;
-    /// If the import is a dummy import, it should be ignored during linking, e.g.
-    /// `require` ExpressionIdentifier should be considering as a import record,
-    /// but it did not import any module.
+    /// If the import is a dummy import, it should be ignored during linking.
     const IS_DUMMY = 1 << 5;
   }
 }

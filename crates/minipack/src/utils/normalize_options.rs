@@ -1,9 +1,6 @@
 use std::{path::Path, sync::Arc};
 
-use minipack_common::{
-  BundlerOptions, NormalizedBundlerOptions, OutputExports, OutputFormat, Platform,
-};
-use oxc::transformer::{ESTarget, TransformOptions};
+use minipack_common::{BundlerOptions, NormalizedBundlerOptions, OutputFormat, Platform};
 
 pub fn normalize_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOptions> {
   let cwd =
@@ -25,9 +22,6 @@ pub fn normalize_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOp
     },
   );
 
-  let target = raw_options.target.unwrap_or_default();
-  let base_transform_options = TransformOptions::from(ESTarget::from(target));
-
   Arc::new(NormalizedBundlerOptions {
     // --- Input
     cwd,
@@ -37,13 +31,9 @@ pub fn normalize_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOp
     dir,
     file: raw_options.file,
     format,
-    exports: raw_options.exports.unwrap_or(OutputExports::Auto),
     entry_filenames: raw_options.entry_filenames.unwrap_or_else(|| "[name].js".to_string()),
     chunk_filenames: raw_options.chunk_filenames.unwrap_or_else(|| "[name]-[hash].js".to_string()),
     // --- Enhance
     minify: raw_options.minify.unwrap_or_default(),
-    target,
-    shim_missing_exports: raw_options.shim_missing_exports.unwrap_or_default(),
-    base_transform_options,
   })
 }

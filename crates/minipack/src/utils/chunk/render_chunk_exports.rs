@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use minipack_common::{
-  Chunk, ChunkKind, EntryPointKind, ModuleIdx, OutputExports, OutputFormat, SymbolRef, SymbolRefDb,
+  Chunk, ChunkKind, EntryPointKind, ModuleIdx, OutputFormat, SymbolRef, SymbolRefDb,
 };
 use minipack_utils::{
   concat_string,
@@ -12,10 +12,7 @@ use minipack_utils::{
 
 use crate::{link_stage::LinkStageOutput, types::generator::GenerateContext};
 
-pub fn render_chunk_exports(
-  ctx: &GenerateContext<'_>,
-  export_mode: Option<&OutputExports>,
-) -> Option<String> {
+pub fn render_chunk_exports(ctx: &GenerateContext<'_>) -> Option<String> {
   let GenerateContext { chunk, link_output, options, .. } = ctx;
   let export_items = get_export_items(chunk, link_output).into_iter().collect::<Vec<_>>();
 
@@ -63,7 +60,8 @@ pub fn render_chunk_exports(
       let mut s = String::new();
       match chunk.kind {
         ChunkKind::EntryPoint { module, .. } => {
-          let module = &link_output.module_table[module].as_normal().expect("should be normal module");
+          let module =
+            &link_output.module_table[module].as_normal().expect("should be normal module");
 
           let rendered_items = export_items
             .into_iter()
@@ -96,27 +94,14 @@ pub fn render_chunk_exports(
                 canonical_name.clone()
               };
 
-              match export_mode {
-                Some(OutputExports::Named) => {
-                  if must_keep_live_binding(export_ref, &link_output.symbols) {
-                    render_object_define_property(&exported_name, &exported_value)
-                  } else {
-                    concat_string!(
-                      property_access_str("exports", exported_name.as_str()),
-                      " = ",
-                      exported_value.as_str()
-                    )
-                  }
-                }
-                Some(OutputExports::Default) => {
-                  if matches!(options.format, OutputFormat::Cjs) {
-                    concat_string!("module.exports = ", exported_value.as_str(), ";")
-                  } else {
-                    concat_string!("return ", exported_value.as_str(), ";")
-                  }
-                }
-                Some(OutputExports::None) => String::new(),
-                _ => unreachable!(),
+              if must_keep_live_binding(export_ref, &link_output.symbols) {
+                render_object_define_property(&exported_name, &exported_value)
+              } else {
+                concat_string!(
+                  property_access_str("exports", exported_name.as_str()),
+                  " = ",
+                  exported_value.as_str()
+                )
               }
             })
             .collect::<Vec<_>>();
@@ -213,13 +198,6 @@ pub fn get_export_items(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<(Rstr, Sy
       tmp
     }
   }
-}
-
-pub fn get_chunk_export_names(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<Rstr> {
-  get_export_items(chunk, graph)
-    .into_iter()
-    .map(|(exported_name, _)| exported_name)
-    .collect::<Vec<_>>()
 }
 
 fn must_keep_live_binding(export_ref: SymbolRef, symbol_db: &SymbolRefDb) -> bool {

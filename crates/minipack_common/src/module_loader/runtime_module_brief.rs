@@ -17,6 +17,7 @@ impl RuntimeModuleBrief {
       .into_iter()
       .map(|(name, &symbol_id)| (CompactString::new(name), symbol_id))
       .collect();
+
     Self { id, name_to_symbol }
   }
 

@@ -2,7 +2,6 @@ use std::collections::hash_map::Entry;
 use std::sync::Arc;
 
 use arcstr::ArcStr;
-use minipack_common::StmtInfoIdx;
 use minipack_common::{
   DUMMY_MODULE_IDX, EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind,
   ImportRecordIdx, ImportRecordMeta, ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
@@ -75,17 +74,15 @@ impl ModuleLoader {
     // over 1024 pending tasks are insane
     let (tx, rx) = tokio::sync::mpsc::channel(1024);
 
-    let shared_context =
-      Arc::new(TaskContext { fs, resolver, options: options.clone(), tx: tx.clone() });
-
     let mut inm = IntermediateNormalModules::new();
 
-    let runtime_idx = inm.alloc_ecma_module_idx();
     let symbols = SymbolRefDb::default();
+    let runtime_idx = inm.alloc_ecma_module_idx();
 
     let visited = FxHashMap::from_iter([(RUNTIME_MODULE_ID.into(), runtime_idx)]);
+    let shared_context = Arc::new(TaskContext { fs, resolver, options, tx: tx.clone() });
 
-    let task = RuntimeModuleTask::new(runtime_idx, tx.clone(), options.clone());
+    let task = RuntimeModuleTask::new(runtime_idx, tx.clone());
 
     tokio::spawn(async { task.run() });
 
@@ -113,13 +110,12 @@ impl ModuleLoader {
       })
       .collect::<Vec<_>>();
 
-    let mut errors: Vec<anyhow::Error> = vec![];
-    let mut warnings: Vec<anyhow::Error> = vec![];
+    let mut errors = vec![];
+    let mut warnings = vec![];
 
-    let mut runtime_module: Option<RuntimeModuleBrief> = None;
+    let mut runtime_module = None;
 
-    let mut dynamic_import_entry_ids: FxHashMap<ModuleIdx, Vec<(ModuleIdx, StmtInfoIdx)>> =
-      FxHashMap::default();
+    let mut dynamic_import_entry_ids = FxHashMap::default();
     let mut dynamic_import_exports_usage_pairs = vec![];
 
     while self.remaining > 0 {
@@ -211,8 +207,7 @@ impl ModuleLoader {
             .into_iter()
             .zip(resolved_deps)
             .map(|(raw_rec, info)| {
-              let id =
-                self.try_spawn_new_task(info, None, false);
+              let id = self.try_spawn_new_task(info, None, false);
               // Dynamic imported module will be considered as an entry
               self.inm.importers[id]
                 .push(ImporterRecord { kind: raw_rec.kind, importer_path: module.id.clone() });

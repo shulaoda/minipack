@@ -16,13 +16,6 @@ impl LinkStage<'_> {
         linking_info.referenced_symbols_by_entry_point_chunk.extend(referenced_symbols);
       }
 
-      // Create facade StmtInfo that declares variables based on the missing exports,
-      // so they can participate in the symbol de-conflict and tree-shaking process.
-      linking_info.shimmed_missing_exports.iter().for_each(|(_, symbol_ref)| {
-        let stmt_info = StmtInfo { declared_symbols: vec![*symbol_ref], ..Default::default() };
-        normal_module.stmt_infos.add_stmt_info(stmt_info);
-      });
-
       // Generate export of Module Namespace Object for Namespace Import
       // - Namespace import: https://tc39.es/ecma262/#prod-NameSpaceImport
       // - Module Namespace Object: https://tc39.es/ecma262/#sec-module-namespace-exotic-objects

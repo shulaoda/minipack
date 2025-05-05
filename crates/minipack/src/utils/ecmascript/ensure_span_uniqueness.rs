@@ -6,7 +6,6 @@ use rustc_hash::FxHashSet;
 
 /// Make sure there aren't any duplicate spans in the AST.
 pub struct EnsureSpanUniqueness {
-  // visited_spans: FxHashMap</* start */ u32, /* ends */ FxHashSet<u32>>,
   visited_spans: FxHashSet<Span>,
   next_unique_span_start: u32,
 }
@@ -32,22 +31,9 @@ impl<'a> VisitMut<'a> for EnsureSpanUniqueness {
     walk_mut::walk_this_expression(self, it);
   }
 
-  fn visit_call_expression(&mut self, it: &mut oxc::ast::ast::CallExpression<'a>) {
-    if it.callee.is_specific_id("require") && it.arguments.len() == 1 {
-      self.ensure_uniqueness(it.span_mut());
-    }
-    walk_mut::walk_call_expression(self, it);
-  }
-
   fn visit_new_expression(&mut self, it: &mut oxc::ast::ast::NewExpression<'a>) {
     self.ensure_uniqueness(it.span_mut());
     walk_mut::walk_new_expression(self, it);
-  }
-
-  fn visit_identifier_reference(&mut self, it: &mut oxc::ast::ast::IdentifierReference<'a>) {
-    if it.name == "require" {
-      self.ensure_uniqueness(it.span_mut());
-    }
   }
 }
 

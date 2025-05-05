@@ -9,7 +9,6 @@ use super::module_id::stabilize_module_id;
 #[derive(Debug)]
 pub struct ResolvedId {
   pub id: ArcStr,
-  // https://github.com/defunctzombie/package-browser-field-spec/blob/8c4869f6a5cb0de26d208de804ad0a62473f5a03/README.md?plain=1#L62-L77
   pub ignored: bool,
   pub is_external: bool,
   pub package_json: Option<Arc<PackageJson>>,

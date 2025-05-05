@@ -2,10 +2,7 @@ use std::path::PathBuf;
 
 use clap::Args;
 
-use crate::types::{
-  es_target::ESTarget, output_exports::OutputExports, output_format::OutputFormat,
-  platform::Platform,
-};
+use crate::types::{output_format::OutputFormat, platform::Platform};
 
 #[derive(Args)]
 pub struct InputArgs {
@@ -31,9 +28,6 @@ pub struct OutputArgs {
   pub format: Option<OutputFormat>,
 
   #[clap(long)]
-  pub exports: Option<OutputExports>,
-
-  #[clap(long)]
   pub entry_filenames: Option<String>,
 
   #[clap(long)]
@@ -45,9 +39,6 @@ pub struct EnhanceArgs {
   #[clap(long, short = 'm')]
   pub minify: Option<bool>,
 
-  #[clap(long, default_missing_value = "esnext")]
-  pub target: Option<ESTarget>,
-
-  #[clap(long)]
-  pub shim_missing_exports: Option<bool>,
+  #[clap(long, short = 's')]
+  pub silent: bool,
 }

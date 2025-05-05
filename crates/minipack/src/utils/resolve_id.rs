@@ -4,35 +4,13 @@ use minipack_common::ResolvedId;
 use minipack_error::BuildResult;
 use minipack_resolver::{ResolveError, Resolver};
 
-#[inline]
-fn is_http_url(s: &str) -> bool {
-  s.starts_with("http://") || s.starts_with("https://") || s.starts_with("//")
-}
-
-#[inline]
-fn is_data_url(s: &str) -> bool {
-  s.trim_start().starts_with("data:")
-}
-
 pub fn resolve_id(
   resolver: &Resolver,
   request: &str,
   importer: Option<&str>,
   is_user_defined_entry: bool,
 ) -> BuildResult<ResolvedId> {
-  // Auto external http url or data url
-  if is_http_url(request) || is_data_url(request) {
-    return Ok(ResolvedId {
-      id: request.into(),
-      ignored: false,
-      is_external: true,
-      package_json: None,
-    });
-  }
-
-  let resolved = resolver.resolve(importer.map(Path::new), request, is_user_defined_entry);
-
-  match resolved {
+  match resolver.resolve(importer.map(Path::new), request, is_user_defined_entry) {
     Ok(resolved) => Ok(ResolvedId {
       id: resolved.path,
       ignored: false,

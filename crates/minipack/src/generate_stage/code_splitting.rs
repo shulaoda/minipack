@@ -200,8 +200,8 @@ impl GenerateStage<'_> {
       index_splitting_info[module_id].bits.set_bit(entry_index);
       index_splitting_info[module_id].share_count += 1;
 
-      meta.dependencies.iter().copied().for_each(|dep_idx| {
-        self.determine_reachable_modules_for_entry(dep_idx, entry_index, index_splitting_info);
+      meta.dependencies.iter().copied().for_each(|idx| {
+        self.determine_reachable_modules_for_entry(idx, entry_index, index_splitting_info);
       });
     }
   }

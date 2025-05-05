@@ -17,10 +17,10 @@
     "typescript": "^5.7.3"
   },
   "lint-staged": {
-    "*.@(js|ts|tsx|yml|yaml|md|json|html|toml)": [
+    "*.@(js|ts|yml|yaml|md|json|html|toml)": [
       "dprint fmt"
     ],
-    "*.@(js|ts|tsx)": [
+    "*.@(js|ts)": [
       "pnpm lint-code -- --fix"
     ],
     "*": "cspell --no-progress --gitignore --no-must-find-files"

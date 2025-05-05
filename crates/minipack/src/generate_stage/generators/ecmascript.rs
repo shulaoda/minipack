@@ -70,14 +70,10 @@ impl EcmaGenerator {
       },
     );
 
-    let mut warnings = vec![];
-
     let source_joiner = match ctx.options.format {
       OutputFormat::Esm => render_esm(ctx, hashbang, &rendered_module_sources),
-      OutputFormat::Cjs => render_cjs(ctx, hashbang, &rendered_module_sources, &mut warnings)?,
+      OutputFormat::Cjs => render_cjs(ctx, hashbang, &rendered_module_sources)?,
     };
-
-    ctx.warnings.extend(warnings);
 
     let content = source_joiner.join();
 

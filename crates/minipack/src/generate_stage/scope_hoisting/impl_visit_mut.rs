@@ -48,29 +48,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       program.body.splice(0..0, stmts);
     }
 
-    let declaration_of_module_namespace_object = vec![];
-
-    let mut shimmed_exports =
-      self.ctx.linking_info.shimmed_missing_exports.iter().collect::<Vec<_>>();
-    shimmed_exports.sort_unstable_by_key(|(name, _)| name.as_str());
-    shimmed_exports.into_iter().for_each(|(_name, symbol_ref)| {
-      debug_assert!(!self.ctx.module.stmt_infos.declared_stmts_by_symbol(symbol_ref).is_empty());
-      let is_included: bool = self
-        .ctx
-        .module
-        .stmt_infos
-        .declared_stmts_by_symbol(symbol_ref)
-        .iter()
-        .any(|id| self.ctx.module.stmt_infos[*id].is_included);
-      if is_included {
-        let canonical_name = self.canonical_name_for(*symbol_ref);
-        program.body.push(self.snippet.var_decl_stmt(canonical_name, self.snippet.void_zero()));
-      }
-    });
-
     walk_mut::walk_program(self, program);
-
-    program.body.extend(declaration_of_module_namespace_object);
   }
 
   fn visit_binding_identifier(&mut self, ident: &mut ast::BindingIdentifier<'ast>) {

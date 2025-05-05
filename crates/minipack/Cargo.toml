@@ -19,7 +19,6 @@ minipack_utils = { workspace = true }
 anyhow = { workspace = true }
 append-only-vec = { workspace = true }
 arcstr = { workspace = true }
-daachorse = { workspace = true }
 futures = { workspace = true }
 indexmap = { workspace = true }
 itertools = { workspace = true }
