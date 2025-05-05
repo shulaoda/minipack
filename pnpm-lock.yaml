@@ -21,7 +21,7 @@ importers:
         specifier: ^5.7.3
         version: 5.7.3
 
-  packages/bench:
+  bench:
     dependencies:
       '@rollup/plugin-commonjs':
         specifier: ^28.0.0
@@ -34,7 +34,7 @@ importers:
         version: 4.17.13
       chalk:
         specifier: ^5.3.0
-        version: 5.3.0
+        version: 5.4.1
       esbuild:
         specifier: ^0.24.0
         version: 0.24.0
@@ -43,7 +43,7 @@ importers:
         version: 4.17.21
       minipack:
         specifier: workspace:*
-        version: link:../minipack
+        version: link:..
       rollup:
         specifier: ^4.27.0
         version: 4.27.4
@@ -57,8 +57,6 @@ importers:
       react-dom:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
-
-  packages/minipack: {}
 
   scripts:
     dependencies:
@@ -626,10 +624,6 @@ packages:
   chalk-template@1.1.0:
     resolution: {integrity: sha512-T2VJbcDuZQ0Tb2EWwSotMPJjgpy1/tGee1BTpUNsGZ/qgNjV2t7Mvu+d4600U564nbLesN1x2dPL+xii174Ekg==}
     engines: {node: '>=14.16'}
-
-  chalk@5.3.0:
-    resolution: {integrity: sha512-dLitG79d+GV1Nb/VYcCDFivJeK1hiukt9QjRNVOsUtTy1rR1YJsmpGGTZ3qJos+uw7WmWF4wUwBd9jxjocFC2w==}
-    engines: {node: ^12.17.0 || ^14.13 || >=16.0.0}
 
   chalk@5.4.1:
     resolution: {integrity: sha512-zgVZuo2WcZgfUEmsn6eO3kINexW8RAE4maiQ8QNs8CtpPCSyMiYsULR3HQYkm3w8FIA3SberyMJMSldGsW+U3w==}
@@ -1363,8 +1357,6 @@ snapshots:
   chalk-template@1.1.0:
     dependencies:
       chalk: 5.4.1
-
-  chalk@5.3.0: {}
 
   chalk@5.4.1: {}
 
