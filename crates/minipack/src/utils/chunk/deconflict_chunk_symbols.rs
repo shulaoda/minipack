@@ -122,6 +122,6 @@ pub fn deconflict_chunk_symbols(
           renamer.add_symbol_in_root_scope(symbol_ref);
         });
     });
-
+    
   (chunk.canonical_names, chunk.canonical_name_by_token) = renamer.into_canonical_names();
 }

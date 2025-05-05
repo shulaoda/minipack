@@ -4,8 +4,7 @@ use arcstr::ArcStr;
 
 use crate::{Asset, ChunkIdx, PreliminaryFilename};
 
-/// `InstantiatedChunk`s are derived from `Chunk`s. 
-/// Different `InstantiatedChunk`s can be derived from the same `Chunk` by different `Generator`s.
+/// `InstantiatedChunk`s are derived from `Chunk`s.
 #[derive(Debug)]
 pub struct InstantiatedChunk {
   pub origin_chunk: ChunkIdx,

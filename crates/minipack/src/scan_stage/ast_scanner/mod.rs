@@ -12,7 +12,7 @@ use minipack_common::{
   SymbolRefFlags,
   dynamic_import_usage::{DynamicImportExportsUsage, DynamicImportUsageInfo},
 };
-use minipack_ecmascript_utils::{BindingIdentifierExt, BindingPatternExt};
+use minipack_ecmascript::{BindingIdentifierExt, BindingPatternExt};
 use minipack_error::BuildResult;
 use minipack_utils::{concat_string, path_ext::PathExt, rstr::Rstr};
 use oxc::{
@@ -455,11 +455,11 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       ast::ExportDefaultDeclarationKind::FunctionDeclaration(fn_decl) => fn_decl
         .id
         .as_ref()
-        .map(|id| (minipack_ecmascript_utils::BindingIdentifierExt::expect_symbol_id(id), id.span)),
+        .map(|id| (minipack_ecmascript::BindingIdentifierExt::expect_symbol_id(id), id.span)),
       ast::ExportDefaultDeclarationKind::ClassDeclaration(cls_decl) => cls_decl
         .id
         .as_ref()
-        .map(|id| (minipack_ecmascript_utils::BindingIdentifierExt::expect_symbol_id(id), id.span)),
+        .map(|id| (minipack_ecmascript::BindingIdentifierExt::expect_symbol_id(id), id.span)),
       ast::ExportDefaultDeclarationKind::TSInterfaceDeclaration(_) => unreachable!(),
     };
 

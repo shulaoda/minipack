@@ -1,7 +1,7 @@
 use minipack_common::ModuleIdx;
 use oxc_index::IndexVec;
 
-use crate::types::{IndexModules, linking_metadata::LinkingMetadataVec};
+use crate::types::{IndexModules, LinkingMetadataVec};
 
 use super::LinkStage;
 

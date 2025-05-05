@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::types::generator::{GenerateContext, GenerateOutput, Generator};
+use crate::types::generator::{GenerateContext, GenerateOutput};
 
 use minipack_common::{
   InstantiatedChunk, ModuleId, ModuleIdx, OutputFormat, RenderedModule, Source,
@@ -32,18 +32,17 @@ impl RenderedModuleSource {
 }
 pub struct EcmaGenerator;
 
-impl Generator for EcmaGenerator {
-  async fn instantiate_chunk(ctx: &mut GenerateContext<'_>) -> BuildResult<GenerateOutput> {
+impl EcmaGenerator {
+  pub async fn instantiate_chunk(ctx: &mut GenerateContext<'_>) -> BuildResult<GenerateOutput> {
     let mut rendered_modules = FxHashMap::default();
     let module_id_to_codegen_ret = std::mem::take(&mut ctx.module_id_to_codegen_ret);
     let rendered_module_sources = ctx
       .chunk
       .modules
       .par_iter()
-      .copied()
       .zip(module_id_to_codegen_ret)
       .filter_map(|(id, codegen_ret)| {
-        ctx.link_output.module_table[id]
+        ctx.link_output.module_table[*id]
           .as_normal()
           .map(|m| (m, codegen_ret.expect("should have codegen_ret")))
       })

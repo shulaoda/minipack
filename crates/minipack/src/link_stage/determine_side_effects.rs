@@ -12,14 +12,12 @@ enum SideEffectCache {
 
 impl LinkStage<'_> {
   pub fn determine_side_effects(&mut self) {
-    let mut index_side_effects_cache =
+    let mut side_effects_cache =
       oxc_index::index_vec![SideEffectCache::None; self.module_table.len()];
-
     for idx in 0..self.module_table.len() {
-      let module_idx = ModuleIdx::new(idx);
-      let side_effects =
-        self.determine_side_effects_for_module(module_idx, &mut index_side_effects_cache);
-      if let Module::Normal(module) = &mut self.module_table[module_idx] {
+      let idx = ModuleIdx::new(idx);
+      let side_effects = self.determine_side_effects_for_module(idx, &mut side_effects_cache);
+      if let Module::Normal(module) = &mut self.module_table[idx] {
         module.side_effects = side_effects;
       }
     }
@@ -47,13 +45,11 @@ impl LinkStage<'_> {
     let module_side_effects = *module.side_effects();
     if let DeterminedSideEffects::Analyzed(false) = module_side_effects {
       if let Module::Normal(module) = module {
-        let side_effects = DeterminedSideEffects::Analyzed(
-          module.import_records.iter().filter(|rec| !rec.is_dummy()).any(|import_record| {
-            self
-              .determine_side_effects_for_module(import_record.state, cache)
-              .has_side_effects()
-          }),
-        );
+        let side_effects =
+          DeterminedSideEffects::Analyzed(module.import_records.iter().any(|rec| {
+            !rec.is_dummy()
+              && self.determine_side_effects_for_module(rec.state, cache).has_side_effects()
+          }));
 
         cache[module_idx] = SideEffectCache::Cache(side_effects);
 

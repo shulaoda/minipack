@@ -37,15 +37,13 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
   source_joiner.append_source(import_code);
 
   // chunk content
-  module_sources_peekable.for_each(
-    |RenderedModuleSource { sources: module_render_output, .. }| {
-      if let Some(emitted_sources) = module_render_output {
-        for source in emitted_sources.as_ref() {
-          source_joiner.append_source(source);
-        }
+  module_sources_peekable.for_each(|RenderedModuleSource { sources, .. }| {
+    if let Some(emitted_sources) = sources {
+      for source in emitted_sources.as_ref() {
+        source_joiner.append_source(source);
       }
-    },
-  );
+    }
+  });
 }
 
 pub fn render_cjs<'code>(
@@ -70,22 +68,23 @@ pub fn render_cjs<'code>(
   // Note that the determined `export_mode` should be used in `render_chunk_exports` to render exports.
   // We also need to get the export mode for rendering the namespace markers.
   // So we determine the export mode (from auto) here and use it in the following code.
-  let export_mode =
-    if let Some(entry_module) = ctx.chunk.user_defined_entry_module(&ctx.link_output.module_table) {
-      let export_names = get_chunk_export_names(ctx.chunk, ctx.link_output);
-      let has_default_export = export_names.iter().any(|name| name.as_str() == "default");
-      let export_mode = determine_export_mode(warnings, ctx, entry_module, &export_names)?;
-      // Only `named` export can we render the namespace markers.
-      if matches!(&export_mode, OutputExports::Named) {
-        if let Some(marker) = render_namespace_markers(has_default_export, false) {
-          source_joiner.append_source(marker.to_string());
-        }
+  let export_mode = if let Some(entry_module) =
+    ctx.chunk.user_defined_entry_module(&ctx.link_output.module_table)
+  {
+    let export_names = get_chunk_export_names(ctx.chunk, ctx.link_output);
+    let has_default_export = export_names.iter().any(|name| name.as_str() == "default");
+    let export_mode = determine_export_mode(warnings, ctx, entry_module, &export_names)?;
+    // Only `named` export can we render the namespace markers.
+    if matches!(&export_mode, OutputExports::Named) {
+      if let Some(marker) = render_namespace_markers(has_default_export, false) {
+        source_joiner.append_source(marker.to_string());
       }
-      Some(export_mode)
-    } else {
-      // The common chunks should be `named`.
-      Some(OutputExports::Named)
-    };
+    }
+    Some(export_mode)
+  } else {
+    // The common chunks should be `named`.
+    Some(OutputExports::Named)
+  };
 
   // Runtime module should be placed before the generated `requires` in CJS format.
   // Because, we might need to generate `__toESM(require(...))` that relies on the runtime module.
@@ -124,8 +123,9 @@ fn render_cjs_chunk_imports(ctx: &GenerateContext<'_>) -> String {
 
   // render external imports
   ctx.chunk.imports_from_external_modules.iter().for_each(|(importee_id, _)| {
-    let importee =
-      ctx.link_output.module_table[*importee_id].as_external().expect("Should be external module here");
+    let importee = ctx.link_output.module_table[*importee_id]
+      .as_external()
+      .expect("Should be external module here");
 
     let require_path_str = concat_string!("require(\"", &importee.name, "\")");
 

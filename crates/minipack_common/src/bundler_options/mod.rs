@@ -6,7 +6,6 @@ pub mod normalized_bundler_options;
 pub mod output_exports;
 pub mod output_format;
 pub mod platform;
-pub mod resolve_options;
 
 use std::path::PathBuf;
 

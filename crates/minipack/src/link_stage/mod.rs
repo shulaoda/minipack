@@ -15,8 +15,7 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::types::{
-  IndexEcmaAst, IndexModules, SharedOptions,
-  linking_metadata::{LinkingMetadata, LinkingMetadataVec},
+  IndexEcmaAst, IndexModules, LinkingMetadataVec, SharedOptions, linking_metadata::LinkingMetadata,
 };
 
 use super::scan_stage::ScanStageOutput;

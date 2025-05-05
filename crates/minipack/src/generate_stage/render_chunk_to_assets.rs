@@ -11,11 +11,7 @@ use super::generators::ecmascript::EcmaGenerator;
 
 use crate::{
   graph::ChunkGraph,
-  types::{
-    IndexInstantiatedChunks,
-    bundle_output::BundleOutput,
-    generator::{GenerateContext, Generator},
-  },
+  types::{IndexInstantiatedChunks, bundle_output::BundleOutput, generator::GenerateContext},
   utils::chunk::finalize_chunks::finalize_assets,
 };
 

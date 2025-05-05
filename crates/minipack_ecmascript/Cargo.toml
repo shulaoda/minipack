@@ -21,3 +21,4 @@ anyhow = { workspace = true }
 arcstr = { workspace = true }
 oxc = { workspace = true }
 self_cell = { workspace = true }
+smallvec = { workspace = true }

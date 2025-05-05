@@ -5,13 +5,13 @@ use crate::{
   link_stage::LinkStage,
   scan_stage::ScanStage,
   types::{SharedOptions, SharedResolver, bundle_output::BundleOutput},
-  utils::normalize_options::{NormalizeOptionsReturn, normalize_options},
+  utils::normalize_options::normalize_options,
 };
 
-use minipack_common::{BundlerOptions, NormalizedBundlerOptions};
+use minipack_common::BundlerOptions;
 use minipack_error::BuildResult;
 use minipack_fs::{FileSystem, OsFileSystem};
-use minipack_resolver::{ResolveError, Resolver};
+use minipack_resolver::Resolver;
 
 pub struct Bundler {
   pub closed: bool,
@@ -22,17 +22,10 @@ pub struct Bundler {
 
 impl Bundler {
   pub fn new(options: BundlerOptions) -> Self {
-    let NormalizeOptionsReturn { mut options, resolve_options } = normalize_options(options);
+    let options = normalize_options(options);
+    let resolver = Arc::new(Resolver::new(options.platform, options.cwd.clone(), OsFileSystem));
 
-    let tsconfig_filename = resolve_options.tsconfig_filename.clone();
-
-    let resolver: SharedResolver =
-      Resolver::new(resolve_options, options.platform, options.cwd.clone(), OsFileSystem).into();
-
-    Self::merge_transform_config_from_ts_config(&mut options, tsconfig_filename, &resolver)
-      .unwrap();
-
-    Bundler { closed: false, fs: OsFileSystem, options: Arc::new(options), resolver }
+    Bundler { closed: false, fs: OsFileSystem, options, resolver }
   }
 
   pub async fn write(&mut self) -> BuildResult<BundleOutput> {
@@ -80,30 +73,6 @@ impl Bundler {
     }
 
     Ok(bundle_output)
-  }
-
-  fn merge_transform_config_from_ts_config(
-    options: &mut NormalizedBundlerOptions,
-    tsconfig_filename: Option<String>,
-    resolver: &SharedResolver,
-  ) -> Result<(), ResolveError> {
-    let Some(tsconfig_filename) = tsconfig_filename else {
-      return Ok(());
-    };
-    let ts_config = resolver.resolve_tsconfig(&tsconfig_filename)?;
-    if let Some(ref jsx_factory) = ts_config.compiler_options.jsx_factory {
-      options.base_transform_options.jsx.pragma = Some(jsx_factory.clone());
-    }
-    if let Some(ref jsx_fragment_factory) = ts_config.compiler_options.jsx_fragment_factory {
-      options.base_transform_options.jsx.pragma_frag = Some(jsx_fragment_factory.clone());
-    }
-    if let Some(ref jsx_import_source) = ts_config.compiler_options.jsx_import_source {
-      options.base_transform_options.jsx.import_source = Some(jsx_import_source.clone());
-    }
-    if let Some(ref experimental_decorator) = ts_config.compiler_options.experimental_decorators {
-      options.base_transform_options.decorator.legacy = *experimental_decorator;
-    }
-    Ok(())
   }
 }
 

@@ -9,11 +9,11 @@ use itertools::Itertools;
 use sugar_path::SugarPath;
 
 use oxc_resolver::{
-  EnforceExtension, FsCache, PackageJsonSerde as OxcPackageJson, PackageType, ResolveError,
-  ResolveOptions as OxcResolverOptions, ResolverGeneric, TsConfigSerde, TsconfigOptions,
+  FsCache, PackageJsonSerde as OxcPackageJson, PackageType, ResolveError,
+  ResolveOptions as OxcResolverOptions, ResolverGeneric, TsConfigSerde,
 };
 
-use minipack_common::{PackageJson, Platform, ResolveOptions};
+use minipack_common::{PackageJson, Platform};
 use minipack_fs::{FileSystem, OsFileSystem};
 
 #[derive(Debug)]
@@ -27,11 +27,9 @@ pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
 
 impl<F: FileSystem + Default> Resolver<F> {
   #[allow(clippy::too_many_lines)]
-  pub fn new(raw_resolve: ResolveOptions, platform: Platform, cwd: PathBuf, fs: F) -> Self {
+  pub fn new(platform: Platform, cwd: PathBuf, fs: F) -> Self {
     let mut default_conditions = vec!["default".to_string()];
     let mut import_conditions = vec!["import".to_string()];
-
-    default_conditions.extend(raw_resolve.condition_names.clone().unwrap_or_default());
 
     match platform {
       Platform::Node => {
@@ -49,18 +47,18 @@ impl<F: FileSystem + Default> Resolver<F> {
 
     import_conditions = import_conditions.into_iter().unique().collect();
 
-    let main_fields = raw_resolve.main_fields.clone().unwrap_or_else(|| match platform {
+    let main_fields = match platform {
       Platform::Node => {
         vec!["main".to_string(), "module".to_string()]
       }
       Platform::Browser => vec!["browser".to_string(), "module".to_string(), "main".to_string()],
       Platform::Neutral => vec![],
-    });
+    };
 
-    let alias_fields = raw_resolve.alias_fields.clone().unwrap_or_else(|| match platform {
+    let alias_fields = match platform {
       Platform::Browser => vec![vec!["browser".to_string()]],
       _ => vec![],
-    });
+    };
 
     let builtin_modules = match platform {
       Platform::Node => true,
@@ -68,46 +66,12 @@ impl<F: FileSystem + Default> Resolver<F> {
     };
 
     let resolve_options_with_default_conditions = OxcResolverOptions {
-      tsconfig: raw_resolve.tsconfig_filename.map(|p| {
-        let path = PathBuf::from(&p);
-        TsconfigOptions {
-          config_file: if path.is_relative() { cwd.join(path) } else { path },
-          references: oxc_resolver::TsconfigReferences::Disabled,
-        }
-      }),
-      alias: raw_resolve
-        .alias
-        .map(|alias| {
-          alias
-            .into_iter()
-            .map(|(key, value)| {
-              (key, value.into_iter().map(oxc_resolver::AliasValue::Path).collect::<Vec<_>>())
-            })
-            .collect::<Vec<_>>()
-        })
-        .unwrap_or_default(),
-      imports_fields: vec![vec!["imports".to_string()]],
-      alias_fields,
-      condition_names: default_conditions,
-      enforce_extension: EnforceExtension::Auto,
-      exports_fields: raw_resolve
-        .exports_fields
-        .unwrap_or_else(|| vec![vec!["exports".to_string()]]),
-      extension_alias: raw_resolve.extension_alias.unwrap_or_default(),
-      extensions: raw_resolve.extensions.unwrap_or_else(|| {
-        [".jsx", ".js", ".ts", ".tsx"].into_iter().map(str::to_string).collect()
-      }),
-      fallback: vec![],
-      fully_specified: false,
       main_fields,
-      main_files: raw_resolve.main_files.unwrap_or_else(|| vec!["index".to_string()]),
-      resolve_to_context: false,
-      prefer_relative: false,
-      prefer_absolute: false,
-      restrictions: vec![],
-      roots: vec![],
-      symlinks: raw_resolve.symlinks.unwrap_or(true),
+      alias_fields,
       builtin_modules,
+      condition_names: default_conditions,
+      extensions: vec![String::from(".js"), String::from(".ts")],
+      ..Default::default()
     };
 
     let resolve_options_with_import_conditions = OxcResolverOptions {

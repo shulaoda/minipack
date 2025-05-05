@@ -2,7 +2,7 @@ use std::sync::LazyLock;
 
 use daachorse::DoubleArrayAhoCorasick;
 use minipack_common::AstScopes;
-use minipack_ecmascript_utils::{ExpressionExt, SpanExt};
+use minipack_ecmascript::{ExpressionExt, SpanExt};
 use oxc::{
   ast::{
     Comment, CommentKind,

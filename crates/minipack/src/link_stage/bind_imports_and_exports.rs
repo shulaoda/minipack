@@ -16,7 +16,7 @@ use oxc::span::CompactStr;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
-  types::{IndexModules, SharedOptions, linking_metadata::LinkingMetadataVec},
+  types::{IndexModules, LinkingMetadataVec, SharedOptions},
   utils::ecmascript::legitimize_identifier_name,
 };
 

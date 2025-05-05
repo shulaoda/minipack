@@ -1,5 +1,5 @@
 use minipack_common::{Module, StmtInfoIdx, SymbolRef};
-use minipack_ecmascript_utils::ExpressionExt;
+use minipack_ecmascript::ExpressionExt;
 use oxc::{
   allocator::IntoIn,
   ast::ast::{self, SimpleAssignmentTarget},

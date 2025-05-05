@@ -2,7 +2,6 @@ use minipack_common::{
   Chunk, ChunkIdx, InstantiatedChunk, Module, NormalModule, NormalizedBundlerOptions, OutputFormat,
   SymbolRef,
 };
-use minipack_error::BuildResult;
 use minipack_utils::{ecmascript::property_access_str, option_ext::OptionExt, rstr::Rstr};
 use rustc_hash::FxHashMap;
 
@@ -84,8 +83,4 @@ impl GenerateContext<'_> {
 pub struct GenerateOutput {
   pub chunks: Vec<InstantiatedChunk>,
   pub warnings: Vec<anyhow::Error>,
-}
-
-pub trait Generator {
-  async fn instantiate_chunk(ctx: &mut GenerateContext) -> BuildResult<GenerateOutput>;
 }

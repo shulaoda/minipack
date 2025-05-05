@@ -6,10 +6,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   graph::ChunkGraph,
-  types::{
-    IndexModules, SharedOptions,
-    linking_metadata::{LinkingMetadata, LinkingMetadataVec},
-  },
+  types::{IndexModules, LinkingMetadataVec, SharedOptions, linking_metadata::LinkingMetadata},
 };
 
 pub struct ScopeHoistingFinalizerContext<'me> {

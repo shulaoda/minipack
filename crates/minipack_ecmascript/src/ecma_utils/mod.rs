@@ -1,7 +1,7 @@
 mod ast_snippet;
 mod extensions;
 
-pub use crate::{
+pub use {
   ast_snippet::AstSnippet,
   extensions::{
     ast_ext::{

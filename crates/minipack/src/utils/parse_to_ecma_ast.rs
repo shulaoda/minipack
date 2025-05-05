@@ -7,7 +7,7 @@ use sugar_path::SugarPath;
 
 use super::pre_process_ecma_ast::PreProcessEcmaAst;
 
-use crate::types::{module_factory::CreateModuleContext, oxc_parse_type::OxcParseType};
+use crate::types::module_factory::CreateModuleContext;
 
 pub struct ParseToEcmaAstResult {
   pub ast: EcmaAst,
@@ -22,16 +22,11 @@ pub fn parse_to_ecma_ast(
   let CreateModuleContext { options, stable_id, module_type, .. } = ctx;
 
   let source = if matches!(module_type, ModuleType::Empty) { ArcStr::new() } else { source.into() };
-
-  let parsed_type = module_type.into();
   let oxc_source_type = {
     let default = OxcSourceType::default().with_module(true);
-    match parsed_type {
-      OxcParseType::Js | OxcParseType::Jsx => default,
-      OxcParseType::Ts | OxcParseType::Tsx => default.with_typescript(true),
-    }
+    if let ModuleType::Ts = module_type { default.with_typescript(true) } else { default }
   };
 
   let ecma_ast = EcmaCompiler::parse(&source, oxc_source_type)?;
-  PreProcessEcmaAst::default().build(ecma_ast, stable_id.as_path(), &parsed_type, options)
+  PreProcessEcmaAst::default().build(ecma_ast, stable_id.as_path(), module_type, options)
 }

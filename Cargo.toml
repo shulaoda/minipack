@@ -65,7 +65,6 @@ single_match_else = "allow"
 minipack = { version = "0.1.0", path = "./crates/minipack" }
 minipack_common = { version = "0.1.0", path = "./crates/minipack_common" }
 minipack_ecmascript = { version = "0.1.0", path = "./crates/minipack_ecmascript" }
-minipack_ecmascript_utils = { version = "0.1.0", path = "./crates/minipack_ecmascript_utils" }
 minipack_error = { version = "0.1.0", path = "./crates/minipack_error" }
 minipack_fs = { version = "0.1.0", path = "./crates/minipack_fs" }
 minipack_resolver = { version = "0.1.0", path = "./crates/minipack_resolver" }

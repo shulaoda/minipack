@@ -1,5 +1,5 @@
 use minipack_common::SymbolRef;
-use minipack_ecmascript_utils::ExpressionExt;
+use minipack_ecmascript::ExpressionExt;
 use oxc::ast::ast::{self, Expression, IdentifierReference};
 
 use super::ScopeHoistingFinalizer;

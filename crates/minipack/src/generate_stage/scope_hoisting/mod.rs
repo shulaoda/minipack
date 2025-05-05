@@ -19,7 +19,7 @@ use oxc::{
 use rustc_hash::FxHashSet;
 
 use minipack_common::{AstScopes, Module, OutputFormat, Platform, SymbolRef};
-use minipack_ecmascript_utils::{AstSnippet, ExpressionExt, StatementExt};
+use minipack_ecmascript::{AstSnippet, ExpressionExt, StatementExt};
 use minipack_utils::ecmascript::is_validate_identifier_name;
 
 /// Finalizer for emitting output code with scope hoisting.

@@ -149,8 +149,6 @@ impl ModuleTask {
     let final_type = match id.rsplit('.').next().filter(|ext| *ext != id) {
       Some("js" | "cjs" | "mjs") => ModuleType::Js,
       Some("ts" | "cts" | "mts") => ModuleType::Ts,
-      Some("jsx") => ModuleType::Jsx,
-      Some("tsx") => ModuleType::Tsx,
       _ => ModuleType::Js,
     };
 

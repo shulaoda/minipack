@@ -1,6 +1,6 @@
 use itertools::Itertools;
-use minipack_ecmascript_utils::AstSnippet;
-use minipack_ecmascript_utils::StatementExt;
+use minipack_ecmascript::AstSnippet;
+use minipack_ecmascript::StatementExt;
 use oxc::allocator::Allocator;
 use oxc::allocator::TakeIn;
 use oxc::ast::NONE;

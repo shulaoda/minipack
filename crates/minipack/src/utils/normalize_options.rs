@@ -1,16 +1,11 @@
-use std::path::Path;
+use std::{path::Path, sync::Arc};
 
 use minipack_common::{
-  BundlerOptions, NormalizedBundlerOptions, OutputExports, OutputFormat, Platform, ResolveOptions,
+  BundlerOptions, NormalizedBundlerOptions, OutputExports, OutputFormat, Platform,
 };
 use oxc::transformer::{ESTarget, TransformOptions};
 
-pub struct NormalizeOptionsReturn {
-  pub options: NormalizedBundlerOptions,
-  pub resolve_options: ResolveOptions,
-}
-
-pub fn normalize_options(raw_options: BundlerOptions) -> NormalizeOptionsReturn {
+pub fn normalize_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOptions> {
   let cwd =
     raw_options.cwd.unwrap_or_else(|| std::env::current_dir().expect("Failed to get current dir"));
 
@@ -19,8 +14,6 @@ pub fn normalize_options(raw_options: BundlerOptions) -> NormalizeOptionsReturn 
     OutputFormat::Cjs => Platform::Node,
     OutputFormat::Esm => Platform::Browser,
   });
-
-  let resolve_options = ResolveOptions::default();
 
   let dir = raw_options.file.as_ref().map_or(
     raw_options.dir.unwrap_or_else(|| "dist".to_string()),
@@ -35,7 +28,7 @@ pub fn normalize_options(raw_options: BundlerOptions) -> NormalizeOptionsReturn 
   let target = raw_options.target.unwrap_or_default();
   let base_transform_options = TransformOptions::from(ESTarget::from(target));
 
-  let options = NormalizedBundlerOptions {
+  Arc::new(NormalizedBundlerOptions {
     // --- Input
     cwd,
     input: raw_options.input.unwrap_or_default(),
@@ -52,7 +45,5 @@ pub fn normalize_options(raw_options: BundlerOptions) -> NormalizeOptionsReturn 
     target,
     shim_missing_exports: raw_options.shim_missing_exports.unwrap_or_default(),
     base_transform_options,
-  };
-
-  NormalizeOptionsReturn { options, resolve_options }
+  })
 }

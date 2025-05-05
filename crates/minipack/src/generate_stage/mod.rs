@@ -12,7 +12,7 @@ use oxc::{allocator::TakeIn, ast_visit::VisitMut};
 use rustc_hash::FxHashSet;
 
 use minipack_common::Module;
-use minipack_ecmascript_utils::AstSnippet;
+use minipack_ecmascript::AstSnippet;
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
 

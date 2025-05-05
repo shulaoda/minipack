@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use minipack_common::{ESTarget, NormalizedBundlerOptions};
+use minipack_common::{ESTarget, ModuleType, NormalizedBundlerOptions};
 use minipack_ecmascript::EcmaAst;
 use minipack_error::BuildResult;
 use oxc::ast_visit::VisitMut;
@@ -13,7 +13,6 @@ use super::ecmascript::EnsureSpanUniqueness;
 use super::parse_to_ecma_ast::ParseToEcmaAstResult;
 
 use crate::scan_stage::ast_scanner::pre_processor::PreProcessor;
-use crate::types::oxc_parse_type::OxcParseType;
 
 #[derive(Default)]
 pub struct PreProcessEcmaAst {
@@ -29,7 +28,7 @@ impl PreProcessEcmaAst {
     &mut self,
     mut ast: EcmaAst,
     source_path: &Path,
-    parsed_type: &OxcParseType,
+    module_type: &ModuleType,
     bundle_options: &NormalizedBundlerOptions,
   ) -> BuildResult<ParseToEcmaAstResult> {
     let mut warning = vec![];
@@ -49,17 +48,10 @@ impl PreProcessEcmaAst {
     self.stats = semantic_ret.semantic.stats();
     let mut scoping = semantic_ret.semantic.into_scoping();
 
-    // Transform TypeScript and jsx.
-    if !matches!(parsed_type, OxcParseType::Js)
-      || !matches!(bundle_options.target, ESTarget::EsNext)
-    {
+    // Transform TypeScript.
+    if matches!(module_type, ModuleType::Ts) || !matches!(bundle_options.target, ESTarget::EsNext) {
       let ret = ast.program.with_mut(|fields| {
-        let mut transformer_options = bundle_options.base_transform_options.clone();
-        // Auto enable jsx_plugin
-        if matches!(parsed_type, OxcParseType::Tsx | OxcParseType::Jsx) {
-          transformer_options.jsx.jsx_plugin = true;
-        }
-        Transformer::new(fields.allocator, source_path, &transformer_options)
+        Transformer::new(fields.allocator, source_path, &bundle_options.base_transform_options)
           .build_with_scoping(scoping, fields.program)
       });
 

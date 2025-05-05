@@ -6,7 +6,7 @@ use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
 use oxc_index::IndexVec;
 use rustc_hash::FxHashSet;
 
-use crate::types::{IndexModules, linking_metadata::LinkingMetadataVec};
+use crate::types::{IndexModules, LinkingMetadataVec};
 
 use super::LinkStage;
 
@@ -64,7 +64,7 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
     }
   });
 
-  if module.meta.has_eval() && matches!(module.module_type, ModuleType::Js | ModuleType::Jsx) {
+  if module.meta.has_eval() && matches!(module.module_type, ModuleType::Js) {
     module.named_imports.keys().for_each(|symbol| {
       include_symbol(ctx, *symbol);
     });

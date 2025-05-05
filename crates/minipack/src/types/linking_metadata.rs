@@ -4,7 +4,6 @@ use minipack_common::{
 };
 use minipack_utils::{indexmap::FxIndexSet, rstr::Rstr};
 use oxc::span::{CompactStr, Span};
-use oxc_index::IndexVec;
 
 use rustc_hash::FxHashMap;
 
@@ -68,5 +67,3 @@ impl LinkingMetadata {
     })
   }
 }
-
-pub type LinkingMetadataVec = IndexVec<ModuleIdx, LinkingMetadata>;
