@@ -41,7 +41,7 @@ impl RuntimeModuleTask {
   }
 
   fn run_inner(&mut self) -> BuildResult<()> {
-    let source = arcstr::literal!(concat!(include_str!("./runtime/index.js")));
+    let source = arcstr::literal!(include_str!("./runtime/index.js"));
 
     let (ast, scan_result) = self.make_ecma_ast(&source)?;
 

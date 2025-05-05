@@ -20,6 +20,9 @@ struct Commands {
 
   #[clap(flatten)]
   enhance: EnhanceArgs,
+
+  #[clap(long, short = 's')]
+  silent: bool,
 }
 
 fn print_output_assets(outputs: Vec<OutputChunk>) {
@@ -91,18 +94,19 @@ async fn main() {
 
   match bundler.write().await {
     Ok(output) => {
+      if !args.silent {
+        // Print warnings
+        for warning in output.warnings {
+          println!("{} {}", Colour::Yellow.paint("Warning:"), warning);
+        }
+
+        // Print output assets
+        if !output.assets.is_empty() {
+          print_output_assets(output.assets);
+        }
+      }
+
       let elapsed = format!("{:.2} ms", start.elapsed().as_secs_f64() * 1000.0);
-
-      // Print warnings
-      for warning in output.warnings {
-        println!("{} {}", Colour::Yellow.paint("Warning:"), warning);
-      }
-
-      // Print output assets
-      if !output.assets.is_empty() {
-        print_output_assets(output.assets);
-      }
-
       println!("\n{} Finished in {}", Colour::Green.paint("✔"), Colour::White.bold().paint(elapsed))
     }
     Err(errors) => {

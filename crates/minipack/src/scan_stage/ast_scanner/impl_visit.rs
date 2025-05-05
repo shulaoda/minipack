@@ -203,8 +203,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     &mut self,
     ident_ref: &IdentifierReference,
   ) -> Option<()> {
-    let parent = self.visit_path.last()?;
-    if let AstKind::CallExpression(_) = parent {
+    if let AstKind::CallExpression(_) = self.visit_path.last()? {
       if ident_ref.name == "eval" {
         self.result.has_eval = true;
         self.result.warnings.push(

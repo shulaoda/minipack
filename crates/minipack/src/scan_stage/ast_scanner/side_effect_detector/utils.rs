@@ -417,10 +417,12 @@ pub fn maybe_side_effect_free_global_constructor(
   };
 
   if scope.is_unresolved(ident.reference_id()) {
-    match ident.name.as_str() {
-      "WeakSet" | "WeakMap" => match expr.arguments.len() {
-        0 => return true,
-        1 => match &expr.arguments[0] {
+    if expr.arguments.is_empty() {
+      return true;
+    }
+    if expr.arguments.len() == 1 {
+      match ident.name.as_str() {
+        "WeakSet" | "WeakMap" => match &expr.arguments[0] {
           ast::Argument::NullLiteral(_) => return true,
           ast::Argument::Identifier(id)
             if id.name == "undefined" && scope.is_unresolved(id.reference_id()) =>
@@ -430,11 +432,7 @@ pub fn maybe_side_effect_free_global_constructor(
           ast::Argument::ArrayExpression(arr) if arr.elements.is_empty() => return true,
           _ => {}
         },
-        _ => {}
-      },
-      "Date" => match expr.arguments.len() {
-        0 => return true,
-        1 => {
+        "Date" => {
           let known_primitive_type =
             expr.arguments[0].as_expression().map(|item| known_primitive_type(scope, item));
           if let Some(primitive_ty) = known_primitive_type {
@@ -450,11 +448,7 @@ pub fn maybe_side_effect_free_global_constructor(
             }
           }
         }
-        _ => {}
-      },
-      "Set" => match expr.arguments.len() {
-        0 => return true,
-        1 => match &expr.arguments[0] {
+        "Set" => match &expr.arguments[0] {
           ast::Argument::NullLiteral(_) | ast::Argument::ArrayExpression(_) => return true,
           ast::Argument::Identifier(id)
             if id.name == "undefined" && scope.is_unresolved(id.reference_id()) =>
@@ -463,11 +457,7 @@ pub fn maybe_side_effect_free_global_constructor(
           }
           _ => {}
         },
-        _ => {}
-      },
-      "Map" => match expr.arguments.len() {
-        0 => return true,
-        1 => match &expr.arguments[0] {
+        "Map" => match &expr.arguments[0] {
           ast::Argument::NullLiteral(_) => return true,
           ast::Argument::Identifier(id)
             if id.name == "undefined" && scope.is_unresolved(id.reference_id()) =>
@@ -487,8 +477,7 @@ pub fn maybe_side_effect_free_global_constructor(
           _ => {}
         },
         _ => {}
-      },
-      _ => {}
+      }
     }
   }
   false

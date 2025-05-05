@@ -1,7 +1,7 @@
 import commonjs from '@rollup/plugin-commonjs';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import { build as esbuild } from 'esbuild';
-import { minipack } from 'minipack';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { rollup } from 'rollup';
 import { PROJECT_ROOT } from './utils.js';
@@ -56,11 +56,10 @@ export async function runEsbuild(suite) {
  */
 export async function runMinipack(suite) {
   const outdir = path.join(PROJECT_ROOT, `./dist/minipack/${suite.title}`);
-  minipack([
+  spawnSync('minipack', [
     '--platform=node',
     ...suite.inputs.map((path) => `--input=${path}`),
     `--dir=${outdir}`,
-  ], {
-    stdio: undefined,
-  });
+    '--silent',
+  ]);
 }
