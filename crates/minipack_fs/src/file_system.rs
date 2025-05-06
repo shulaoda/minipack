@@ -5,11 +5,6 @@ use oxc_resolver::FileSystem as OxcResolverFileSystem;
 pub trait FileSystem: Send + Sync + OxcResolverFileSystem {
   /// # Errors
   ///
-  /// * See [std::fs::remove_dir_all]
-  fn remove_dir_all(&self, path: &Path) -> io::Result<()>;
-
-  /// # Errors
-  ///
   /// * See [std::fs::create_dir_all]
   fn create_dir_all(&self, path: &Path) -> io::Result<()>;
 
@@ -22,9 +17,4 @@ pub trait FileSystem: Send + Sync + OxcResolverFileSystem {
   ///
   /// * See [std::path::Path::exists]
   fn exists(&self, path: &Path) -> bool;
-
-  /// # Errors
-  ///
-  /// * See [std::fs::read]
-  fn read(&self, path: &Path) -> io::Result<Vec<u8>>;
 }

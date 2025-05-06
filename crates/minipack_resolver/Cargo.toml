@@ -17,7 +17,7 @@ workspace = true
 
 [dependencies]
 minipack_common = { workspace = true }
-minipack_fs = { workspace = true, features = ["os"] }
+minipack_fs = { workspace = true }
 
 arcstr = { workspace = true }
 dashmap = { workspace = true }

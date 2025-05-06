@@ -12,10 +12,6 @@ use crate::file_system::FileSystem;
 pub struct OsFileSystem;
 
 impl FileSystem for OsFileSystem {
-  fn remove_dir_all(&self, path: &Path) -> io::Result<()> {
-    std::fs::remove_dir_all(path)
-  }
-
   fn create_dir_all(&self, path: &Path) -> io::Result<()> {
     std::fs::create_dir_all(path)
   }
@@ -26,10 +22,6 @@ impl FileSystem for OsFileSystem {
 
   fn exists(&self, path: &Path) -> bool {
     path.exists()
-  }
-
-  fn read(&self, path: &Path) -> io::Result<Vec<u8>> {
-    std::fs::read(path)
   }
 }
 

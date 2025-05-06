@@ -19,9 +19,8 @@ use minipack_fs::{FileSystem, OsFileSystem};
 #[derive(Debug)]
 pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
   cwd: PathBuf,
-  default_resolver: ResolverGeneric<FsCache<T>>,
-  // Resolver for `import '...'` and `import(...)`
   import_resolver: ResolverGeneric<FsCache<T>>,
+  default_resolver: ResolverGeneric<FsCache<T>>,
   package_json_cache: DashMap<PathBuf, PathBuf>,
 }
 

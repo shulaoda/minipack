@@ -12,7 +12,7 @@ repository.workspace = true
 minipack_common = { workspace = true }
 minipack_ecmascript = { workspace = true }
 minipack_error = { workspace = true }
-minipack_fs = { workspace = true, features = ["os"] }
+minipack_fs = { workspace = true }
 minipack_resolver = { workspace = true }
 minipack_utils = { workspace = true }
 

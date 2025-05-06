@@ -21,19 +21,13 @@ self_cell!(
   }
 );
 
+pub struct WithMutFields<'outer, 'inner> {
+  pub source: &'inner ArcStr,
+  pub allocator: &'inner Allocator,
+  pub program: &'outer mut Program<'inner>,
+}
+
 impl ProgramCell {
-  /// Safely visit `&mut Program` and other fields in the cell within a closure.
-  ///
-  /// ## Example
-  ///
-  /// ```ignore
-  /// let mut ast = OxcCompiler::parse("", SourceType::default());
-  /// ast.with_mut(|fields| {
-  ///   fields.source; // &Arc<str>
-  ///   fields.allocator; // &Allocator
-  ///   fields.program; // &mut Program
-  /// });
-  /// ```
   pub fn with_mut<'outer, Ret>(
     &'outer mut self,
     func: impl for<'inner> ::core::ops::FnOnce(WithMutFields<'outer, 'inner>) -> Ret,
@@ -48,10 +42,4 @@ impl ProgramCell {
       },
     )
   }
-}
-
-pub struct WithMutFields<'outer, 'inner> {
-  pub source: &'inner ArcStr,
-  pub allocator: &'inner Allocator,
-  pub program: &'outer mut Program<'inner>,
 }
