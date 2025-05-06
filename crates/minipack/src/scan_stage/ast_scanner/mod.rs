@@ -21,11 +21,11 @@ use oxc::{
     },
   },
   ast_visit::Visit,
-  semantic::{Reference, ScopeFlags, ScopeId, Scoping, SymbolId},
+  semantic::{Reference, Scoping, SymbolId},
   span::{CompactStr, GetSpan, SPAN, Span},
 };
 use oxc_index::IndexVec;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
 
 use crate::utils::ecmascript::legitimize_identifier_name;
@@ -37,37 +37,20 @@ pub struct AstScanResult {
   pub stmt_infos: StmtInfos,
   pub import_records: IndexVec<ImportRecordIdx, RawImportRecord>,
   pub default_export_ref: SymbolRef,
-  /// Represents [Module Namespace Object](https://tc39.es/ecma262/#sec-module-namespace-exotic-objects)
   pub namespace_object_ref: SymbolRef,
   pub imports: FxHashMap<Span, ImportRecordIdx>,
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
   pub symbols: SymbolRefDbForModule,
-  /// https://github.com/evanw/esbuild/blob/d34e79e2a998c21bb71d57b92b0017ca11756912/internal/js_parser/js_parser_lower_class.go#L2277-L2283
-  /// used for check if current class decl symbol was referenced in its class scope
-  /// We needs to record the info in ast scanner since after that the ast maybe touched, etc
-  /// (naming deconflict)
-  pub self_referenced_class_decl_symbol_ids: FxHashSet<SymbolId>,
-  /// Hashbang only works if it's literally the first character. So we need to generate it in chunk
-  /// level rather than module level, or a syntax error will be raised if there are multi modules
-  /// has hashbang. Storing the span of hashbang used for hashbang codegen in chunk level
-  pub hashbang_range: Option<Span>,
   pub has_star_exports: bool,
-  pub this_expr_replace_map: FxHashSet<Span>,
 }
 
 pub struct AstScanner<'me, 'ast> {
   idx: ModuleIdx,
   id: &'me ModuleId,
-  current_stmt_info: StmtInfo,
   result: AstScanResult,
-  esm_export_keyword: Option<Span>,
-  esm_import_keyword: Option<Span>,
-  cur_class_decl: Option<SymbolId>,
+  current_stmt_info: StmtInfo,
   visit_path: Vec<AstKind<'ast>>,
-  scope_stack: Vec<Option<ScopeId>>,
-  /// A flag to resolve `this` appear with propertyKey in class
-  is_nested_this_inside_class: bool,
 }
 
 impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
@@ -95,7 +78,8 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       named_exports: FxHashMap::default(),
       stmt_infos: {
         let mut stmt_infos = StmtInfos::default();
-        // The first `StmtInfo` is used to represent the statement that declares and constructs Module Namespace Object
+        // The first `StmtInfo` is used to represent the statement
+        // that declares and constructs Module Namespace Object
         stmt_infos.push(StmtInfo::default());
         stmt_infos
       },
@@ -106,33 +90,15 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       errors: Vec::new(),
       symbols: symbol_ref_db,
       namespace_object_ref,
-      self_referenced_class_decl_symbol_ids: FxHashSet::default(),
-      hashbang_range: None,
       has_star_exports: false,
-      this_expr_replace_map: FxHashSet::default(),
     };
 
-    Self {
-      idx,
-      current_stmt_info: StmtInfo::default(),
-      result,
-      esm_export_keyword: None,
-      esm_import_keyword: None,
-      id: file_path,
-      cur_class_decl: None,
-      visit_path: vec![],
-      scope_stack: vec![],
-      is_nested_this_inside_class: false,
-    }
+    Self { idx, current_stmt_info: StmtInfo::default(), result, id: file_path, visit_path: vec![] }
   }
 
   pub fn scan(mut self, program: &Program<'ast>) -> BuildResult<AstScanResult> {
     self.visit_program(program);
     Ok(self.result)
-  }
-
-  fn set_esm_export_keyword(&mut self, span: Span) {
-    self.esm_export_keyword.get_or_insert(span);
   }
 
   fn add_declared_id(&mut self, id: SymbolId) {
@@ -472,19 +438,15 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   fn scan_module_decl(&mut self, decl: &ModuleDeclaration<'ast>) {
     match decl {
       ast::ModuleDeclaration::ImportDeclaration(decl) => {
-        self.esm_import_keyword.get_or_insert(Span::new(decl.span.start, decl.span.start + 6));
         self.scan_import_decl(decl);
       }
       ast::ModuleDeclaration::ExportAllDeclaration(decl) => {
-        self.set_esm_export_keyword(Span::new(decl.span.start, decl.span.start + 6));
         self.scan_export_all_decl(decl);
       }
       ast::ModuleDeclaration::ExportNamedDeclaration(decl) => {
-        self.set_esm_export_keyword(Span::new(decl.span.start, decl.span.start + 6));
         self.scan_export_named_decl(decl);
       }
       ast::ModuleDeclaration::ExportDefaultDeclaration(decl) => {
-        self.set_esm_export_keyword(Span::new(decl.span.start, decl.span.start + 6));
         self.scan_export_default_decl(decl);
         if let ast::ExportDefaultDeclarationKind::ClassDeclaration(class) = &decl.declaration {
           self.visit_class(class);
@@ -512,6 +474,24 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
 
   fn is_root_symbol(&self, symbol_id: SymbolId) -> bool {
     self.result.symbols.root_scope_id() == self.result.symbols.symbol_scope_id(symbol_id)
+  }
+
+  fn process_identifier_ref_by_scope(&mut self, ident_ref: &IdentifierReference) {
+    if let Some(root_symbol_id) = self.resolve_identifier_reference(ident_ref) {
+      // if the identifier_reference is a NamedImport MemberExpr access, we store it as a `MemberExpr`
+      // use this flag to avoid insert it as `Symbol` at the same time.
+      let mut is_inserted_before = false;
+      if self.result.named_imports.contains_key(&root_symbol_id) {
+        if let Some((span, props)) = self.try_extract_parent_static_member_expr_chain(usize::MAX) {
+          is_inserted_before = true;
+          self.add_member_expr_reference(root_symbol_id, props, span);
+        }
+      }
+
+      if !is_inserted_before {
+        self.add_referenced_symbol(root_symbol_id);
+      }
+    }
   }
 
   fn try_diagnostic_forbid_const_assign(&mut self, id_ref: &IdentifierReference) -> Option<()> {
@@ -561,17 +541,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         _ => break,
       }
     }
-    (!props.is_empty()).then_some((span, props))
-  }
-
-  /// If it is not a top level `this` reference visit position
-  pub fn is_this_nested(&self) -> bool {
-    self.is_nested_this_inside_class
-      || self.scope_stack.iter().any(|scope| {
-        scope.is_some_and(|scope| {
-          let flags = self.result.symbols.ast_scopes.scope_flags(scope);
-          flags.contains(ScopeFlags::Function) && !flags.contains(ScopeFlags::Arrow)
-        })
-      })
+    (!props.is_empty() && span != SPAN).then_some((span, props))
   }
 }

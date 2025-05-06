@@ -1,6 +1,6 @@
 use minipack_common::{
-  DUMMY_MODULE_IDX, GetLocalDb, ModuleIdx, OutputFormat, SymbolNameRefToken, SymbolRef,
-  SymbolRefDb, SymbolRefDbForModule,
+  GetLocalDb, ModuleIdx, OutputFormat, SymbolNameRefToken, SymbolRef, SymbolRefDb,
+  SymbolRefDbForModule,
 };
 use minipack_utils::concat_string;
 use minipack_utils::rstr::{Rstr, ToRstr};
@@ -140,7 +140,7 @@ impl<'name> Renamer<'name> {
     canonical_ref: SymbolRef,
   ) -> FxHashSet<&'name str> {
     const RUNTIME_MODULE_INDEX: ModuleIdx = ModuleIdx::from_usize_unchecked(0);
-    if canonical_ref.owner == DUMMY_MODULE_IDX || canonical_ref.owner == RUNTIME_MODULE_INDEX {
+    if canonical_ref.owner == RUNTIME_MODULE_INDEX {
       FxHashSet::default()
     } else {
       let scoping = &symbol_db.local_db(canonical_ref.owner).ast_scopes;

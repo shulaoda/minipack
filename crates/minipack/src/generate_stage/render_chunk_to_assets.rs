@@ -51,24 +51,22 @@ impl GenerateStage<'_> {
     let chunk_index_to_codegen_rets = self.create_chunk_to_codegen_ret_map(chunk_graph);
     let mut index_preliminary_assets = IndexVec::with_capacity(chunk_graph.chunk_table.len());
 
-    let tasks = chunk_graph
-      .chunk_table
-      .iter_enumerated()
-      .filter(|(_, chunk)| chunk.is_alive)
-      .zip(chunk_index_to_codegen_rets.into_iter())
-      .map(|((chunk_idx, chunk), module_id_to_codegen_ret)| async move {
-        let mut ctx = GenerateContext {
-          chunk_idx,
-          chunk,
-          options: self.options,
-          link_output: self.link_output,
-          chunk_graph,
-          warnings: vec![],
-          module_id_to_codegen_ret,
-        };
+    let tasks =
+      chunk_graph.chunk_table.iter_enumerated().zip(chunk_index_to_codegen_rets.into_iter()).map(
+        |((chunk_idx, chunk), module_id_to_codegen_ret)| async move {
+          let mut ctx = GenerateContext {
+            chunk_idx,
+            chunk,
+            options: self.options,
+            link_output: self.link_output,
+            chunk_graph,
+            warnings: vec![],
+            module_id_to_codegen_ret,
+          };
 
-        EcmaGenerator::instantiate_chunk(&mut ctx).await
-      });
+          EcmaGenerator::instantiate_chunk(&mut ctx).await
+        },
+      );
 
     for result in try_join_all(tasks).await? {
       index_preliminary_assets.extend(result.chunks);
@@ -90,7 +88,6 @@ impl GenerateStage<'_> {
     chunk_graph
       .chunk_table
       .par_iter()
-      .filter(|chunk| chunk.is_alive)
       .map(|item| {
         item
           .modules

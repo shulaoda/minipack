@@ -110,41 +110,47 @@ impl LinkStage<'_> {
   /// export { a }
   /// ```
   ///
-  /// Unlike import from normal modules, the imported variable deosn't have a place that declared the variable. So we consider `import { a } from 'external'` in `foo.js` as the declaration statement of `a`.
+  /// Unlike import from normal modules, the imported variable deosn't have a place that declared the variable.
+  /// So we consider `import { a } from 'external'` in `foo.js` as the declaration statement of `a`.
   pub fn bind_imports_and_exports(&mut self) {
     // Initialize `resolved_exports` to prepare for matching imports with exports
-    self.metadata.iter_mut_enumerated().for_each(|(module_id, meta)| {
-      let Module::Normal(module) = &self.module_table[module_id] else {
+    self.metadata.iter_mut_enumerated().for_each(|(module_idx, meta)| {
+      let Module::Normal(module) = &self.module_table[module_idx] else {
         return;
       };
+
       let mut resolved_exports = module
         .named_exports
         .iter()
         .map(|(name, local)| {
-          let resolved_export = ResolvedExport {
-            symbol_ref: local.referenced,
-            potentially_ambiguous_symbol_refs: None,
-          };
-          (name.clone(), resolved_export)
+          (
+            name.clone(),
+            ResolvedExport {
+              symbol_ref: local.referenced,
+              potentially_ambiguous_symbol_refs: None,
+            },
+          )
         })
         .collect::<FxHashMap<_, _>>();
 
-      let mut module_stack = vec![];
       if module.has_star_export() {
         Self::add_exports_for_export_star(
           &self.module_table,
           &mut resolved_exports,
-          module_id,
-          &mut module_stack,
+          module_idx,
+          &mut vec![],
         );
       }
+
       meta.resolved_exports = resolved_exports;
     });
+
     let side_effects_modules = self
       .module_table
       .iter_enumerated()
       .filter_map(|(idx, item)| item.side_effects().has_side_effects().then_some(idx))
       .collect::<FxHashSet<ModuleIdx>>();
+
     let mut normal_symbol_exports_chain_map = FxHashMap::default();
     let mut binding_ctx = BindImportsAndExportsContext {
       module_table: &self.module_table,
@@ -207,23 +213,23 @@ impl LinkStage<'_> {
   }
 
   fn add_exports_for_export_star(
-    normal_modules: &IndexModules,
-    resolve_exports: &mut FxHashMap<Rstr, ResolvedExport>,
-    module_id: ModuleIdx,
+    module_table: &IndexModules,
+    resolved_exports: &mut FxHashMap<Rstr, ResolvedExport>,
+    module_idx: ModuleIdx,
     module_stack: &mut Vec<ModuleIdx>,
   ) {
-    if module_stack.contains(&module_id) {
+    if module_stack.contains(&module_idx) {
       return;
     }
 
-    module_stack.push(module_id);
+    module_stack.push(module_idx);
 
-    let Module::Normal(module) = &normal_modules[module_id] else {
+    let Module::Normal(module) = &module_table[module_idx] else {
       return;
     };
 
     for dep_id in module.star_export_module_ids() {
-      let Module::Normal(dep_module) = &normal_modules[dep_id] else {
+      let Module::Normal(dep_module) = &module_table[dep_id] else {
         continue;
       };
 
@@ -232,10 +238,11 @@ impl LinkStage<'_> {
         if exported_name.as_str() == "default" {
           continue;
         }
+
         // This export star is shadowed if any file in the stack has a matching real named export
         if module_stack
           .iter()
-          .filter_map(|id| normal_modules[*id].as_normal())
+          .filter_map(|id| module_table[*id].as_normal())
           .any(|module| module.named_exports.contains_key(exported_name))
         {
           continue;
@@ -243,7 +250,7 @@ impl LinkStage<'_> {
 
         // We have filled `resolve_exports` with `named_exports`. If the export is already exists, it means that the importer
         // has a named export with the same name. So the export from dep module is shadowed.
-        if let Some(resolved_export) = resolve_exports.get_mut(exported_name) {
+        if let Some(resolved_export) = resolved_exports.get_mut(exported_name) {
           if named_export.referenced != resolved_export.symbol_ref {
             resolved_export
               .potentially_ambiguous_symbol_refs
@@ -255,11 +262,11 @@ impl LinkStage<'_> {
             symbol_ref: named_export.referenced,
             potentially_ambiguous_symbol_refs: None,
           };
-          resolve_exports.insert(exported_name.clone(), resolved_export);
+          resolved_exports.insert(exported_name.clone(), resolved_export);
         }
       }
 
-      Self::add_exports_for_export_star(normal_modules, resolve_exports, dep_id, module_stack);
+      Self::add_exports_for_export_star(module_table, resolved_exports, dep_id, module_stack);
     }
 
     module_stack.pop();
@@ -360,7 +367,6 @@ impl LinkStage<'_> {
       })
       .collect::<Vec<_>>();
 
-    debug_assert_eq!(self.metadata.len(), resolved_meta_data.len());
     self.warnings.extend(warnings);
     self.metadata.iter_mut_enumerated().zip(resolved_meta_data).for_each(
       |((_idx, meta), (resolved_map, side_effects_dependency))| {

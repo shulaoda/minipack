@@ -9,11 +9,11 @@ use itertools::Itertools;
 use sugar_path::SugarPath;
 
 use oxc_resolver::{
-  FsCache, PackageJsonSerde as OxcPackageJson, PackageType, ResolveError,
-  ResolveOptions as OxcResolverOptions, ResolverGeneric, TsConfigSerde,
+  FsCache, PackageJsonSerde as OxcPackageJson, ResolveError, ResolveOptions as OxcResolverOptions,
+  ResolverGeneric, TsConfigSerde,
 };
 
-use minipack_common::{PackageJson, Platform};
+use minipack_common::Platform;
 use minipack_fs::{FileSystem, OsFileSystem};
 
 #[derive(Debug)]
@@ -22,7 +22,7 @@ pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
   default_resolver: ResolverGeneric<FsCache<T>>,
   // Resolver for `import '...'` and `import(...)`
   import_resolver: ResolverGeneric<FsCache<T>>,
-  package_json_cache: DashMap<PathBuf, Arc<PackageJson>>,
+  package_json_cache: DashMap<PathBuf, PathBuf>,
 }
 
 impl<F: FileSystem + Default> Resolver<F> {
@@ -105,7 +105,7 @@ impl<F: FileSystem + Default> Resolver<F> {
 #[derive(Debug)]
 pub struct ResolveReturn {
   pub path: ArcStr,
-  pub package_json: Option<Arc<PackageJson>>,
+  pub package_json: Option<PathBuf>,
 }
 
 impl<F: FileSystem + Default> Resolver<F> {
@@ -145,19 +145,13 @@ impl<F: FileSystem + Default> Resolver<F> {
     })
   }
 
-  fn cached_package_json(&self, oxc_pkg_json: &OxcPackageJson) -> Arc<PackageJson> {
+  fn cached_package_json(&self, oxc_pkg_json: &OxcPackageJson) -> PathBuf {
     self.package_json_cache.get(&oxc_pkg_json.realpath).map_or_else(
       || {
-        let pkg_json = Arc::new(PackageJson::new(oxc_pkg_json.path.clone()).with_type(
-          oxc_pkg_json.r#type.map(|t| match t {
-            PackageType::CommonJs => "commonjs",
-            PackageType::Module => "module",
-          }),
-        ));
-        self.package_json_cache.insert(oxc_pkg_json.realpath.clone(), Arc::clone(&pkg_json));
-        pkg_json
+        self.package_json_cache.insert(oxc_pkg_json.realpath.clone(), oxc_pkg_json.path.clone());
+        oxc_pkg_json.path.clone()
       },
-      |v| Arc::clone(v.value()),
+      |v| v.value().clone(),
     )
   }
 }

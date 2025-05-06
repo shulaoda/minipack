@@ -9,7 +9,6 @@ use rustc_hash::FxHashMap;
 pub struct LinkingMetadata {
   // Store the export info for each module, including export named declaration and export star declaration.
   pub resolved_exports: FxHashMap<Rstr, ResolvedExport>,
-  // pub re_export_all_names: FxHashSet<Rstr>,
   // Store the names of exclude ambiguous resolved exports.
   // It will be used to generate chunk exports and module namespace binding.
   pub sorted_and_non_ambiguous_resolved_exports: Vec<Rstr>,
@@ -29,9 +28,5 @@ impl LinkingMetadata {
       .sorted_and_non_ambiguous_resolved_exports
       .iter()
       .map(|name| (name, &self.resolved_exports[name]))
-  }
-
-  pub fn is_canonical_exports_empty(&self) -> bool {
-    self.sorted_and_non_ambiguous_resolved_exports.is_empty()
   }
 }

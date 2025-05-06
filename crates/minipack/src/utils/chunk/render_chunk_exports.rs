@@ -173,13 +173,10 @@ pub fn render_object_define_property(key: &str, value: &str) -> String {
 
 pub fn get_export_items(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<(Rstr, SymbolRef)> {
   match chunk.kind {
-    ChunkKind::EntryPoint { module, .. } => {
-      let meta = &graph.metadata[module];
-      meta
-        .canonical_exports()
-        .map(|(name, export)| (name.clone(), export.symbol_ref))
-        .collect::<Vec<_>>()
-    }
+    ChunkKind::EntryPoint { module, .. } => graph.metadata[module]
+      .canonical_exports()
+      .map(|(name, export)| (name.clone(), export.symbol_ref))
+      .collect::<Vec<_>>(),
     ChunkKind::Common => {
       let mut tmp = chunk
         .exports_to_other_chunks

@@ -16,7 +16,7 @@ struct Context<'a> {
   is_included_vec: &'a mut IndexVec<ModuleIdx, IndexVec<StmtInfoIdx, bool>>,
   is_module_included_vec: &'a mut IndexVec<ModuleIdx, bool>,
   runtime_id: ModuleIdx,
-  metas: &'a LinkingMetadataVec,
+  metadata: &'a LinkingMetadataVec,
   used_symbol_refs: &'a mut FxHashSet<SymbolRef>,
 }
 
@@ -40,7 +40,7 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
   });
 
   // Include imported modules for its side effects
-  ctx.metas[module.idx].dependencies.iter().copied().for_each(|dependency_idx| {
+  ctx.metadata[module.idx].dependencies.iter().copied().for_each(|dependency_idx| {
     match &ctx.module_table[dependency_idx] {
       Module::Normal(importee) => {
         if importee.side_effects.has_side_effects() {
@@ -91,7 +91,7 @@ fn include_statement(ctx: &mut Context, module: &NormalModule, stmt_info_id: Stm
   // include the statement itself
   *is_included = true;
 
-  let resolved_map = &ctx.metas[module.idx].resolved_member_expr_refs;
+  let resolved_map = &ctx.metadata[module.idx].resolved_member_expr_refs;
   module.stmt_infos.get(stmt_info_id).referenced_symbols.iter().for_each(|reference_ref| {
     match reference_ref {
       SymbolOrMemberExprRef::Symbol(symbol_ref) => {
@@ -126,14 +126,13 @@ impl LinkStage<'_> {
       is_included_vec: &mut is_included_vec,
       is_module_included_vec: &mut is_module_included_vec,
       runtime_id: self.runtime_module.id(),
-      // used_exports_info_vec: &mut used_exports_info_vec,
-      metas: &self.metadata,
+      metadata: &self.metadata,
       used_symbol_refs: &mut self.used_symbol_refs,
     };
 
     self.entry_points.iter().for_each(|entry| {
-      if let Module::Normal(module) = &self.module_table[entry.id] {
-        let meta = &self.metadata[entry.id];
+      if let Module::Normal(module) = &self.module_table[entry.idx] {
+        let meta = &self.metadata[entry.idx];
         meta.referenced_symbols_by_entry_point_chunk.iter().for_each(|symbol_ref| {
           include_symbol(context, *symbol_ref);
         });

@@ -6,7 +6,6 @@ use oxc::ast_visit::VisitMut;
 use oxc::semantic::SemanticBuilder;
 use oxc::span::SourceType;
 use oxc_index::IndexVec;
-use rustc_hash::FxHashSet;
 use tokio::sync::mpsc::Sender;
 
 use minipack_common::{
@@ -77,14 +76,11 @@ impl RuntimeModuleTask {
         imports,
         default_export_ref,
         namespace_object_ref,
-        self_referenced_class_decl_symbol_ids: FxHashSet::default(),
-        hashbang_range: None,
         meta: {
           let mut meta = EcmaViewMeta::default();
           meta.set(self::EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
           meta
         },
-        this_expr_replace_map: FxHashSet::default(),
       },
     };
 
@@ -114,7 +110,6 @@ impl RuntimeModuleTask {
 
   fn make_ecma_ast(&mut self, source: &ArcStr) -> BuildResult<(EcmaAst, AstScanResult)> {
     let source_type = SourceType::default();
-
     let mut ast = EcmaCompiler::parse(source, source_type)?;
 
     ast.program.with_mut(|fields| {
@@ -122,15 +117,15 @@ impl RuntimeModuleTask {
       pre_processor.visit_program(fields.program);
     });
 
-    let scoping = ast
-      .program
-      .with_dependent(|_, dep| SemanticBuilder::new().build(&dep.program).semantic.into_scoping());
+    let scoping = ast.program.with_dependent(|_owner, dep| {
+      SemanticBuilder::new().build(&dep.program).semantic.into_scoping()
+    });
 
-    let facade_path = ModuleId::new(RUNTIME_MODULE_ID);
-    let scanner = AstScanner::new(self.idx, scoping, "minipack_runtime", &facade_path);
+    let file_path = ModuleId::new(RUNTIME_MODULE_ID);
+    let ast_scanner = AstScanner::new(self.idx, scoping, "minipack_runtime", &file_path);
 
-    let scan_result = scanner.scan(ast.program())?;
+    let ast_scan_result = ast_scanner.scan(ast.program())?;
 
-    Ok((ast, scan_result))
+    Ok((ast, ast_scan_result))
   }
 }

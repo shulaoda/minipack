@@ -47,8 +47,7 @@ impl LinkStage<'_> {
       if let Module::Normal(module) = module {
         let side_effects =
           DeterminedSideEffects::Analyzed(module.import_records.iter().any(|rec| {
-            !rec.is_dummy()
-              && self.determine_side_effects_for_module(rec.state, cache).has_side_effects()
+            self.determine_side_effects_for_module(rec.state, cache).has_side_effects()
           }));
 
         cache[module_idx] = SideEffectCache::Cache(side_effects);

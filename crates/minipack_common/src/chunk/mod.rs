@@ -41,18 +41,11 @@ pub struct Chunk {
   pub imports_from_external_modules: Vec<(ModuleIdx, Vec<NamedImport>)>,
   // meaningless if the chunk is an entrypoint
   pub exports_to_other_chunks: FxHashMap<SymbolRef, Rstr>,
-  pub is_alive: bool,
 }
 
 impl Chunk {
-  pub fn new(
-    name: Option<ArcStr>,
-    bits: BitSet,
-    modules: Vec<ModuleIdx>,
-    kind: ChunkKind,
-    is_alive: bool,
-  ) -> Self {
-    Self { exec_order: u32::MAX, modules, name, bits, kind, is_alive, ..Self::default() }
+  pub fn new(name: Option<ArcStr>, bits: BitSet, modules: Vec<ModuleIdx>, kind: ChunkKind) -> Self {
+    Self { exec_order: u32::MAX, modules, name, bits, kind, ..Self::default() }
   }
 
   pub fn has_side_effect(&self, runtime_id: ModuleIdx) -> bool {

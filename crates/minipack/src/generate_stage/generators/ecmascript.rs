@@ -61,18 +61,9 @@ impl EcmaGenerator {
     let rendered_chunk =
       ctx.chunk.preliminary_filename.as_deref().expect("should have preliminary_filename").clone();
 
-    let hashbang = ctx.chunk.user_defined_entry_module(&ctx.link_output.module_table).and_then(
-      |normal_module| {
-        normal_module
-          .ecma_view
-          .hashbang_range
-          .map(|range| &normal_module.source[range.start as usize..range.end as usize])
-      },
-    );
-
     let source_joiner = match ctx.options.format {
-      OutputFormat::Esm => render_esm(ctx, hashbang, &rendered_module_sources),
-      OutputFormat::Cjs => render_cjs(ctx, hashbang, &rendered_module_sources)?,
+      OutputFormat::Esm => render_esm(ctx, &rendered_module_sources),
+      OutputFormat::Cjs => render_cjs(ctx, &rendered_module_sources)?,
     };
 
     let content = source_joiner.join();

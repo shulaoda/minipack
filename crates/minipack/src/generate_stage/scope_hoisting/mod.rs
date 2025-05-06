@@ -405,17 +405,6 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     };
 
     let id = class.id.take()?;
-
-    if let Some(symbol_id) = id.symbol_id.get() {
-      if self.ctx.module.self_referenced_class_decl_symbol_ids.contains(&symbol_id) {
-        // class T { static a = new T(); }
-        // needs to rewrite to `var T = class T { static a = new T(); }`
-        let mut id = id.clone();
-        let new_name = self.canonical_name_for((self.ctx.id, symbol_id).into());
-        id.name = self.snippet.atom(new_name);
-        class.id = Some(id);
-      }
-    }
     Some(self.snippet.builder.declaration_variable(
       SPAN,
       VariableDeclarationKind::Var,

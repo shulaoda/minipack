@@ -19,7 +19,7 @@ impl LinkStage<'_> {
       .entry_points
       .iter()
       .rev()
-      .map(|entry| Status::ToBeExecuted(entry.id))
+      .map(|entry| Status::ToBeExecuted(entry.idx))
       .chain(iter::once(Status::ToBeExecuted(self.runtime_module.id())))
       .collect::<Vec<_>>();
 
@@ -57,7 +57,7 @@ impl LinkStage<'_> {
               self.module_table[id]
                 .import_records()
                 .iter()
-                .filter(|rec| rec.kind.is_static() && !rec.is_dummy())
+                .filter(|rec| rec.kind.is_static())
                 .map(|rec| rec.state)
                 .rev()
                 .map(Status::ToBeExecuted),

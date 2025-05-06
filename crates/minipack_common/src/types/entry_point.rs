@@ -4,7 +4,7 @@ use crate::{ModuleIdx, StmtInfoIdx};
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone)]
 pub struct EntryPoint {
-  pub id: ModuleIdx,
+  pub idx: ModuleIdx,
   pub name: Option<ArcStr>,
   pub kind: EntryPointKind,
   pub related_stmt_infos: Vec<(ModuleIdx, StmtInfoIdx)>,

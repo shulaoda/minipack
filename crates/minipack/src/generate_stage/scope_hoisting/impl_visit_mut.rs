@@ -12,11 +12,6 @@ use super::ScopeHoistingFinalizer;
 
 impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
   fn visit_program(&mut self, program: &mut ast::Program<'ast>) {
-    // Drop the hashbang since we already store them in ast_scan phase and
-    // we don't want oxc to generate hashbang statement in module level since we already handle
-    // them in chunk level
-    program.hashbang.take();
-
     // init namespace_alias_symbol_id
     self.namespace_alias_symbol_id = self
       .ctx
@@ -87,11 +82,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       ast::Expression::Identifier(ident_ref) => {
         if let Some(new_expr) = self.try_rewrite_identifier_reference_expr(ident_ref, false) {
           *expr = new_expr;
-        }
-      }
-      ast::Expression::ThisExpression(this_expr) => {
-        if self.ctx.module.ecma_view.this_expr_replace_map.contains(&this_expr.span) {
-          *expr = self.snippet.void_zero();
         }
       }
       _ => {

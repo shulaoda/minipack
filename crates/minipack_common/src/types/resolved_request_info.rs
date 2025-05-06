@@ -1,8 +1,6 @@
-use std::{path::Path, sync::Arc};
+use std::path::{Path, PathBuf};
 
 use arcstr::ArcStr;
-
-use crate::PackageJson;
 
 use super::module_id::stabilize_module_id;
 
@@ -11,21 +9,10 @@ pub struct ResolvedId {
   pub id: ArcStr,
   pub ignored: bool,
   pub is_external: bool,
-  pub package_json: Option<Arc<PackageJson>>,
+  pub package_json: Option<PathBuf>,
 }
 
 impl ResolvedId {
-  /// Create a dummy ResolvedId, which is not exists in the file system
-  /// note: A dummy `ResolvedId` usually used with `DUMMY_MODULE_IDX`
-  pub fn make_dummy() -> Self {
-    Self {
-      id: ArcStr::from(""),
-      ignored: false,
-      is_external: false,
-      package_json: None,
-    }
-  }
-
   /// Created a pretty string representation of the path. The path
   /// 1. doesn't guarantee to be unique
   /// 2. relative to the cwd, so it could show stable path across different machines

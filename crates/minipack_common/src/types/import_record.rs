@@ -3,7 +3,10 @@ use std::fmt::Debug;
 use minipack_utils::rstr::Rstr;
 use oxc::span::Span;
 
-use crate::{DUMMY_MODULE_IDX, ImportKind, ModuleIdx, StmtInfoIdx, SymbolRef};
+use crate::{ImportKind, ModuleIdx, StmtInfoIdx, SymbolRef};
+
+pub type RawImportRecord = ImportRecord<Span>;
+pub type ResolvedImportRecord = ImportRecord<ModuleIdx>;
 
 bitflags::bitflags! {
   #[derive(Debug)]
@@ -18,8 +21,6 @@ bitflags::bitflags! {
     const IS_UNSPANNED_IMPORT = 1 << 3;
     /// `export * from 'mod'` only
     const IS_EXPORT_STAR = 1 << 4;
-    /// If the import is a dummy import, it should be ignored during linking.
-    const IS_DUMMY = 1 << 5;
   }
 }
 
@@ -41,8 +42,6 @@ impl<State: Debug> ImportRecord<State> {
     self.meta.contains(ImportRecordMeta::IS_UNSPANNED_IMPORT)
   }
 }
-
-pub type RawImportRecord = ImportRecord<Span>;
 
 impl RawImportRecord {
   pub fn new(
@@ -76,13 +75,5 @@ impl RawImportRecord {
       meta: self.meta,
       related_stmt_info_idx: self.related_stmt_info_idx,
     }
-  }
-}
-
-pub type ResolvedImportRecord = ImportRecord<ModuleIdx>;
-
-impl ResolvedImportRecord {
-  pub fn is_dummy(&self) -> bool {
-    self.state == DUMMY_MODULE_IDX
   }
 }

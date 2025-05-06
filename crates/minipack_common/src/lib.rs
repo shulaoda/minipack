@@ -13,7 +13,7 @@ pub use bundler_options::{
 
 pub use crate::{
   chunk::{Chunk, CrossChunkImportItem, PreliminaryFilename},
-  ecmascript::ecma_view::{EcmaModuleAstUsage, EcmaView, EcmaViewMeta},
+  ecmascript::ecma_view::{EcmaView, EcmaViewMeta},
   module::{Module, external_module::ExternalModule, normal_module::NormalModule},
   module_loader::{
     ModuleLoaderMsg,
@@ -37,10 +37,7 @@ pub use crate::{
     named_import::{NamedImport, Specifier},
     namespace_alias::NamespaceAlias,
     output_chunk::{Modules, OutputChunk},
-    package_json::PackageJson,
-    raw_idx::{
-      AssetIdx, ChunkIdx, DUMMY_MODULE_IDX, EcmaAstIdx, ImportRecordIdx, ModuleIdx, StmtInfoIdx,
-    },
+    raw_idx::{AssetIdx, ChunkIdx, EcmaAstIdx, ImportRecordIdx, ModuleIdx, StmtInfoIdx},
     rendered_module::RenderedModule,
     resolved_export::ResolvedExport,
     resolved_request_info::ResolvedId,

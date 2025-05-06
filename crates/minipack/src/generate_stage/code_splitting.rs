@@ -40,7 +40,7 @@ impl GenerateStage<'_> {
       let mut bits = BitSet::new(entries_len);
       bits.set_bit(count);
 
-      if let Module::Normal(module) = &self.link_output.module_table[entry_point.id] {
+      if let Module::Normal(module) = &self.link_output.module_table[entry_point.idx] {
         let chunk = chunk_graph.add_chunk(Chunk::new(
           entry_point.name.clone(),
           bits.clone(),
@@ -48,12 +48,11 @@ impl GenerateStage<'_> {
           ChunkKind::EntryPoint {
             is_user_defined: module.is_user_defined_entry,
             bit: count,
-            module: entry_point.id,
+            module: entry_point.idx,
           },
-          self.link_output.lived_entry_points.contains(&entry_point.id),
         ));
         bits_to_chunk.insert(bits, chunk);
-        entry_module_to_entry_chunk.insert(entry_point.id, chunk);
+        entry_module_to_entry_chunk.insert(entry_point.idx, chunk);
       }
     }
 
@@ -61,7 +60,7 @@ impl GenerateStage<'_> {
     self.link_output.entry_points.iter().enumerate().for_each(|(i, entry_point)| {
       let entry_index = i.try_into().expect("Too many entries, u32 overflowed.");
       self.determine_reachable_modules_for_entry(
-        entry_point.id,
+        entry_point.idx,
         entry_index,
         &mut index_splitting_info,
       );
@@ -93,7 +92,7 @@ impl GenerateStage<'_> {
       if let Some(chunk_id) = bits_to_chunk.get(bits).copied() {
         chunk_graph.add_module_to_chunk(normal_module.idx, chunk_id);
       } else {
-        let chunk = Chunk::new(None, bits.clone(), vec![], ChunkKind::Common, true);
+        let chunk = Chunk::new(None, bits.clone(), vec![], ChunkKind::Common);
         let chunk_id = chunk_graph.add_chunk(chunk);
         chunk_graph.add_module_to_chunk(normal_module.idx, chunk_id);
         bits_to_chunk.insert(bits.clone(), chunk_id);

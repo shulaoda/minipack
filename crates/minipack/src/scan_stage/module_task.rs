@@ -2,7 +2,7 @@ use std::{path::Path, sync::Arc};
 
 use arcstr::ArcStr;
 use minipack_common::{
-  ImportKind, ImportRecordIdx, ImportRecordMeta, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
+  ImportKind, ImportRecordIdx, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
   ModuleType, NormalModule, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId,
 };
 use minipack_error::BuildResult;
@@ -74,10 +74,6 @@ impl ModuleTask {
     let resolved_deps = raw_import_records
       .iter()
       .map(|item| {
-        if item.meta.contains(ImportRecordMeta::IS_DUMMY) {
-          return Ok(ResolvedId::make_dummy());
-        }
-
         let specifier = item.module_request.as_str();
         if specifier == RUNTIME_MODULE_ID {
           return Ok(ResolvedId {
@@ -92,11 +88,7 @@ impl ModuleTask {
       })
       .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
 
-    for (record, info) in raw_import_records
-      .iter()
-      .filter(|rec| !rec.meta.contains(ImportRecordMeta::IS_DUMMY))
-      .zip(&resolved_deps)
-    {
+    for (record, info) in raw_import_records.iter().zip(&resolved_deps) {
       match record.kind {
         ImportKind::Import => {
           ecma_view.imported_ids.insert(ArcStr::clone(&info.id).into());

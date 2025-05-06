@@ -48,10 +48,7 @@ pub async fn create_ecma_view(
     warnings: scan_warnings,
     errors,
     symbols,
-    self_referenced_class_decl_symbol_ids,
-    hashbang_range,
     has_star_exports,
-    this_expr_replace_map,
   } = scanner.scan(ast.program())?;
 
   if !errors.is_empty() {
@@ -78,14 +75,11 @@ pub async fn create_ecma_view(
     imported_ids: FxIndexSet::default(),
     dynamically_imported_ids: FxIndexSet::default(),
     side_effects,
-    self_referenced_class_decl_symbol_ids,
-    hashbang_range,
     meta: {
       let mut meta = EcmaViewMeta::default();
       meta.set(EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
       meta
     },
-    this_expr_replace_map,
   };
 
   Ok(CreateEcmaViewReturn {

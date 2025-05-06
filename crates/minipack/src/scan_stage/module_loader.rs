@@ -3,10 +3,10 @@ use std::sync::Arc;
 
 use arcstr::ArcStr;
 use minipack_common::{
-  DUMMY_MODULE_IDX, EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind,
-  ImportRecordIdx, ImportRecordMeta, ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
-  NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief,
-  RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule,
+  EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind, ImportRecordIdx,
+  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, NormalModuleTaskResult,
+  RUNTIME_MODULE_ID, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief, RuntimeModuleTaskResult,
+  SymbolRefDb, SymbolRefDbForModule,
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
@@ -103,9 +103,9 @@ impl ModuleLoader {
     let mut entry_points = user_defined_entries
       .into_iter()
       .map(|(name, info)| {
-        let id = self.try_spawn_new_task(info, None, true);
-        user_defined_entry_ids.insert(id);
-        EntryPoint { id, name, kind: EntryPointKind::UserDefined, related_stmt_infos: vec![] }
+        let idx = self.try_spawn_new_task(info, None, true);
+        user_defined_entry_ids.insert(idx);
+        EntryPoint { idx, name, kind: EntryPointKind::UserDefined, related_stmt_infos: vec![] }
       })
       .collect::<Vec<_>>();
 
@@ -137,9 +137,6 @@ impl ModuleLoader {
             .into_iter()
             .zip(resolved_deps)
             .map(|(raw_rec, info)| {
-              if raw_rec.meta.contains(ImportRecordMeta::IS_DUMMY) {
-                return raw_rec.into_resolved(DUMMY_MODULE_IDX);
-              }
               let normal_module = module.as_normal().unwrap();
               let owner = normal_module.stable_id.as_str().into();
               let id = self.try_spawn_new_task(info, Some(owner), false);
@@ -273,8 +270,8 @@ impl ModuleLoader {
     let mut dynamic_import_entry_ids = dynamic_import_entry_ids.into_iter().collect::<Vec<_>>();
     dynamic_import_entry_ids.sort_unstable_by_key(|(id, _)| module_table[*id].stable_id());
 
-    entry_points.extend(dynamic_import_entry_ids.into_iter().map(|(id, related_stmt_infos)| {
-      EntryPoint { name: None, id, kind: EntryPointKind::DynamicImport, related_stmt_infos }
+    entry_points.extend(dynamic_import_entry_ids.into_iter().map(|(idx, related_stmt_infos)| {
+      EntryPoint { name: None, idx, kind: EntryPointKind::DynamicImport, related_stmt_infos }
     }));
 
     let runtime_module =

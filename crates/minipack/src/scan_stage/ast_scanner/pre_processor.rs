@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use minipack_ecmascript::AstSnippet;
 use minipack_ecmascript::StatementExt;
 use oxc::allocator::Allocator;
@@ -8,13 +7,10 @@ use oxc::ast::ast::{self, BindingPatternKind, Declaration, ImportOrExportKind, S
 use oxc::ast_visit::{VisitMut, walk_mut};
 use oxc::span::SPAN;
 
-/// Pre-process is a essential step to make rolldown generate correct and efficient code.
 pub struct PreProcessor<'ast> {
   snippet: AstSnippet<'ast>,
-  /// For top level statements, this is used to store none_hoisted statements.
-  /// For none top level statements, this is used to store split `VarDeclaration`.
-  stmt_temp_storage: Vec<Statement<'ast>>,
   need_push_ast: bool,
+  stmt_temp_storage: Vec<Statement<'ast>>,
 }
 
 impl<'ast> PreProcessor<'ast> {
@@ -33,7 +29,7 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
     self.stmt_temp_storage = Vec::with_capacity(drain_elements.len());
     for mut stmt in drain_elements {
       self.need_push_ast = true;
-      walk_mut::walk_statement(self, &mut stmt);
+      self.visit_statement(&mut stmt);
       if self.need_push_ast {
         self.stmt_temp_storage.push(stmt);
       }
@@ -50,67 +46,61 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
       return;
     };
 
-    if var_decl
-      .declarations
-      .iter()
-      .any(|declarator| matches!(declarator.id.kind, BindingPatternKind::BindingIdentifier(_)))
-    {
-      let rewritten = var_decl
+    if var_decl.declarations.len() > 1
+      && var_decl
         .declarations
-        .take_in(self.snippet.alloc())
-        .into_iter()
-        .enumerate()
-        .map(|(i, declarator)| {
-          let new_decl = self.snippet.builder.alloc_variable_declaration(
-            SPAN,
-            var_decl.kind,
-            self.snippet.builder.vec_from_iter([declarator]),
-            var_decl.declare,
-          );
-          Statement::ExportNamedDeclaration(self.snippet.builder.alloc_export_named_declaration(
-            if i == 0 { named_decl.span } else { SPAN },
-            Some(Declaration::VariableDeclaration(new_decl)),
-            self.snippet.builder.vec(),
-            // Since it is `export a = 1, b = 2;`, source should be `None`
-            None,
-            ImportOrExportKind::Value,
-            NONE,
-          ))
-        })
-        .collect_vec();
-
-      self.stmt_temp_storage.extend(rewritten);
+        .iter()
+        .any(|declarator| matches!(declarator.id.kind, BindingPatternKind::BindingIdentifier(_)))
+    {
       self.need_push_ast = false;
+      self.stmt_temp_storage.extend(
+        var_decl.declarations.take_in(self.snippet.alloc()).into_iter().enumerate().map(
+          |(i, declarator)| {
+            let new_decl = self.snippet.builder.alloc_variable_declaration(
+              SPAN,
+              var_decl.kind,
+              self.snippet.builder.vec_from_iter([declarator]),
+              var_decl.declare,
+            );
+            Statement::ExportNamedDeclaration(self.snippet.builder.alloc_export_named_declaration(
+              if i == 0 { named_decl.span } else { SPAN },
+              Some(Declaration::VariableDeclaration(new_decl)),
+              self.snippet.builder.vec(),
+              // Since it is `export a = 1, b = 2;`, source should be `None`
+              None,
+              ImportOrExportKind::Value,
+              NONE,
+            ))
+          },
+        ),
+      );
     }
   }
 
+  /// transpose `import(test ? 'a' : 'b')` into `test ? import('a') : import('b')`
   fn visit_expression(&mut self, it: &mut ast::Expression<'ast>) {
-    let to_replaced = match it {
-      // transpose `import(test ? 'a' : 'b')` into `test ? import('a') : import('b')`
-      ast::Expression::ImportExpression(expr) if expr.options.is_none() => {
-        let source = &mut expr.source;
-        match source {
-          ast::Expression::ConditionalExpression(cond_expr) => {
-            let test = cond_expr.test.take_in(self.snippet.alloc());
-            let consequent = cond_expr.consequent.take_in(self.snippet.alloc());
-            let alternative = cond_expr.alternate.take_in(self.snippet.alloc());
-
-            let new_cond_expr = self.snippet.builder.expression_conditional(
+    if let ast::Expression::ImportExpression(expr) = it {
+      if expr.options.is_none() {
+        if let ast::Expression::ConditionalExpression(cond_expr) = &mut expr.source {
+          let new_cond_expr = self.snippet.builder.expression_conditional(
+            SPAN,
+            cond_expr.test.take_in(self.snippet.alloc()),
+            self.snippet.builder.expression_import(
               SPAN,
-              test,
-              self.snippet.builder.expression_import(SPAN, consequent, None, None),
-              self.snippet.builder.expression_import(SPAN, alternative, None, None),
-            );
-
-            Some(new_cond_expr)
-          }
-          _ => None,
+              cond_expr.consequent.take_in(self.snippet.alloc()),
+              None,
+              None,
+            ),
+            self.snippet.builder.expression_import(
+              SPAN,
+              cond_expr.alternate.take_in(self.snippet.alloc()),
+              None,
+              None,
+            ),
+          );
+          *it = new_cond_expr;
         }
       }
-      _ => None,
-    };
-    if let Some(replaced) = to_replaced {
-      *it = replaced;
     }
     walk_mut::walk_expression(self, it);
   }
