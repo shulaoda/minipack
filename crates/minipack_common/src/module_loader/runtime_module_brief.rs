@@ -26,8 +26,6 @@ impl RuntimeModuleBrief {
   }
 
   pub fn resolve_symbol(&self, name: &str) -> SymbolRef {
-    let symbol_id =
-      self.name_to_symbol.get(name).unwrap_or_else(|| panic!("Failed to resolve symbol: {name}"));
-    (self.id, *symbol_id).into()
+    SymbolRef::from((self.id, self.name_to_symbol[name]))
   }
 }

@@ -1,7 +1,8 @@
 use std::fmt::Display;
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Default, Clone, Copy)]
 pub enum OutputFormat {
+  #[default]
   Esm,
   Cjs,
 }

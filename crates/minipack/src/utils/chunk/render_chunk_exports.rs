@@ -193,16 +193,13 @@ pub fn get_export_items(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<(Rstr, Sy
 
 fn must_keep_live_binding(export_ref: SymbolRef, symbol_db: &SymbolRefDb) -> bool {
   let canonical_ref = symbol_db.canonical_ref_for(export_ref);
-
   if canonical_ref.is_declared_by_const(symbol_db).unwrap_or(false) {
     // For unknown case, we consider it as not declared by `const`.
     return false;
   }
-
   if canonical_ref.is_not_reassigned(symbol_db).unwrap_or(false) {
     // For unknown case, we consider it as reassigned.
     return false;
   }
-
   true
 }

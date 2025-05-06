@@ -11,16 +11,12 @@ pub type ResolvedImportRecord = ImportRecord<ModuleIdx>;
 bitflags::bitflags! {
   #[derive(Debug)]
   pub struct ImportRecordMeta: u8 {
-    /// If it is `import * as ns from '...'` or `export * as ns from '...'`
-    const CONTAINS_IMPORT_STAR = 1;
-    /// If it is `import def from '...'`, `import { default as def }`, `export { default as def }` or `export { default } from '...'`
-    const CONTAINS_IMPORT_DEFAULT = 1 << 1;
     /// If it is `import {} from '...'` or `import '...'`
-    const IS_PLAIN_IMPORT = 1 << 2;
+    const IS_PLAIN_IMPORT = 1;
     /// the import is inserted during ast transformation, can't get source slice from the original source file
-    const IS_UNSPANNED_IMPORT = 1 << 3;
+    const IS_UNSPANNED_IMPORT = 1 << 1;
     /// `export * from 'mod'` only
-    const IS_EXPORT_STAR = 1 << 4;
+    const IS_EXPORT_STAR = 1 << 2;
   }
 }
 
@@ -28,7 +24,7 @@ bitflags::bitflags! {
 pub struct ImportRecord<State: Debug> {
   pub state: State,
   /// `./lib.js` in `import { foo } from './lib.js';`
-  pub module_request: Rstr,
+  pub specifier: Rstr,
   pub kind: ImportKind,
   /// We will turn `import { foo } from './cjs.js'; console.log(foo);` to `var import_foo = require_cjs(); console.log(importcjs.foo)`;
   /// `namespace_ref` represent the potential `import_foo` in above example. It's useless if we imported n esm module.
@@ -52,7 +48,7 @@ impl RawImportRecord {
     related_stmt_info_idx: Option<StmtInfoIdx>,
   ) -> Self {
     Self {
-      module_request: specifier,
+      specifier,
       kind,
       namespace_ref,
       meta: ImportRecordMeta::empty(),
@@ -69,7 +65,7 @@ impl RawImportRecord {
   pub fn into_resolved(self, resolved_module: ModuleIdx) -> ResolvedImportRecord {
     ResolvedImportRecord {
       state: resolved_module,
-      module_request: self.module_request,
+      specifier: self.specifier,
       kind: self.kind,
       namespace_ref: self.namespace_ref,
       meta: self.meta,

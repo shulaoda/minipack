@@ -16,23 +16,19 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
 ) {
   let mut module_sources_peekable = module_sources.iter().peekable();
   match module_sources_peekable.peek() {
-    Some(RenderedModuleSource { module_idx, .. })
+    Some(RenderedModuleSource { module_idx, sources: Some(emitted_sources) })
       if *module_idx == ctx.link_output.runtime_module.id() =>
     {
-      if let RenderedModuleSource { sources: Some(emitted_sources), .. } =
-        module_sources_peekable.next().expect("Must have module")
-      {
-        for source in emitted_sources.iter() {
-          source_joiner.append_source(source);
-        }
+      for source in emitted_sources.iter() {
+        source_joiner.append_source(source);
       }
+      module_sources_peekable.next();
     }
     _ => {}
   }
 
   source_joiner.append_source(import_code);
 
-  // chunk content
   module_sources_peekable.for_each(|RenderedModuleSource { sources, .. }| {
     if let Some(emitted_sources) = sources {
       for source in emitted_sources.as_ref() {

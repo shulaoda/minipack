@@ -1,7 +1,6 @@
 pub mod ast_scanner;
 pub mod loaders;
 pub mod module_loader;
-pub mod task_context;
 
 mod module_task;
 mod runtime_module_task;

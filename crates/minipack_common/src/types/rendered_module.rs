@@ -4,8 +4,8 @@ use super::{source::Source, source_joiner::SourceJoiner};
 
 #[derive(Clone, Default)]
 pub struct RenderedModule {
-  inner: Option<Arc<[Box<dyn Source + Send + Sync>]>>,
   pub exec_order: u32,
+  inner: Option<Arc<[Box<dyn Source + Send + Sync>]>>,
 }
 
 impl Debug for RenderedModule {
@@ -22,11 +22,9 @@ impl RenderedModule {
   pub fn code(&self) -> Option<String> {
     self.inner.as_ref().map(|sources| {
       let mut joiner = SourceJoiner::default();
-
       for source in sources.iter() {
         joiner.append_source(source);
       }
-
       joiner.join()
     })
   }

@@ -1,6 +1,6 @@
 use minipack_common::{
-  EcmaRelated, EcmaView, EcmaViewMeta, ImportRecordIdx, ModuleId, RawImportRecord,
-  side_effects::DeterminedSideEffects,
+  EcmaRelated, EcmaView, EcmaViewMeta, ImportRecordIdx, ModuleId, ModuleIdx, ModuleType,
+  RawImportRecord, ResolvedId, side_effects::DeterminedSideEffects,
 };
 use minipack_error::BuildResult;
 use minipack_utils::{indexmap::FxIndexSet, path_ext::PathExt};
@@ -10,12 +10,19 @@ use sugar_path::SugarPath;
 
 use crate::{
   scan_stage::ast_scanner::{AstScanResult, AstScanner},
-  types::module_factory::CreateModuleContext,
   utils::{
     ecmascript::legitimize_identifier_name,
     parse_to_ecma_ast::{ParseToEcmaAstResult, parse_to_ecma_ast},
   },
 };
+
+pub struct CreateModuleContext<'a> {
+  pub stable_id: &'a str,
+  pub module_idx: ModuleIdx,
+  pub resolved_id: &'a ResolvedId,
+  pub module_type: ModuleType,
+  pub warnings: &'a mut Vec<anyhow::Error>,
+}
 
 pub struct CreateEcmaViewReturn {
   pub ecma_view: EcmaView,
@@ -27,7 +34,8 @@ pub async fn create_ecma_view(
   ctx: &mut CreateModuleContext<'_>,
   source: String,
 ) -> BuildResult<CreateEcmaViewReturn> {
-  let ParseToEcmaAstResult { ast, scoping, warning } = parse_to_ecma_ast(ctx, source)?;
+  let ParseToEcmaAstResult { ast, scoping, warning } =
+    parse_to_ecma_ast(ctx.stable_id, &ctx.module_type, source)?;
 
   ctx.warnings.extend(warning);
 

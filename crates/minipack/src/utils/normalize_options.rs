@@ -6,13 +6,12 @@ pub fn normalize_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOp
   let cwd =
     raw_options.cwd.unwrap_or_else(|| std::env::current_dir().expect("Failed to get current dir"));
 
-  let format = raw_options.format.unwrap_or(OutputFormat::Esm);
+  let dir = raw_options.dir.unwrap_or_else(|| "dist".to_string());
+  let format = raw_options.format.unwrap_or_default();
   let platform = raw_options.platform.unwrap_or(match format {
     OutputFormat::Cjs => Platform::Node,
     OutputFormat::Esm => Platform::Browser,
   });
-
-  let dir = raw_options.dir.unwrap_or_else(|| "dist".to_string());
 
   Arc::new(NormalizedBundlerOptions {
     // --- Input

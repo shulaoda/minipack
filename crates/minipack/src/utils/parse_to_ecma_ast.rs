@@ -7,8 +7,6 @@ use sugar_path::SugarPath;
 
 use super::pre_process_ecma_ast::PreProcessEcmaAst;
 
-use crate::types::module_factory::CreateModuleContext;
-
 pub struct ParseToEcmaAstResult {
   pub ast: EcmaAst,
   pub scoping: Scoping,
@@ -16,12 +14,11 @@ pub struct ParseToEcmaAstResult {
 }
 
 pub fn parse_to_ecma_ast(
-  ctx: &CreateModuleContext<'_>,
+  stable_id: &str,
+  module_type: &ModuleType,
   source: String,
 ) -> BuildResult<ParseToEcmaAstResult> {
-  let CreateModuleContext { stable_id, module_type, .. } = ctx;
-
-  let source = if matches!(module_type, ModuleType::Empty) { ArcStr::new() } else { source.into() };
+  let source = if *module_type == ModuleType::Empty { ArcStr::new() } else { source.into() };
   let oxc_source_type = {
     let default = OxcSourceType::default().with_module(true);
     if let ModuleType::Ts = module_type { default.with_typescript(true) } else { default }

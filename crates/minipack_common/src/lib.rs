@@ -36,7 +36,7 @@ pub use crate::{
     named_export::LocalExport,
     named_import::{NamedImport, Specifier},
     namespace_alias::NamespaceAlias,
-    output_chunk::{Modules, OutputChunk},
+    output_chunk::OutputChunk,
     raw_idx::{AssetIdx, ChunkIdx, EcmaAstIdx, ImportRecordIdx, ModuleIdx, StmtInfoIdx},
     rendered_module::RenderedModule,
     resolved_request_info::ResolvedId,

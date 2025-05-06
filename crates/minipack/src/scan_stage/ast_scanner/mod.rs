@@ -66,6 +66,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     let legitimized_repr_name = legitimize_identifier_name(repr_name);
     let default_export_ref = symbol_ref_db
       .create_facade_root_symbol_ref(&concat_string!(legitimized_repr_name, "_default"));
+
     // This is used for converting "export default foo;" => "var [default_export_ref] = foo;"
     // And we consider [default_export_ref] never get reassigned.
     default_export_ref.flags_mut(&mut symbol_ref_db).insert(SymbolRefFlags::IS_NOT_REASSIGNED);
@@ -77,9 +78,9 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       named_imports: FxHashMap::default(),
       named_exports: FxHashMap::default(),
       stmt_infos: {
-        let mut stmt_infos = StmtInfos::default();
         // The first `StmtInfo` is used to represent the statement
         // that declares and constructs Module Namespace Object
+        let mut stmt_infos = StmtInfos::default();
         stmt_infos.push(StmtInfo::default());
         stmt_infos
       },
@@ -120,12 +121,12 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     // If 'foo' in `import ... from 'foo'` is finally a commonjs module, we will convert the import statement
     // to `var import_foo = __toESM(require_foo())`, so we create a symbol for `import_foo` here. Notice that we
     // just create the symbol. If the symbol is finally used would be determined in the linking stage.
-    let namespace_ref: SymbolRef =
-      self.result.symbols.create_facade_root_symbol_ref(&concat_string!(
-        "#LOCAL_NAMESPACE_IN_",
-        itoa::Buffer::new().format(self.current_stmt_info.stmt_idx.unwrap_or_default().raw()),
-        "#"
-      ));
+    let namespace_ref = self.result.symbols.create_facade_root_symbol_ref(&concat_string!(
+      "#LOCAL_NAMESPACE_IN_",
+      itoa::Buffer::new().format(self.current_stmt_info.stmt_idx.unwrap_or_default().raw()),
+      "#"
+    ));
+
     let rec = RawImportRecord::new(
       Rstr::from(module_request),
       kind,
@@ -228,38 +229,33 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
   fn add_re_export(
     &mut self,
     export_name: &str,
-    imported: &str,
+    imported: Specifier,
     record_id: ImportRecordIdx,
     imported_span: Span,
   ) {
     // We will pretend `export { [imported] as [export_name] }` to be `import `
     let ident = if export_name == "default" {
       let importee_repr =
-        self.result.import_records[record_id].module_request.as_path().representative_file_name();
+        self.result.import_records[record_id].specifier.as_path().representative_file_name();
       let importee_repr = legitimize_identifier_name(&importee_repr);
       Cow::Owned(concat_string!(importee_repr, "_default"))
     } else {
       // the export_name could be a string literal
       legitimize_identifier_name(export_name)
     };
+
     let generated_imported_as_ref =
       self.result.symbols.create_facade_root_symbol_ref(ident.as_ref());
 
     self.current_stmt_info.declared_symbols.push(generated_imported_as_ref);
-    let name_import = NamedImport {
-      imported: imported.into(),
-      imported_as: generated_imported_as_ref,
-      record_id,
-      imported_span,
-    };
-    if name_import.imported.is_default() {
-      self.result.import_records[record_id].meta.insert(ImportRecordMeta::CONTAINS_IMPORT_DEFAULT);
-    }
     self.result.named_exports.insert(
       export_name.into(),
-      LocalExport { referenced: generated_imported_as_ref, span: name_import.imported_span },
+      LocalExport { referenced: generated_imported_as_ref, span: imported_span },
     );
-    self.result.named_imports.insert(generated_imported_as_ref, name_import);
+    self.result.named_imports.insert(
+      generated_imported_as_ref,
+      NamedImport { imported, imported_as: generated_imported_as_ref, record_id, imported_span },
+    );
   }
 
   fn add_star_re_export(
@@ -278,7 +274,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       record_id,
     };
 
-    self.result.import_records[record_id].meta.insert(ImportRecordMeta::CONTAINS_IMPORT_STAR);
     self.result.named_exports.insert(
       export_name.into(),
       LocalExport { referenced: generated_imported_as_ref, span: name_import.imported_span },
@@ -323,7 +318,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       decl.specifiers.iter().for_each(|spec| {
         self.add_re_export(
           spec.exported.name().as_str(),
-          spec.local.name().as_str(),
+          spec.local.name().as_str().into(),
           record_id,
           spec.local.span(),
         );
@@ -419,18 +414,13 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         let sym = spec.local.expect_symbol_id();
         let imported = spec.imported.name();
         self.add_named_import(sym, imported.as_str(), rec_id, spec.imported.span());
-        if imported == "default" {
-          self.result.import_records[rec_id].meta.insert(ImportRecordMeta::CONTAINS_IMPORT_DEFAULT);
-        }
       }
       ast::ImportDeclarationSpecifier::ImportDefaultSpecifier(spec) => {
         self.add_named_import(spec.local.expect_symbol_id(), "default", rec_id, spec.span);
-        self.result.import_records[rec_id].meta.insert(ImportRecordMeta::CONTAINS_IMPORT_DEFAULT);
       }
       ast::ImportDeclarationSpecifier::ImportNamespaceSpecifier(spec) => {
         let symbol_id = spec.local.expect_symbol_id();
         self.add_star_import(symbol_id, rec_id, spec.span);
-        self.result.import_records[rec_id].meta.insert(ImportRecordMeta::CONTAINS_IMPORT_STAR);
       }
     });
   }
@@ -503,7 +493,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         self.result.errors.push(anyhow::anyhow!(
           "Unexpected re-assignment of const variable `{0}` at {1}",
           self.result.symbols.symbol_name(symbol_id),
-          self.id.resource_id()
+          self.id.as_ref()
         ));
       }
     }

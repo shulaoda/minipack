@@ -76,7 +76,7 @@ impl<'ast> AstSnippet<'ast> {
     span: Span,
   ) -> ast::Expression<'ast> {
     if names.len() == 1 {
-      self.void_zero()
+      self.builder.void_0(SPAN)
     } else {
       ast::Expression::StaticMemberExpression(self.builder.alloc_static_member_expression(
         span,
@@ -238,12 +238,6 @@ impl<'ast> AstSnippet<'ast> {
       NONE,
       self.builder.function_body(SPAN, self.builder.vec(), statements),
     ))
-  }
-
-  #[inline]
-  /// `undefined` is acting like identifier, it might be shadowed by user code.
-  pub fn void_zero(&self) -> ast::Expression<'ast> {
-    self.builder.void_0(SPAN)
   }
 
   pub fn alloc_string_literal(

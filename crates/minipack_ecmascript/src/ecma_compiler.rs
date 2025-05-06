@@ -4,7 +4,7 @@ use oxc::{
   allocator::Allocator,
   codegen::{Codegen, CodegenOptions, CodegenReturn},
   minifier::{CompressOptions, CompressOptionsKeepNames, MangleOptions, Minifier, MinifierOptions},
-  parser::{ParseOptions, Parser},
+  parser::Parser,
   span::SourceType,
   transformer::ESTarget,
 };
@@ -18,19 +18,14 @@ pub struct EcmaCompiler;
 
 impl EcmaCompiler {
   pub fn parse(source: impl Into<ArcStr>, source_type: SourceType) -> BuildResult<EcmaAst> {
-    let source: ArcStr = source.into();
     let allocator = oxc::allocator::Allocator::default();
-    let program = ProgramCell::try_new(ProgramCellOwner { source, allocator }, |owner| {
-      let parser =
-        Parser::new(&owner.allocator, &owner.source, source_type).with_options(ParseOptions {
-          allow_return_outside_function: true,
-          ..ParseOptions::default()
-        });
-      let ret = parser.parse();
-      if ret.panicked || !ret.errors.is_empty() {
-        Err(anyhow::anyhow!("{:?}", ret.errors))
-      } else {
+    let owner = ProgramCellOwner { source: source.into(), allocator };
+    let program = ProgramCell::try_new(owner, |owner| {
+      let ret = Parser::new(&owner.allocator, &owner.source, source_type).parse();
+      if ret.errors.is_empty() {
         Ok(ProgramCellDependent { program: ret.program })
+      } else {
+        Err(anyhow::anyhow!("{:?}", ret.errors))
       }
     })?;
 
@@ -41,7 +36,7 @@ impl EcmaCompiler {
     Codegen::new().build(ast.program())
   }
 
-  pub fn minify(source_text: &str, target: ESTarget) -> String {
+  pub fn minify(source_text: &str) -> String {
     let allocator = Allocator::default();
     let source_type = SourceType::default();
 
@@ -51,7 +46,7 @@ impl EcmaCompiler {
     let ret = Minifier::new(MinifierOptions {
       mangle: Some(MangleOptions::default()),
       compress: Some(CompressOptions {
-        target,
+        target: ESTarget::ESNext,
         drop_debugger: false,
         drop_console: false,
         keep_names: CompressOptionsKeepNames { function: true, class: true },

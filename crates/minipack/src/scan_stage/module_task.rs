@@ -2,21 +2,28 @@ use std::{path::Path, sync::Arc};
 
 use arcstr::ArcStr;
 use minipack_common::{
-  ImportKind, ImportRecordIdx, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
-  ModuleType, NormalModule, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId,
+  ImportKind, ImportRecordIdx, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleType,
+  NormalModule, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId,
 };
 use minipack_error::BuildResult;
-use minipack_fs::FileSystem;
+use minipack_fs::{FileSystem, OsFileSystem};
 use minipack_utils::{path_ext::PathExt, rstr::Rstr};
 use oxc_index::IndexVec;
+use tokio::sync::mpsc::Sender;
 
 use crate::{
-  types::module_factory::CreateModuleContext,
+  types::{SharedOptions, SharedResolver},
   utils::{ecmascript::legitimize_identifier_name, resolve_id::resolve_id},
 };
 
-use super::loaders::ecmascript::{CreateEcmaViewReturn, create_ecma_view};
-use super::task_context::TaskContext;
+use super::loaders::ecmascript::{CreateEcmaViewReturn, CreateModuleContext, create_ecma_view};
+
+pub struct TaskContext {
+  pub fs: OsFileSystem,
+  pub options: SharedOptions,
+  pub resolver: SharedResolver,
+  pub tx: Sender<ModuleLoaderMsg>,
+}
 
 pub struct ModuleTask {
   ctx: Arc<TaskContext>,
@@ -74,14 +81,9 @@ impl ModuleTask {
     let resolved_deps = raw_import_records
       .iter()
       .map(|item| {
-        let specifier = item.module_request.as_str();
+        let specifier = item.specifier.as_str();
         if specifier == RUNTIME_MODULE_ID {
-          return Ok(ResolvedId {
-            id: specifier.into(),
-            ignored: false,
-            is_external: false,
-            package_json: None,
-          });
+          return Ok(ResolvedId { id: specifier.into(), is_external: false, package_json: None });
         }
 
         resolve_id(&self.ctx.resolver, specifier, Some(&self.resolved_id.id), false)
@@ -129,11 +131,6 @@ impl ModuleTask {
 
   pub fn load_source(&self) -> anyhow::Result<(String, ModuleType)> {
     let fs: &dyn FileSystem = &self.ctx.fs;
-
-    if self.resolved_id.ignored {
-      return Ok((String::new(), ModuleType::Empty));
-    }
-
     let id = &self.resolved_id.id;
     let content = fs.read_to_string(Path::new(id.as_str()))?;
 

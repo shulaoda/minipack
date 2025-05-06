@@ -1,4 +1,4 @@
-use minipack_common::{Module, StmtInfoIdx, SymbolRef};
+use minipack_common::{Module, StmtInfoIdx};
 use minipack_ecmascript::ExpressionExt;
 use oxc::{
   allocator::IntoIn,
@@ -12,7 +12,6 @@ use super::ScopeHoistingFinalizer;
 
 impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
   fn visit_program(&mut self, program: &mut ast::Program<'ast>) {
-    // init namespace_alias_symbol_id
     self.namespace_alias_symbol_id = self
       .ctx
       .module
@@ -31,11 +30,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
 
     self.remove_unused_top_level_stmt(program);
 
-    // the order should be
-    // 1. module namespace object declaration
-    // 2. shimmed_exports
-    // 3. hoisted_names
-    // 4. wrapped module declaration
     if self.ctx.module.stmt_infos[StmtInfoIdx::new(0)].is_included {
       let stmts = self.generate_declaration_of_module_namespace_object();
       program.body.splice(0..0, stmts);
@@ -46,11 +40,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
 
   fn visit_binding_identifier(&mut self, ident: &mut ast::BindingIdentifier<'ast>) {
     if let Some(symbol_id) = ident.symbol_id.get() {
-      let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
-
-      let canonical_ref = self.ctx.symbol_db.canonical_ref_for(symbol_ref);
-      let symbol = self.ctx.symbol_db.get(canonical_ref);
-      assert!(symbol.namespace_alias.is_none());
+      let symbol_ref = (self.ctx.id, symbol_id).into();
       let canonical_name = self.canonical_name_for(symbol_ref);
       if ident.name != canonical_name {
         ident.name = self.snippet.atom(canonical_name);

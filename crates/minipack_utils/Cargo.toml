@@ -24,5 +24,4 @@ rayon = { workspace = true }
 regex = { workspace = true }
 rustc-hash = { workspace = true }
 serde_json = { workspace = true }
-sugar_path = { workspace = true }
 xxhash-rust = { workspace = true, features = ["xxh3"] }

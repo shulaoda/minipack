@@ -8,12 +8,9 @@ use crate::SymbolRef;
 /// - `props` is `["bar_ns", "c"]`
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct MemberExprRef {
+  pub span: Span,
   pub object_ref: SymbolRef,
   pub props: Vec<CompactStr>,
-  /// Span of the whole member expression
-  /// FIXME: use `AstNodeId` to identify the MemberExpr instead of `Span`
-  /// related discussion: <https://github.com/rolldown/rolldown/pull/1818#discussion_r1699374441>
-  pub span: Span,
 }
 
 impl MemberExprRef {

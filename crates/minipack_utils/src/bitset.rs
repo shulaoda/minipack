@@ -82,7 +82,6 @@ mod tests {
     bs2.set_bit(8);
     bs2.set_bit(15);
     assert_eq!(bs2.to_string(), "00000000_10000001");
-    //
     bs.union(&bs2);
     assert_eq!(bs.to_string(), "10000011_10000001");
   }

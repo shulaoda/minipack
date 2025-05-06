@@ -46,6 +46,7 @@
     "daachorse",
     "dashmap",
     "deconflict",
+    "deconflicted",
     "esbuild",
     "extname",
     "Finalizer",

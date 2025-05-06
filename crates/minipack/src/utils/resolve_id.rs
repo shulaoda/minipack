@@ -13,7 +13,6 @@ pub fn resolve_id(
   match resolver.resolve(importer.map(Path::new), request, is_user_defined_entry) {
     Ok(resolved) => Ok(ResolvedId {
       id: resolved.path,
-      ignored: false,
       is_external: false,
       package_json: resolved.package_json,
     }),
@@ -24,14 +23,7 @@ pub fn resolve_id(
         } else {
           resolved.into()
         },
-        ignored: false,
         is_external: true,
-        package_json: None,
-      }),
-      ResolveError::Ignored(p) => Ok(ResolvedId {
-        id: p.to_str().expect("Should be valid utf8").into(),
-        ignored: true,
-        is_external: false,
         package_json: None,
       }),
       _ => Err(anyhow::anyhow!("{:?}", err))?,

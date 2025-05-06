@@ -3,7 +3,6 @@ use super::source::Source;
 #[derive(Default)]
 pub struct SourceJoiner<'source> {
   inner: Vec<Box<dyn Source + Send + 'source>>,
-  prepend_source: Vec<Box<dyn Source + Send + 'source>>,
 }
 
 impl<'source> SourceJoiner<'source> {
@@ -11,13 +10,9 @@ impl<'source> SourceJoiner<'source> {
     self.inner.push(Box::new(source));
   }
 
-  pub fn prepend_source(&mut self, source: Box<dyn Source + Send + 'source>) {
-    self.prepend_source.push(source);
-  }
-
   pub fn join(&self) -> String {
-    let sources_len = self.prepend_source.len() + self.inner.len();
-    let sources_iter = self.prepend_source.iter().chain(self.inner.iter()).enumerate();
+    let sources_len = self.inner.len();
+    let sources_iter = self.inner.iter().enumerate();
 
     let size_hint_of_ret_source = sources_iter.clone().map(|(_idx, source)| source.content().len()).sum::<usize>()
         + /* Each source we will emit a '\n' but exclude last one */ (sources_len - /* Exclude the last source  */ 1);

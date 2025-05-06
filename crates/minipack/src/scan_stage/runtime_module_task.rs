@@ -35,7 +35,6 @@ impl RuntimeModuleTask {
 
   fn run_inner(&mut self) -> BuildResult<()> {
     let source = arcstr::literal!(include_str!("./runtime/index.js"));
-
     let (ast, scan_result) = self.make_ecma_ast(&source)?;
 
     let AstScanResult {
@@ -64,7 +63,6 @@ impl RuntimeModuleTask {
         ecma_ast_idx: None,
         source,
         import_records: IndexVec::default(),
-        // The internal runtime module `importers/imported` should be skip.
         importers: FxIndexSet::default(),
         dynamic_importers: FxIndexSet::default(),
         imported_ids: FxIndexSet::default(),
@@ -78,7 +76,7 @@ impl RuntimeModuleTask {
         namespace_object_ref,
         meta: {
           let mut meta = EcmaViewMeta::default();
-          meta.set(self::EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
+          meta.set(EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
           meta
         },
       },
@@ -86,10 +84,10 @@ impl RuntimeModuleTask {
 
     let resolved_deps = raw_import_records
       .iter()
-      .map(|rec| {
-        // We assume the runtime module only has external dependencies.
-        let id = rec.module_request.as_str().into();
-        ResolvedId { id, ignored: false, is_external: true, package_json: None }
+      .map(|rec| ResolvedId {
+        id: rec.specifier.as_str().into(),
+        is_external: true,
+        package_json: None,
       })
       .collect();
 

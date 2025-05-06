@@ -48,15 +48,7 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
 
   let index_standalone_content_hashes: IndexVec<AssetIdx, String> = preliminary_assets
     .par_iter()
-    .map(|chunk| {
-      let mut hash = xxhash_base64_url(chunk.content.as_bytes());
-      // Hash content that provided by users if it's exist
-      if let Some(augment_chunk_hash) = &chunk.augment_chunk_hash {
-        hash.push_str(augment_chunk_hash);
-        hash = xxhash_base64_url(hash.as_bytes());
-      }
-      hash
-    })
+    .map(|chunk| xxhash_base64_url(chunk.content.as_bytes()))
     .collect::<Vec<_>>()
     .into();
 
@@ -106,11 +98,6 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
         &final_hashes_by_placeholder,
       )
       .into_owned();
-
-      if let Some(kind) = &mut asset.kind {
-        *kind = filename.as_str().into();
-      }
-
       asset.content =
         replace_placeholder_with_hash(asset.content, &final_hashes_by_placeholder).into_owned();
       asset.finalize(filename)

@@ -1,13 +1,12 @@
 pub mod bundle_output;
 pub mod generator;
 pub mod linking_metadata;
-pub mod module_factory;
 
 use std::sync::Arc;
 
 use linking_metadata::LinkingMetadata;
 use minipack_common::{
-  Asset, AssetIdx, EcmaAstIdx, InstantiatedChunk, Module, ModuleIdx, NormalizedBundlerOptions
+  Asset, AssetIdx, EcmaAstIdx, InstantiatedChunk, Module, ModuleIdx, NormalizedBundlerOptions,
 };
 use minipack_ecmascript::EcmaAst;
 use minipack_fs::OsFileSystem;

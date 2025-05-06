@@ -5,9 +5,7 @@ use std::{borrow::Cow, path::Path};
 
 use arcstr::ArcStr;
 
-use minipack_utils::{
-  bitset::BitSet, hash_placeholder::HashPlaceholderGenerator, path_ext::PathExt, rstr::Rstr,
-};
+use minipack_utils::{bitset::BitSet, hash_placeholder::HashPlaceholderGenerator, rstr::Rstr};
 use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
 use sugar_path::SugarPath;
@@ -65,14 +63,8 @@ impl Chunk {
   }
 
   pub fn relative_path_for(&self, target: &Path) -> String {
-    let source_dir = self
-      .absolute_preliminary_filename
-      .as_ref()
-      .expect("chunk should have absolute_preliminary_filename")
-      .as_path()
-      .parent()
-      .expect("absolute_preliminary_filename should have a parent directory");
-    target.relative(source_dir).as_path().expect_to_slash()
+    let dir = self.absolute_preliminary_filename.as_ref().unwrap().as_path().parent().unwrap();
+    target.relative(dir).as_path().to_slash_lossy().into_owned()
   }
 
   pub fn filename_template(&self, options: &NormalizedBundlerOptions) -> FilenameTemplate {

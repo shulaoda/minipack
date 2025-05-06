@@ -17,9 +17,8 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::Receiver;
 
-use super::module_task::ModuleTask;
+use super::module_task::{ModuleTask, TaskContext};
 use super::runtime_module_task::RuntimeModuleTask;
-use super::task_context::TaskContext;
 
 use crate::types::{IndexEcmaAst, IndexModules, SharedOptions, SharedResolver};
 use crate::utils::ecmascript::legitimize_identifier_name;
@@ -197,8 +196,7 @@ impl ModuleLoader {
               self.inm.importers[id]
                 .push(ImporterRecord { kind: raw_rec.kind, importer_path: module.id.clone() });
 
-              if matches!(raw_rec.kind, ImportKind::DynamicImport)
-                && !user_defined_entry_ids.contains(&id)
+              if raw_rec.kind == ImportKind::DynamicImport && !user_defined_entry_ids.contains(&id)
               {
                 match dynamic_import_entry_ids.entry(id) {
                   Entry::Vacant(vac) => match raw_rec.related_stmt_info_idx {
@@ -243,7 +241,7 @@ impl ModuleLoader {
       Err(errors)?;
     }
 
-    let module_table: IndexVec<ModuleIdx, Module> = self
+    let module_table = self
       .inm
       .modules
       .into_iter()
@@ -252,8 +250,6 @@ impl ModuleLoader {
         let mut module = module.expect("Module tasks did't complete as expected");
         if let Some(module) = module.as_normal_mut() {
           let id = ModuleIdx::from(id);
-          // Note: (Compat to rollup)
-          // The `dynamic_importers/importers` should be added after `module_parsed` hook.
           let importers = std::mem::take(&mut self.inm.importers[id]);
           for importer in &importers {
             if importer.kind.is_static() {
@@ -265,13 +261,13 @@ impl ModuleLoader {
         }
         module
       })
-      .collect();
+      .collect::<IndexVec<_, _>>();
 
     let mut dynamic_import_entry_ids = dynamic_import_entry_ids.into_iter().collect::<Vec<_>>();
     dynamic_import_entry_ids.sort_unstable_by_key(|(id, _)| module_table[*id].stable_id());
 
     entry_points.extend(dynamic_import_entry_ids.into_iter().map(|(idx, related_stmt_infos)| {
-      EntryPoint { name: None, idx, kind: EntryPointKind::DynamicImport, related_stmt_infos }
+      EntryPoint { idx, name: None, related_stmt_infos, kind: EntryPointKind::DynamicImport }
     }));
 
     let runtime_module =
@@ -304,13 +300,13 @@ impl ModuleLoader {
             SymbolRefDbForModule::new(idx, Scoping::default(), ScopeId::new(0)),
           );
 
-          let symbol_ref = self.symbols.create_facade_root_symbol_ref(
+          let namespace_ref = self.symbols.create_facade_root_symbol_ref(
             idx,
             &legitimize_identifier_name(resolved_id.id.as_str()),
           );
 
           self.inm.modules[idx] =
-            Some(Module::external(ExternalModule::new(idx, resolved_id.id, symbol_ref)));
+            Some(Module::external(ExternalModule::new(idx, resolved_id.id, namespace_ref)));
         } else {
           let task = ModuleTask::new(
             self.shared_context.clone(),

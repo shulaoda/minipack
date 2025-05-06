@@ -8,34 +8,31 @@ use oxc::syntax::keyword::{GLOBAL_OBJECTS, RESERVED_KEYWORDS};
 use rustc_hash::{FxHashMap, FxHashSet};
 use std::collections::hash_map::Entry;
 
+/// Manages symbol renaming across modules to prevent name collisions.
+/// It tracks used names and generates unique names for symbols.
 #[derive(Debug)]
 pub struct Renamer<'name> {
-  /// key is the original name,
-  /// value is the how many same variable name in the top level are used before
-  /// It is also used to calculate the candidate_name e.g.
-  /// ```js
-  /// // index.js
-  /// import {a as b} from './a.js'
-  /// const a = 1; // {a => 0}
-  /// const a$1 = 1000; // {a => 0, a$1 => 0}
-  ///
-  ///
-  /// // a.js
-  /// export const a = 100; // {a => 0, a$1 => 0}, first we try looking up `a`, it is used. So we try the
-  ///                       // candidate_name `a$1`(conflict_index + 1 = 1). Then we try `a$2`, so
-  ///                       // on and so forth. Until we find a name that is not used. In this case, `a$2` is not used
-  ///                       // so we rename `a` to `a$2`
-  /// ```
-  ///
-  used_canonical_names: FxHashMap<Rstr, u32>,
-  canonical_names: FxHashMap<SymbolRef, Rstr>,
-  canonical_token_to_name: FxHashMap<SymbolNameRefToken, Rstr>,
-  symbol_db: &'name SymbolRefDb,
-  entry_module: Option<&'name SymbolRefDbForModule>,
-  /// Store names that are used in the module.
-  module_used_names: FxHashMap<ModuleIdx, FxHashSet<&'name str>>,
-  /// Store names that are used in renaming process.
-  used_names: FxHashSet<Rstr>,
+  // Maps canonical base names to the next available suffix index (e.g., `a` -> 0 means try `a`, then `a$1`).
+  // Used to generate unique mangled names based on original names.
+  pub used_canonical_names: FxHashMap<Rstr, u32>,
+
+  // Maps internal SymbolRefs to their final, deconflicted names.
+  pub canonical_names: FxHashMap<SymbolRef, Rstr>,
+
+  // Maps references to original symbol names (tokens) to their assigned deconflicted names.
+  pub canonical_token_to_name: FxHashMap<SymbolNameRefToken, Rstr>,
+
+  /// Reference to the shared symbol database for looking up symbol information.
+  pub symbol_db: &'name SymbolRefDb,
+
+  // Optional reference to the symbol database specific to the primary entry module.
+  pub entry_module: Option<&'name SymbolRefDbForModule>,
+
+  /// Stores names already used within each module's original source code to avoid collisions when renaming.
+  pub module_used_names: FxHashMap<ModuleIdx, FxHashSet<&'name str>>,
+
+  /// Tracks all final generated names used globally to ensure uniqueness across the bundle.
+  pub used_names: FxHashSet<Rstr>,
 }
 
 impl<'name> Renamer<'name> {
@@ -44,35 +41,36 @@ impl<'name> Renamer<'name> {
     symbol_db: &'name SymbolRefDb,
     format: OutputFormat,
   ) -> Self {
-    // Port from https://github.com/rollup/rollup/blob/master/src/Chunk.ts#L1377-L1394.
-    let mut manual_reserved = match format {
-      OutputFormat::Esm => vec![],
-      OutputFormat::Cjs => vec!["module", "require", "__filename", "__dirname", "exports"],
+    let manual_reserved = if matches!(format, OutputFormat::Cjs) {
+      vec!["module", "require", "__filename", "__dirname", "exports"]
+    } else {
+      vec![]
     };
-    // https://github.com/rollup/rollup/blob/bfbea66569491f5466fbba99de2ba6a0225f851b/src/Chunk.ts#L1359
-    manual_reserved.extend(["Object", "Promise"]);
 
     let used_canonical_names = manual_reserved
       .iter()
+      .chain(["Object", "Promise"].iter())
       .chain(RESERVED_KEYWORDS.iter())
       .chain(GLOBAL_OBJECTS.iter())
       .map(|s| (Rstr::new(s), 0))
       .collect();
+
+    let module_used_names = base_module_index
+      .map(|index| {
+        // Special for entry module, the whole symbol names are stored; other modules only store non-root symbol names.
+        FxHashMap::from_iter([(
+          index,
+          symbol_db.local_db(index).ast_scopes.symbol_names().collect::<FxHashSet<_>>(),
+        )])
+      })
+      .unwrap_or_default();
 
     Self {
       used_canonical_names,
       canonical_names: FxHashMap::default(),
       canonical_token_to_name: FxHashMap::default(),
       symbol_db,
-      module_used_names: base_module_index
-        .map(|index| {
-          // Special for entry module, the whole symbol names are stored; other modules only store non-root symbol names.
-          FxHashMap::from_iter([(
-            index,
-            symbol_db.local_db(index).ast_scopes.symbol_names().collect::<FxHashSet<_>>(),
-          )])
-        })
-        .unwrap_or_default(),
+      module_used_names,
       entry_module: base_module_index.map(|index| symbol_db.local_db(index)),
       used_names: FxHashSet::default(),
     }
