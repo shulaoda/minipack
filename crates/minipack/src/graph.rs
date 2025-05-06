@@ -9,16 +9,16 @@ pub struct ChunkGraph {
   pub chunk_table: IndexVec<ChunkIdx, Chunk>,
   pub sorted_chunk_idx_vec: Vec<ChunkIdx>,
   pub module_to_chunk: IndexVec<ModuleIdx, Option<ChunkIdx>>,
-  pub entry_module_to_entry_chunk: FxHashMap<ModuleIdx, ChunkIdx>,
+  pub entry_module_to_chunk: FxHashMap<ModuleIdx, ChunkIdx>,
 }
 
 impl ChunkGraph {
-  pub fn new(modules: &IndexModules) -> Self {
+  pub fn new(modules: &IndexModules, capacity: usize) -> Self {
     Self {
-      chunk_table: IndexVec::default(),
+      chunk_table: IndexVec::with_capacity(capacity),
       module_to_chunk: index_vec![None; modules.len()],
       sorted_chunk_idx_vec: Vec::new(),
-      entry_module_to_entry_chunk: FxHashMap::default(),
+      entry_module_to_chunk: FxHashMap::default(),
     }
   }
 

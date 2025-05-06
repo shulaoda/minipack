@@ -13,9 +13,9 @@ impl LinkStage<'_> {
       if self.module_table[entry.idx].is_normal() {
         let linking_info = &mut self.metadata[entry.idx];
         let iter = linking_info
-          .sorted_and_non_ambiguous_resolved_exports
+          .sorted_resolved_exports
           .iter()
-          .map(|name| linking_info.resolved_exports[name].symbol_ref);
+          .map(|name| linking_info.resolved_exports[name]);
 
         linking_info.referenced_symbols_by_entry_point_chunk.extend(iter);
       }
@@ -29,13 +29,13 @@ impl LinkStage<'_> {
 
       let linking_info = &self.metadata[normal_module.idx];
 
-      if !linking_info.sorted_and_non_ambiguous_resolved_exports.is_empty() {
+      if !linking_info.sorted_resolved_exports.is_empty() {
         referenced_symbols.push(self.runtime_module.resolve_symbol("__export").into());
         referenced_symbols.extend(
           linking_info
-            .sorted_and_non_ambiguous_resolved_exports
+            .sorted_resolved_exports
             .iter()
-            .map(|name| linking_info.resolved_exports[name].symbol_ref.into()),
+            .map(|name| linking_info.resolved_exports[name].into()),
         );
       }
 

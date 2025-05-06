@@ -21,9 +21,6 @@ pub struct OutputArgs {
   #[clap(long, short = 'd')]
   pub dir: Option<String>,
 
-  #[clap(long, short = 'o')]
-  pub file: Option<String>,
-
   #[clap(long)]
   pub format: Option<OutputFormat>,
 

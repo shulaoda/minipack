@@ -147,27 +147,27 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     local: SymbolId,
     imported: &str,
     record_id: ImportRecordIdx,
-    span_imported: Span,
+    imported_span: Span,
   ) {
     self.result.named_imports.insert(
       (self.idx, local).into(),
       NamedImport {
         imported: Rstr::new(imported).into(),
         imported_as: (self.idx, local).into(),
-        span_imported,
+        imported_span,
         record_id,
       },
     );
   }
 
-  fn add_star_import(&mut self, local: SymbolId, record_id: ImportRecordIdx, span_imported: Span) {
+  fn add_star_import(&mut self, local: SymbolId, record_id: ImportRecordIdx, imported_span: Span) {
     self.result.named_imports.insert(
       (self.idx, local).into(),
       NamedImport {
         imported: Specifier::Star,
         imported_as: (self.idx, local).into(),
         record_id,
-        span_imported,
+        imported_span,
       },
     );
   }
@@ -230,7 +230,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     export_name: &str,
     imported: &str,
     record_id: ImportRecordIdx,
-    span_imported: Span,
+    imported_span: Span,
   ) {
     // We will pretend `export { [imported] as [export_name] }` to be `import `
     let ident = if export_name == "default" {
@@ -250,14 +250,14 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       imported: imported.into(),
       imported_as: generated_imported_as_ref,
       record_id,
-      span_imported,
+      imported_span,
     };
     if name_import.imported.is_default() {
       self.result.import_records[record_id].meta.insert(ImportRecordMeta::CONTAINS_IMPORT_DEFAULT);
     }
     self.result.named_exports.insert(
       export_name.into(),
-      LocalExport { referenced: generated_imported_as_ref, span: name_import.span_imported },
+      LocalExport { referenced: generated_imported_as_ref, span: name_import.imported_span },
     );
     self.result.named_imports.insert(generated_imported_as_ref, name_import);
   }
@@ -273,7 +273,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     self.current_stmt_info.declared_symbols.push(generated_imported_as_ref);
     let name_import = NamedImport {
       imported: Specifier::Star,
-      span_imported: span_for_export_name,
+      imported_span: span_for_export_name,
       imported_as: generated_imported_as_ref,
       record_id,
     };
@@ -281,7 +281,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     self.result.import_records[record_id].meta.insert(ImportRecordMeta::CONTAINS_IMPORT_STAR);
     self.result.named_exports.insert(
       export_name.into(),
-      LocalExport { referenced: generated_imported_as_ref, span: name_import.span_imported },
+      LocalExport { referenced: generated_imported_as_ref, span: name_import.imported_span },
     );
     self.result.named_imports.insert(generated_imported_as_ref, name_import);
   }

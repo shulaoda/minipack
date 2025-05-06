@@ -93,10 +93,6 @@ impl Chunk {
     hash_placeholder_generator: &mut HashPlaceholderGenerator,
     make_unique_name: &mut impl FnMut(&ArcStr) -> ArcStr,
   ) -> anyhow::Result<PreliminaryFilename> {
-    if let Some(file) = &options.file {
-      return Ok(PreliminaryFilename::new(file.clone(), None));
-    }
-
     let filename_template = self.filename_template(options);
     let has_hash_pattern = filename_template.has_hash_pattern();
 

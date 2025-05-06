@@ -18,7 +18,6 @@ pub struct BundlerOptions {
 
   // --- Output
   pub dir: Option<String>,
-  pub file: Option<String>,
   pub format: Option<OutputFormat>,
   pub entry_filenames: Option<String>,
   pub chunk_filenames: Option<String>,

@@ -1,4 +1,4 @@
-use std::{path::Path, sync::Arc};
+use std::sync::Arc;
 
 use minipack_common::{BundlerOptions, NormalizedBundlerOptions, OutputFormat, Platform};
 
@@ -12,15 +12,7 @@ pub fn normalize_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOp
     OutputFormat::Esm => Platform::Browser,
   });
 
-  let dir = raw_options.file.as_ref().map_or(
-    raw_options.dir.unwrap_or_else(|| "dist".to_string()),
-    |file| {
-      Path::new(file.as_str())
-        .parent()
-        .map(|parent| parent.to_string_lossy().to_string())
-        .unwrap_or_default()
-    },
-  );
+  let dir = raw_options.dir.unwrap_or_else(|| "dist".to_string());
 
   Arc::new(NormalizedBundlerOptions {
     // --- Input
@@ -29,7 +21,6 @@ pub fn normalize_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOp
     platform,
     // --- Output
     dir,
-    file: raw_options.file,
     format,
     entry_filenames: raw_options.entry_filenames.unwrap_or_else(|| "[name].js".to_string()),
     chunk_filenames: raw_options.chunk_filenames.unwrap_or_else(|| "[name]-[hash].js".to_string()),

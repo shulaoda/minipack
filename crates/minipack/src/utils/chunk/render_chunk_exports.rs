@@ -175,7 +175,7 @@ pub fn get_export_items(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<(Rstr, Sy
   match chunk.kind {
     ChunkKind::EntryPoint { module, .. } => graph.metadata[module]
       .canonical_exports()
-      .map(|(name, export)| (name.clone(), export.symbol_ref))
+      .map(|(name, symbol_ref)| (name.clone(), symbol_ref))
       .collect::<Vec<_>>(),
     ChunkKind::Common => {
       let mut tmp = chunk

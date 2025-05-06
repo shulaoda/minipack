@@ -1,10 +1,9 @@
 mod bind_imports_and_exports;
-mod determine_side_effects;
-mod include_statements;
 mod patch_module_dependencies;
 mod prepare_ecma_module_export_info;
 mod reference_needed_symbols;
 mod sort_modules;
+mod tree_shaking;
 
 use minipack_common::{
   EntryPoint, ImportKind, ModuleIdx, RuntimeModuleBrief, SymbolRef, SymbolRefDb,

@@ -1,4 +1,4 @@
-use std::collections::hash_map::Entry;
+use std::{collections::hash_map::Entry, path::Path};
 
 use arcstr::ArcStr;
 use minipack_common::{ChunkIdx, ChunkKind};
@@ -37,10 +37,8 @@ impl GenerateStage<'_> {
         }
         match chunk.kind {
           ChunkKind::EntryPoint { module: entry_module_id, is_user_defined, .. } => {
-            let module = &module_table[entry_module_id];
-            let generated = if is_user_defined {
-              let id = module.id();
-              let path = id.as_path();
+            let path = Path::new(module_table[entry_module_id].id());
+            if is_user_defined {
               path
                 .file_stem()
                 .and_then(|f| f.to_str())
@@ -49,9 +47,8 @@ impl GenerateStage<'_> {
                   sanitize_filename::sanitize(file_name).into()
                 })
             } else {
-              ArcStr::from(sanitize_file_name(&module.id().as_path().representative_file_name()))
-            };
-            generated
+              ArcStr::from(sanitize_file_name(&path.representative_file_name()))
+            }
           }
           ChunkKind::Common => {
             // - rollup use the first entered/last executed module as the `[name]` of common chunks.
@@ -64,9 +61,8 @@ impl GenerateStage<'_> {
               .map_or_else(
                 || arcstr::literal!("chunk"),
                 |module_id| {
-                  let module = &module_table[*module_id];
                   ArcStr::from(sanitize_file_name(
-                    &module.id().as_path().representative_file_name(),
+                    &module_table[*module_id].id().as_path().representative_file_name(),
                   ))
                 },
               )

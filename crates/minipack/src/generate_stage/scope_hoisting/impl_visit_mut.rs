@@ -141,7 +141,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
           Module::Normal(_importee) => {
             let importer_chunk = &self.ctx.chunk_graph.chunk_table[self.ctx.chunk_id];
 
-            let importee_chunk_id = self.ctx.chunk_graph.entry_module_to_entry_chunk[&importee_id];
+            let importee_chunk_id = self.ctx.chunk_graph.entry_module_to_chunk[&importee_id];
             let importee_chunk = &self.ctx.chunk_graph.chunk_table[importee_chunk_id];
 
             let import_path = importer_chunk.import_path_for(importee_chunk);
@@ -198,12 +198,5 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
   fn visit_simple_assignment_target(&mut self, target: &mut SimpleAssignmentTarget<'ast>) {
     self.rewrite_simple_assignment_target(target);
     walk_mut::walk_simple_assignment_target(self, target);
-  }
-
-  fn visit_declaration(&mut self, it: &mut ast::Declaration<'ast>) {
-    if let Some(decl) = self.get_transformed_class_decl(it) {
-      *it = decl;
-    }
-    walk_mut::walk_declaration(self, it);
   }
 }

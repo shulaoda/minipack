@@ -55,7 +55,7 @@ impl EcmaGenerator {
 
     rendered_module_sources.iter().for_each(|rendered_module_source| {
       let RenderedModuleSource { module_id, exec_order, sources, .. } = rendered_module_source;
-      rendered_modules.insert(module_id.clone(), RenderedModule::new(sources.clone(), *exec_order));
+      rendered_modules.insert(module_id, RenderedModule::new(sources.clone(), *exec_order));
     });
 
     let rendered_chunk =

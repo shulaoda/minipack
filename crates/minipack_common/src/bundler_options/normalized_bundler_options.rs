@@ -12,7 +12,6 @@ pub struct NormalizedBundlerOptions {
 
   // --- Output
   pub dir: String,
-  pub file: Option<String>,
   pub format: OutputFormat,
   pub entry_filenames: String,
   pub chunk_filenames: String,

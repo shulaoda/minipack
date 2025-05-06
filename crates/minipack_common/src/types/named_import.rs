@@ -15,7 +15,7 @@ pub struct NamedImport {
   /// For case B, the `imported` is meaningless.
   /// For case C, the `imported` is `foo`.
   pub imported: Specifier,
-  pub span_imported: Span,
+  pub imported_span: Span,
   /// For case A, the `imported_as` is a `SymbolRef` from `foo`.
   /// For case B, the `imported_as` is a `SymbolRef` from `fooNs`.
   /// For case C, the `imported_as` is a `SymbolRef` from `foo2`.

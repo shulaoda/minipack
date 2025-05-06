@@ -1,4 +1,4 @@
-use minipack_common::{ImportRecordIdx, ModuleIdx, ResolvedExport, SymbolRef};
+use minipack_common::{ImportRecordIdx, ModuleIdx, SymbolRef};
 use minipack_utils::{indexmap::FxIndexSet, rstr::Rstr};
 use oxc::span::{CompactStr, Span};
 
@@ -8,10 +8,10 @@ use rustc_hash::FxHashMap;
 #[derive(Debug, Default)]
 pub struct LinkingMetadata {
   // Store the export info for each module, including export named declaration and export star declaration.
-  pub resolved_exports: FxHashMap<Rstr, ResolvedExport>,
+  pub resolved_exports: FxHashMap<Rstr, SymbolRef>,
   // Store the names of exclude ambiguous resolved exports.
   // It will be used to generate chunk exports and module namespace binding.
-  pub sorted_and_non_ambiguous_resolved_exports: Vec<Rstr>,
+  pub sorted_resolved_exports: Vec<Rstr>,
   // Entry chunks need to generate code that doesn't belong to any module. This is the list of symbols are referenced by the
   // generated code. Tree-shaking will cares about these symbols to make sure they are not removed.
   pub referenced_symbols_by_entry_point_chunk: Vec<SymbolRef>,
@@ -23,10 +23,7 @@ pub struct LinkingMetadata {
 }
 
 impl LinkingMetadata {
-  pub fn canonical_exports(&self) -> impl Iterator<Item = (&Rstr, &ResolvedExport)> {
-    self
-      .sorted_and_non_ambiguous_resolved_exports
-      .iter()
-      .map(|name| (name, &self.resolved_exports[name]))
+  pub fn canonical_exports(&self) -> impl Iterator<Item = (&Rstr, SymbolRef)> {
+    self.sorted_resolved_exports.iter().map(|name| (name, self.resolved_exports[name]))
   }
 }

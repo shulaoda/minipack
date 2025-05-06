@@ -3,11 +3,7 @@ pub mod program_cell;
 use std::fmt::Debug;
 
 use arcstr::ArcStr;
-use oxc::{
-  allocator::Allocator,
-  ast::ast::{Comment, Program},
-  span::SourceType,
-};
+use oxc::{allocator::Allocator, ast::ast::Program, span::SourceType};
 
 use self::program_cell::ProgramCell;
 use crate::EcmaCompiler;
@@ -29,10 +25,6 @@ impl EcmaAst {
 
   pub fn program(&self) -> &Program {
     &self.program.borrow_dependent().program
-  }
-
-  pub fn comments(&self) -> &oxc::allocator::Vec<'_, Comment> {
-    &self.program.borrow_dependent().program.comments
   }
 }
 

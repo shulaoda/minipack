@@ -39,7 +39,6 @@ pub use crate::{
     output_chunk::{Modules, OutputChunk},
     raw_idx::{AssetIdx, ChunkIdx, EcmaAstIdx, ImportRecordIdx, ModuleIdx, StmtInfoIdx},
     rendered_module::RenderedModule,
-    resolved_export::ResolvedExport,
     resolved_request_info::ResolvedId,
     side_effects,
     source::Source,

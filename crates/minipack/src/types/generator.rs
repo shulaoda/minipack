@@ -7,6 +7,11 @@ use rustc_hash::FxHashMap;
 
 use crate::{graph::ChunkGraph, link_stage::LinkStageOutput};
 
+pub struct GenerateOutput {
+  pub chunks: Vec<InstantiatedChunk>,
+  pub warnings: Vec<anyhow::Error>,
+}
+
 pub struct GenerateContext<'a> {
   pub chunk_idx: ChunkIdx,
   pub chunk: &'a Chunk,
@@ -78,9 +83,4 @@ impl GenerateContext<'_> {
       Some(&**module)
     })
   }
-}
-
-pub struct GenerateOutput {
-  pub chunks: Vec<InstantiatedChunk>,
-  pub warnings: Vec<anyhow::Error>,
 }

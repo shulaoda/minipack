@@ -1,7 +1,7 @@
 use minipack_common::{Module, ModuleIdx, side_effects::DeterminedSideEffects};
 use oxc_index::IndexVec;
 
-use super::LinkStage;
+use crate::link_stage::LinkStage;
 
 #[derive(Debug, Clone, Copy)]
 enum SideEffectCache {

@@ -76,7 +76,6 @@ async fn main() {
     input,
     platform: platform.map(Into::into),
     dir: args.output.dir,
-    file: args.output.file,
     format: args.output.format.map(Into::into),
     entry_filenames: args.output.entry_filenames,
     chunk_filenames: args.output.chunk_filenames,

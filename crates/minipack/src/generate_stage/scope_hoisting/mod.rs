@@ -7,8 +7,8 @@ pub use finalizer_context::ScopeHoistingFinalizerContext;
 use oxc::{
   allocator::{Allocator, Box as ArenaBox, CloneIn, Dummy, IntoIn, TakeIn},
   ast::{
-    Comment, NONE,
-    ast::{self, Expression, ImportExpression, MemberExpression, VariableDeclarationKind},
+    NONE,
+    ast::{self, ExportDefaultDeclarationKind, Expression, ImportExpression, MemberExpression},
   },
   semantic::{ReferenceId, SymbolId},
   span::{GetSpan, SPAN},
@@ -25,7 +25,6 @@ pub struct ScopeHoistingFinalizer<'me, 'ast> {
   pub scope: &'me AstScopes,
   pub alloc: &'ast Allocator,
   pub snippet: AstSnippet<'ast>,
-  pub comments: oxc::allocator::Vec<'ast, Comment>,
   /// `SymbolRef` imported from a cjs module which has `namespace_alias`
   /// more details please refer [`rolldown_common::types::symbol_ref_db::SymbolRefDataClassic`].
   pub namespace_alias_symbol_id: FxHashSet<SymbolId>,
@@ -47,10 +46,10 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     &self,
     member_expr: &MemberExpression<'ast>,
   ) -> Option<ReferenceId> {
-    let property_name = member_expr.static_property_name()?;
-    if property_name == "default" {
+    if member_expr.static_property_name()? == "default" {
       return None;
     }
+
     let ident_ref = match member_expr {
       MemberExpression::ComputedMemberExpression(expr) => expr.object.as_identifier()?,
       MemberExpression::StaticMemberExpression(expr) => expr.object.as_identifier()?,
@@ -62,6 +61,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     if !self.namespace_alias_symbol_id.contains(&symbol_id) {
       return None;
     }
+
     Some(reference_id)
   }
 
@@ -105,7 +105,6 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
             // In cjs output, we need convert the `import { foo } from 'foo'; console.log(foo);`;
             // If `foo` is split into another chunk, we need to convert the code `console.log(foo);` to `console.log(require_xxxx.foo);`
             // instead of keeping `console.log(foo)` as we did in esm output. The reason here is we need to keep live binding in cjs output.
-
             let exported_name = &self.ctx.chunk_graph.chunk_table[chunk_idx_of_canonical_symbol]
               .exports_to_other_chunks[&canonical_ref];
 
@@ -225,7 +224,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     self.ctx.linking_info.canonical_exports().for_each(|(export, resolved_export)| {
       // prop_name: () => returned
       let prop_name = export;
-      let returned = self.finalized_expr_for_symbol_ref(resolved_export.symbol_ref, false);
+      let returned = self.finalized_expr_for_symbol_ref(resolved_export, false);
       arg_obj_expr.properties.push(ast::ObjectPropertyKind::ObjectProperty(
         ast::ObjectProperty {
           key: if is_validate_identifier_name(prop_name) {
@@ -263,16 +262,16 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
   // Handle `import.meta.xxx` expression
   pub fn try_rewrite_import_meta_prop_expr(
     &self,
-    member_expr: &ast::StaticMemberExpression<'ast>,
+    mem_expr: &ast::StaticMemberExpression<'ast>,
   ) -> Option<Expression<'ast>> {
-    if member_expr.object.is_import_meta() {
-      let original_expr_span = member_expr.span;
+    if mem_expr.object.is_import_meta() {
+      let original_expr_span = mem_expr.span;
       let is_node_cjs = matches!(
         (self.ctx.options.platform, &self.ctx.options.format),
         (Platform::Node, OutputFormat::Cjs)
       );
 
-      let property_name = member_expr.property.name.as_str();
+      let property_name = mem_expr.property.name.as_str();
       match property_name {
         // Try to polyfill `import.meta.url`
         "url" => {
@@ -363,67 +362,30 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
         }
         None
       }
-      MemberExpression::StaticMemberExpression(inner_expr) => {
+      MemberExpression::StaticMemberExpression(mem_expr) => {
         if let Some((object_ref, props)) =
-          self.ctx.linking_info.resolved_member_expr_refs.get(&inner_expr.span)
+          self.ctx.linking_info.resolved_member_expr_refs.get(&mem_expr.span)
         {
           match object_ref {
             Some(object_ref) => {
               let object_ref_expr = self.finalized_expr_for_symbol_ref(*object_ref, false);
 
               let replaced_expr =
-                self.snippet.member_expr_or_ident_ref(object_ref_expr, props, inner_expr.span);
+                self.snippet.member_expr_or_ident_ref(object_ref_expr, props, mem_expr.span);
               return Some(replaced_expr);
             }
             None => {
-              return Some(self.snippet.member_expr_with_void_zero_object(props, inner_expr.span));
+              return Some(self.snippet.member_expr_with_void_zero_object(props, mem_expr.span));
             }
           }
           // these two branch are exclusive since `import.meta` is a global member_expr
-        } else if let Some(new_expr) = self.try_rewrite_import_meta_prop_expr(inner_expr) {
+        } else if let Some(new_expr) = self.try_rewrite_import_meta_prop_expr(mem_expr) {
           return Some(new_expr);
         }
         None
       }
       MemberExpression::PrivateFieldExpression(_) => None,
     }
-  }
-
-  /// rewrite toplevel `class ClassName {}` to `var ClassName = class {}`
-  fn get_transformed_class_decl(
-    &mut self,
-    it: &mut ast::Declaration<'ast>,
-  ) -> Option<ast::Declaration<'ast>> {
-    let ast::Declaration::ClassDeclaration(class) = it else {
-      return None;
-    };
-
-    let scope_id = class.scope_id.get()?;
-
-    if self.scope.scope_parent_id(scope_id) != Some(self.scope.root_scope_id()) {
-      return None;
-    };
-
-    let id = class.id.take()?;
-    Some(self.snippet.builder.declaration_variable(
-      SPAN,
-      VariableDeclarationKind::Var,
-      self.snippet.builder.vec1(self.snippet.builder.variable_declarator(
-        SPAN,
-        VariableDeclarationKind::Var,
-        self.snippet.builder.binding_pattern(
-          ast::BindingPatternKind::BindingIdentifier(self.snippet.builder.alloc(id)),
-          NONE,
-          false,
-        ),
-        Some(Expression::ClassExpression(ArenaBox::new_in(
-          class.as_mut().take_in(self.alloc),
-          self.alloc,
-        ))),
-        false,
-      )),
-      false,
-    ))
   }
 
   fn try_rewrite_inline_dynamic_import_expr(
@@ -438,7 +400,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
       match &self.ctx.modules[importee_id] {
         Module::Normal(_importee) => {
           let importer_chunk = &self.ctx.chunk_graph.chunk_table[self.ctx.chunk_id];
-          let importee_chunk_id = self.ctx.chunk_graph.entry_module_to_entry_chunk[&importee_id];
+          let importee_chunk_id = self.ctx.chunk_graph.entry_module_to_chunk[&importee_id];
           let importee_chunk = &self.ctx.chunk_graph.chunk_table[importee_chunk_id];
           let import_path = importer_chunk.import_path_for(importee_chunk);
           let new_expr = self.snippet.promise_resolve_then_call_expr(
@@ -485,7 +447,6 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
         }
 
         if let Some(default_decl) = top_stmt.as_export_default_declaration_mut() {
-          use ast::ExportDefaultDeclarationKind;
           match &mut default_decl.declaration {
             decl @ ast::match_expression!(ExportDefaultDeclarationKind) => {
               let expr = decl.to_expression_mut();

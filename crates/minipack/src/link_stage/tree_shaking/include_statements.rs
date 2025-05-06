@@ -8,7 +8,7 @@ use rustc_hash::FxHashSet;
 
 use crate::types::{IndexModules, LinkingMetadataVec};
 
-use super::LinkStage;
+use crate::link_stage::LinkStage;
 
 struct Context<'a> {
   module_table: &'a IndexModules,

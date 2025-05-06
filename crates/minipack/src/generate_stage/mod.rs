@@ -8,7 +8,7 @@ pub mod generators;
 
 use scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext};
 
-use oxc::{allocator::TakeIn, ast_visit::VisitMut};
+use oxc::ast_visit::VisitMut;
 use rustc_hash::FxHashSet;
 
 use minipack_common::Module;
@@ -18,10 +18,7 @@ use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
 
 use crate::{
   types::{SharedOptions, bundle_output::BundleOutput},
-  utils::chunk::{
-    deconflict_chunk_symbols::deconflict_chunk_symbols,
-    validate_options_for_multi_chunk_output::validate_options_for_multi_chunk_output,
-  },
+  utils::chunk::deconflict_chunk_symbols::deconflict_chunk_symbols,
 };
 
 use super::link_stage::LinkStageOutput;
@@ -42,26 +39,17 @@ impl<'a> GenerateStage<'a> {
     }
 
     let mut chunk_graph = self.generate_chunks().await;
-    if chunk_graph.chunk_table.len() > 1 {
-      validate_options_for_multi_chunk_output(self.options)?;
-    }
 
     self.compute_cross_chunk_links(&mut chunk_graph);
 
-    let index_chunk_id_to_name =
+    let chunk_id_to_name =
       self.generate_chunk_name_and_preliminary_filenames(&mut chunk_graph).await?;
 
     chunk_graph.chunk_table.par_iter_mut().for_each(|chunk| {
-      deconflict_chunk_symbols(
-        chunk,
-        self.link_output,
-        self.options.format,
-        &index_chunk_id_to_name,
-      );
+      deconflict_chunk_symbols(chunk, self.link_output, self.options.format, &chunk_id_to_name);
     });
 
-    let ast_table_iter = self.link_output.index_ecma_ast.par_iter_mut();
-    ast_table_iter.for_each(|(ast, owner)| {
+    self.link_output.index_ecma_ast.par_iter_mut().for_each(|(ast, owner)| {
       let Module::Normal(module) = &self.link_output.module_table[*owner] else {
         return;
       };
@@ -92,12 +80,10 @@ impl<'a> GenerateStage<'a> {
           },
           scope: ast_scope,
           snippet: AstSnippet::new(alloc),
-          comments: oxc_program.comments.take_in(alloc),
           namespace_alias_symbol_id: FxHashSet::default(),
           interested_namespace_alias_ref_id: FxHashSet::default(),
         };
         finalizer.visit_program(oxc_program);
-        oxc_program.comments = finalizer.comments.take_in(alloc);
       });
     });
 

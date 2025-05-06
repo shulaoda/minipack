@@ -47,11 +47,9 @@ pub fn render_cjs<'code>(
   module_sources: &'code RenderedModuleSources,
 ) -> BuildResult<SourceJoiner<'code>> {
   let mut source_joiner = SourceJoiner::default();
-
   let mut modules = ctx.renderable_ecma_modules().peekable();
-  let is_strict = modules.peek().is_some();
 
-  if is_strict {
+  if modules.peek().is_some() {
     source_joiner.append_source("\"use strict\";");
   }
 

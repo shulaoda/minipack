@@ -20,10 +20,7 @@ pub fn render_esm<'code>(
   if let Some(entry_module) = ctx.chunk.entry_module(&ctx.link_output.module_table) {
     entry_module
       .star_export_module_ids()
-      .filter_map(|importee| {
-        let importee = &ctx.link_output.module_table[importee];
-        importee.as_external().map(|m| &m.name)
-      })
+      .filter_map(|importee| ctx.link_output.module_table[importee].as_external().map(|m| &m.name))
       .dedup()
       .for_each(|ext_name| {
         source_joiner.append_source(concat_string!("export * from \"", ext_name, "\"\n"));

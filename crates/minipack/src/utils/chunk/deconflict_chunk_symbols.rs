@@ -21,7 +21,6 @@ pub fn deconflict_chunk_symbols(
 
   if matches!(format, OutputFormat::Cjs) {
     // deconflict iife introduce symbols by external
-    // Also AMD, but we don't support them yet.
     chunk
       .imports_from_external_modules
       .iter()
@@ -60,7 +59,6 @@ pub fn deconflict_chunk_symbols(
         .map(Cow::Borrowed)
     })
     .for_each(|name| {
-      // global names should be reserved
       renamer.reserve(name.to_rstr());
     });
 
@@ -96,6 +94,7 @@ pub fn deconflict_chunk_symbols(
     }
     ChunkKind::Common => {}
   }
+
   if matches!(format, OutputFormat::Esm) {
     chunk.imports_from_external_modules.iter().for_each(|(module, _)| {
       let db = link_output.symbols.local_db(*module);
@@ -105,23 +104,18 @@ pub fn deconflict_chunk_symbols(
     });
   }
 
-  chunk
-    .modules
-    .iter()
-    .copied()
-    // Starts with entry module
-    .rev()
-    .filter_map(|id| link_output.module_table[id].as_normal())
-    .for_each(|module| {
+  chunk.modules.iter().rev().filter_map(|&id| link_output.module_table[id].as_normal()).for_each(
+    |module| {
       module
         .stmt_infos
         .iter()
         .filter(|stmt_info| stmt_info.is_included)
-        .flat_map(|stmt_info| stmt_info.declared_symbols.iter().copied())
-        .for_each(|symbol_ref| {
+        .flat_map(|stmt_info| stmt_info.declared_symbols.iter())
+        .for_each(|&symbol_ref| {
           renamer.add_symbol_in_root_scope(symbol_ref);
         });
-    });
-    
+    },
+  );
+
   (chunk.canonical_names, chunk.canonical_name_by_token) = renamer.into_canonical_names();
 }
