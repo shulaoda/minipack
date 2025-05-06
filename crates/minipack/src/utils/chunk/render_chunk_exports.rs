@@ -1,8 +1,6 @@
 use std::borrow::Cow;
 
-use minipack_common::{
-  Chunk, ChunkKind, EntryPointKind, ModuleIdx, OutputFormat, SymbolRef, SymbolRefDb,
-};
+use minipack_common::{Chunk, ChunkKind, ModuleIdx, OutputFormat, SymbolRef, SymbolRefDb};
 use minipack_utils::{
   concat_string,
   ecmascript::{property_access_str, to_module_import_export_name},
@@ -175,14 +173,10 @@ pub fn render_object_define_property(key: &str, value: &str) -> String {
 
 pub fn get_export_items(chunk: &Chunk, graph: &LinkStageOutput) -> Vec<(Rstr, SymbolRef)> {
   match chunk.kind {
-    ChunkKind::EntryPoint { module, is_user_defined, .. } => {
+    ChunkKind::EntryPoint { module, .. } => {
       let meta = &graph.metadata[module];
       meta
-        .referenced_canonical_exports_symbols(
-          module,
-          if is_user_defined { EntryPointKind::UserDefined } else { EntryPointKind::DynamicImport },
-          &graph.dyn_import_usage_map,
-        )
+        .canonical_exports()
         .map(|(name, export)| (name.clone(), export.symbol_ref))
         .collect::<Vec<_>>()
     }

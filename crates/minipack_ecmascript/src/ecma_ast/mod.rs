@@ -16,7 +16,6 @@ use crate::EcmaCompiler;
 pub struct EcmaAst {
   pub program: ProgramCell,
   pub source_type: SourceType,
-  pub contains_use_strict: bool,
 }
 
 impl EcmaAst {

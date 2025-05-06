@@ -7,9 +7,9 @@ impl LinkStage<'_> {
     self.module_table.iter_mut().filter_map(|m| m.as_normal_mut()).for_each(|normal_module| {
       let linking_info = &mut self.metadata[normal_module.idx];
 
-      if let Some(entry) = self.entry_points.iter().find(|entry| entry.id == normal_module.idx) {
+      if self.entry_points.iter().any(|entry| entry.id == normal_module.idx) {
         let referenced_symbols = linking_info
-          .referenced_canonical_exports_symbols(entry.id, entry.kind, &self.dyn_import_usage_map)
+          .canonical_exports()
           .map(|(_, resolved_export)| resolved_export.symbol_ref)
           .collect::<Vec<_>>();
 

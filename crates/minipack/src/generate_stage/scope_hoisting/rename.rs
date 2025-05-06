@@ -19,8 +19,8 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
 
     // we will hit this branch if the reference points to a global variable
     let symbol_id = self.scope.symbol_id_for(reference_id)?;
+    let symbol_ref = (self.ctx.id, symbol_id).into();
 
-    let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
     let mut expr = self.finalized_expr_for_symbol_ref(symbol_ref, is_callee);
 
     match &mut expr {

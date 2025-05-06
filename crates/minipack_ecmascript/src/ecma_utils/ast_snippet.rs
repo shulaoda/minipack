@@ -30,26 +30,26 @@ impl<'ast> AstSnippet<'ast> {
 
   #[inline]
   pub fn id(&self, name: PassedStr, span: Span) -> ast::BindingIdentifier<'ast> {
-    self.builder.binding_identifier(span, name)
+    self.builder.binding_identifier(span, self.builder.atom(name))
   }
-
+  
   #[inline]
   pub fn alloc_id_ref(
     &self,
     name: PassedStr,
     span: Span,
   ) -> Box<'ast, ast::IdentifierReference<'ast>> {
-    self.builder.alloc_identifier_reference(span, name)
+    self.builder.alloc_identifier_reference(span, self.builder.atom(name))
   }
 
   #[inline]
   pub fn id_name(&self, name: PassedStr, span: Span) -> ast::IdentifierName<'ast> {
-    self.builder.identifier_name(span, name)
+    self.builder.identifier_name(span, self.builder.atom(name))
   }
 
   #[inline]
   pub fn id_ref_expr(&self, name: PassedStr, span: Span) -> ast::Expression<'ast> {
-    self.builder.expression_identifier(span, name)
+    self.builder.expression_identifier(span, self.builder.atom(name))
   }
 
   pub fn member_expr_or_ident_ref(
@@ -96,7 +96,7 @@ impl<'ast> AstSnippet<'ast> {
     ast::MemberExpression::StaticMemberExpression(self.builder.alloc_static_member_expression(
       SPAN,
       self.id_ref_expr(object, SPAN),
-      self.builder.identifier_name(SPAN, property),
+      self.builder.identifier_name(SPAN, self.builder.atom(property)),
       false,
     ))
   }
@@ -116,7 +116,7 @@ impl<'ast> AstSnippet<'ast> {
   pub fn call_expr(&self, name: PassedStr) -> ast::CallExpression<'ast> {
     self.builder.call_expression(
       SPAN,
-      self.builder.expression_identifier(SPAN, name),
+      self.builder.expression_identifier(SPAN, self.builder.atom(name)),
       NONE,
       self.builder.vec(),
       false,
@@ -159,7 +159,7 @@ impl<'ast> AstSnippet<'ast> {
       SPAN,
       ast::VariableDeclarationKind::Var,
       self.builder.binding_pattern(
-        self.builder.binding_pattern_kind_binding_identifier(SPAN, name),
+        self.builder.binding_pattern_kind_binding_identifier(SPAN, self.builder.atom(name)),
         NONE,
         false,
       ),
@@ -251,7 +251,7 @@ impl<'ast> AstSnippet<'ast> {
     value: PassedStr,
     span: Span,
   ) -> Box<'ast, ast::StringLiteral<'ast>> {
-    self.builder.alloc_string_literal(span, value, None)
+    self.builder.alloc_string_literal(span, self.builder.atom(value), None)
   }
 
   pub fn string_literal_expr(&self, value: PassedStr, span: Span) -> ast::Expression<'ast> {
@@ -265,7 +265,7 @@ impl<'ast> AstSnippet<'ast> {
     ast::Statement::ImportDeclaration(self.builder.alloc_import_declaration(
       SPAN,
       Some(specifiers),
-      self.builder.string_literal(SPAN, source, None),
+      self.builder.string_literal(SPAN, self.builder.atom(source), None),
       None,
       NONE,
       ImportOrExportKind::Value,

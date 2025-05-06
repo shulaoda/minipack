@@ -1,6 +1,6 @@
 use minipack_common::{
   EcmaViewMeta, Module, ModuleIdx, NormalModule, StmtInfoIdx, SymbolOrMemberExprRef, SymbolRef,
-  SymbolRefDb, side_effects::DeterminedSideEffects,
+  SymbolRefDb,
 };
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
 use oxc_index::IndexVec;
@@ -15,7 +15,6 @@ struct Context<'a> {
   symbols: &'a SymbolRefDb,
   is_included_vec: &'a mut IndexVec<ModuleIdx, IndexVec<StmtInfoIdx, bool>>,
   is_module_included_vec: &'a mut IndexVec<ModuleIdx, bool>,
-  tree_shaking: bool,
   runtime_id: ModuleIdx,
   metas: &'a LinkingMetadataVec,
   used_symbol_refs: &'a mut FxHashSet<SymbolRef>,
@@ -34,25 +33,17 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
     return;
   }
 
-  if ctx.tree_shaking && !matches!(module.side_effects, DeterminedSideEffects::NoTreeshake) {
-    module.stmt_infos.iter_enumerated().for_each(|(stmt_info_id, stmt_info)| {
-      if stmt_info.side_effect {
-        include_statement(ctx, module, stmt_info_id);
-      }
-    });
-  } else {
-    // Skip the first statement, which is the namespace object. It should be included only if it is used no matter
-    // tree shaking is enabled or not.
-    module.stmt_infos.iter_enumerated().skip(1).for_each(|(stmt_info_id, _)| {
+  module.stmt_infos.iter_enumerated().for_each(|(stmt_info_id, stmt_info)| {
+    if stmt_info.side_effect {
       include_statement(ctx, module, stmt_info_id);
-    });
-  }
+    }
+  });
 
   // Include imported modules for its side effects
   ctx.metas[module.idx].dependencies.iter().copied().for_each(|dependency_idx| {
     match &ctx.module_table[dependency_idx] {
       Module::Normal(importee) => {
-        if !ctx.tree_shaking || importee.side_effects.has_side_effects() {
+        if importee.side_effects.has_side_effects() {
           include_module(ctx, importee);
         }
       }
@@ -134,7 +125,6 @@ impl LinkStage<'_> {
       symbols: &self.symbols,
       is_included_vec: &mut is_included_vec,
       is_module_included_vec: &mut is_module_included_vec,
-      tree_shaking: true,
       runtime_id: self.runtime_module.id(),
       // used_exports_info_vec: &mut used_exports_info_vec,
       metas: &self.metadata,

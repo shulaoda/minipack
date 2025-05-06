@@ -5,14 +5,12 @@ mod include_statements;
 mod patch_module_dependencies;
 mod reference_needed_symbols;
 mod sort_modules;
-mod wrap_modules;
 
 use minipack_common::{
   EntryPoint, EntryPointKind, ImportKind, ModuleIdx, RuntimeModuleBrief, SymbolRef, SymbolRefDb,
-  dynamic_import_usage::DynamicImportExportsUsage,
 };
 use oxc_index::IndexVec;
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use crate::types::{
   IndexEcmaAst, IndexModules, LinkingMetadataVec, SharedOptions, linking_metadata::LinkingMetadata,
@@ -31,7 +29,6 @@ pub struct LinkStageOutput {
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
   pub used_symbol_refs: FxHashSet<SymbolRef>,
-  pub dyn_import_usage_map: FxHashMap<ModuleIdx, DynamicImportExportsUsage>,
   pub lived_entry_points: FxHashSet<ModuleIdx>,
 }
 
@@ -48,7 +45,6 @@ pub struct LinkStage<'a> {
   pub index_ecma_ast: IndexEcmaAst,
   pub options: &'a SharedOptions,
   pub used_symbol_refs: FxHashSet<SymbolRef>,
-  pub dyn_import_usage_map: FxHashMap<ModuleIdx, DynamicImportExportsUsage>,
 }
 
 impl<'a> LinkStage<'a> {
@@ -60,7 +56,6 @@ impl<'a> LinkStage<'a> {
       entry_points,
       runtime_module,
       warnings,
-      dyn_import_usage_map,
     } = scan_stage_output;
 
     let metadata = module_table
@@ -98,7 +93,6 @@ impl<'a> LinkStage<'a> {
       errors: vec![],
       sorted_modules: vec![],
       index_ecma_ast,
-      dyn_import_usage_map,
       options,
       used_symbol_refs: FxHashSet::default(),
     }
@@ -106,7 +100,6 @@ impl<'a> LinkStage<'a> {
 
   pub fn link(mut self) -> LinkStageOutput {
     self.sort_modules();
-    self.wrap_modules();
     self.determine_side_effects();
     self.bind_imports_and_exports();
     self.create_exports_for_ecma_modules();
@@ -125,7 +118,6 @@ impl<'a> LinkStage<'a> {
       errors: self.errors,
       index_ecma_ast: self.index_ecma_ast,
       used_symbol_refs: self.used_symbol_refs,
-      dyn_import_usage_map: self.dyn_import_usage_map,
     }
   }
 

@@ -8,10 +8,7 @@ use oxc::{
   allocator::{Allocator, Box as ArenaBox, CloneIn, Dummy, IntoIn, TakeIn},
   ast::{
     Comment, NONE,
-    ast::{
-      self, Expression, IdentifierReference, ImportExpression, MemberExpression,
-      VariableDeclarationKind,
-    },
+    ast::{self, Expression, ImportExpression, MemberExpression, VariableDeclarationKind},
   },
   semantic::{ReferenceId, SymbolId},
   span::{GetSpan, SPAN},
@@ -38,15 +35,6 @@ pub struct ScopeHoistingFinalizer<'me, 'ast> {
 }
 
 impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
-  pub fn is_global_identifier_reference(&self, id_ref: &IdentifierReference) -> bool {
-    let Some(reference_id) = id_ref.reference_id.get() else {
-      // Some `IdentifierReference`s constructed by bundler don't have a `ReferenceId`. They might be global variables.
-      // But we don't care about them in this method. This method is only used to check if a `IdentifierReference` from user code is a global variable.
-      return false;
-    };
-    self.scope.is_unresolved(reference_id)
-  }
-
   pub fn canonical_name_for(&self, symbol: SymbolRef) -> &'me str {
     self.ctx.symbol_db.canonical_name_for(symbol, self.ctx.canonical_names)
   }
@@ -338,8 +326,9 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
           return new_expr;
         }
         "dirname" | "filename" => {
+          let name = self.snippet.atom(&format!("__{property_name}"));
           return is_node_cjs.then_some(ast::Expression::Identifier(
-            self.snippet.builder.alloc_identifier_reference(SPAN, format!("__{property_name}")),
+            self.snippet.builder.alloc_identifier_reference(SPAN, name),
           ));
         }
         _ => {}
@@ -502,49 +491,11 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
           return;
         }
 
-        if top_stmt.is_import_declaration() {
+        if top_stmt.is_import_declaration() || top_stmt.is_export_all_declaration() {
           return;
         }
 
-        if let Some(export_all_decl) = top_stmt.as_export_all_declaration() {
-          let rec_id = self.ctx.module.imports[&export_all_decl.span];
-          // "export * as ns from 'path'"
-          if let Some(_alias) = &export_all_decl.exported {
-            return;
-          } else {
-            // "export * from 'path'"
-            let rec = &self.ctx.module.import_records[rec_id];
-            match &self.ctx.modules[rec.state] {
-              Module::Normal(importee) => {
-                let importee_linking_info = &self.ctx.linking_infos[importee.idx];
-
-                if importee_linking_info.has_dynamic_exports {
-                  let re_export_fn_ref = self.finalized_expr_for_runtime_symbol("__reExport");
-                  // exports
-                  let importer_namespace_ref =
-                    self.finalized_expr_for_symbol_ref(self.ctx.module.namespace_object_ref, false);
-                  // otherExports
-                  let importee_namespace_ref =
-                    self.finalized_expr_for_symbol_ref(importee.namespace_object_ref, false);
-                  // __reExport(exports, otherExports)
-                  let expression = self.snippet.call_expr_with_2arg_expr(
-                    re_export_fn_ref,
-                    importer_namespace_ref,
-                    importee_namespace_ref,
-                  );
-                  let stmt = ast::Statement::ExpressionStatement(
-                    ast::ExpressionStatement { span: expression.span(), expression }
-                      .into_in(self.alloc),
-                  );
-                  program.body.push(stmt);
-                }
-              }
-              Module::External(_) => {}
-            }
-
-            return;
-          }
-        } else if let Some(default_decl) = top_stmt.as_export_default_declaration_mut() {
+        if let Some(default_decl) = top_stmt.as_export_default_declaration_mut() {
           use ast::ExportDefaultDeclarationKind;
           match &mut default_decl.declaration {
             decl @ ast::match_expression!(ExportDefaultDeclarationKind) => {

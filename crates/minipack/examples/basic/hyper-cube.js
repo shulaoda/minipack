@@ -6,3 +6,6 @@ import square from './square.js';
 export default function hyperCube(x) {
   return cube(x) * square(x);
 }
+
+export const treeShaking = function() {
+};

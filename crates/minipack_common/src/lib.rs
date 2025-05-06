@@ -13,10 +13,7 @@ pub use bundler_options::{
 
 pub use crate::{
   chunk::{Chunk, CrossChunkImportItem, PreliminaryFilename},
-  ecmascript::{
-    dynamic_import_usage,
-    ecma_view::{EcmaModuleAstUsage, EcmaView, EcmaViewMeta},
-  },
+  ecmascript::ecma_view::{EcmaModuleAstUsage, EcmaView, EcmaViewMeta},
   module::{Module, external_module::ExternalModule, normal_module::NormalModule},
   module_loader::{
     ModuleLoaderMsg,

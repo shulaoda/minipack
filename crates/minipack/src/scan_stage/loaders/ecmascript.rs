@@ -51,7 +51,6 @@ pub async fn create_ecma_view(
     self_referenced_class_decl_symbol_ids,
     hashbang_range,
     has_star_exports,
-    dynamic_import_exports_usage,
     this_expr_replace_map,
   } = scanner.scan(ast.program())?;
 
@@ -60,6 +59,9 @@ pub async fn create_ecma_view(
   }
 
   ctx.warnings.extend(scan_warnings);
+
+  let side_effects =
+    DeterminedSideEffects::Analyzed(stmt_infos.iter().any(|stmt_info| stmt_info.side_effect));
 
   let ecma_view = EcmaView {
     source: ast.source().clone(),
@@ -75,7 +77,7 @@ pub async fn create_ecma_view(
     dynamic_importers: FxIndexSet::default(),
     imported_ids: FxIndexSet::default(),
     dynamically_imported_ids: FxIndexSet::default(),
-    side_effects: DeterminedSideEffects::NoTreeshake,
+    side_effects,
     self_referenced_class_decl_symbol_ids,
     hashbang_range,
     meta: {
@@ -88,7 +90,7 @@ pub async fn create_ecma_view(
 
   Ok(CreateEcmaViewReturn {
     ecma_view,
-    ecma_related: EcmaRelated { ast, symbols, dynamic_import_exports_usage },
+    ecma_related: EcmaRelated { ast, symbols },
     raw_import_records,
   })
 }

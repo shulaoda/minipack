@@ -6,7 +6,7 @@ use oxc::allocator::TakeIn;
 use oxc::ast::NONE;
 use oxc::ast::ast::{self, BindingPatternKind, Declaration, ImportOrExportKind, Statement};
 use oxc::ast_visit::{VisitMut, walk_mut};
-use oxc::span::{SPAN, Span};
+use oxc::span::SPAN;
 
 /// Pre-process is a essential step to make rolldown generate correct and efficient code.
 pub struct PreProcessor<'ast> {
@@ -15,61 +15,16 @@ pub struct PreProcessor<'ast> {
   /// For none top level statements, this is used to store split `VarDeclaration`.
   stmt_temp_storage: Vec<Statement<'ast>>,
   need_push_ast: bool,
-  pub contains_use_strict: bool,
 }
 
 impl<'ast> PreProcessor<'ast> {
   pub fn new(alloc: &'ast Allocator) -> Self {
-    Self {
-      snippet: AstSnippet::new(alloc),
-      contains_use_strict: false,
-      stmt_temp_storage: vec![],
-      need_push_ast: false,
-    }
-  }
-
-  /// split `var a = 1, b = 2;` into `var a = 1; var b = 2;`
-  fn split_var_declaration(
-    &self,
-    var_decl: &mut ast::VariableDeclaration<'ast>,
-    named_decl_span: Option<Span>,
-  ) -> Vec<Statement<'ast>> {
-    var_decl
-      .declarations
-      .take_in(self.snippet.alloc())
-      .into_iter()
-      .enumerate()
-      .map(|(i, declarator)| {
-        let new_decl = self.snippet.builder.alloc_variable_declaration(
-          SPAN,
-          var_decl.kind,
-          self.snippet.builder.vec_from_iter([declarator]),
-          var_decl.declare,
-        );
-        if let Some(named_decl_span) = named_decl_span {
-          Statement::ExportNamedDeclaration(self.snippet.builder.alloc_export_named_declaration(
-            if i == 0 { named_decl_span } else { SPAN },
-            Some(Declaration::VariableDeclaration(new_decl)),
-            self.snippet.builder.vec(),
-            // Since it is `export a = 1, b = 2;`, source should be `None`
-            None,
-            ImportOrExportKind::Value,
-            NONE,
-          ))
-        } else {
-          Statement::VariableDeclaration(new_decl)
-        }
-      })
-      .collect_vec()
+    Self { snippet: AstSnippet::new(alloc), stmt_temp_storage: vec![], need_push_ast: false }
   }
 }
 
 impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
   fn visit_program(&mut self, program: &mut ast::Program<'ast>) {
-    let directives_len = program.directives.len();
-    program.directives.retain(|directive| !directive.is_use_strict());
-    self.contains_use_strict = directives_len != program.directives.len();
-
     let drain_elements = program
       .body
       .drain_filter(|stmt| !stmt.is_module_declaration_with_source())
@@ -83,9 +38,11 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
         self.stmt_temp_storage.push(stmt);
       }
     }
+
     program.body.extend(std::mem::take(&mut self.stmt_temp_storage));
   }
 
+  /// split `var a = 1, b = 2;` into `var a = 1; var b = 2;`
   fn visit_export_named_declaration(&mut self, named_decl: &mut ast::ExportNamedDeclaration<'ast>) {
     walk_mut::walk_export_named_declaration(self, named_decl);
 
@@ -98,7 +55,30 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
       .iter()
       .any(|declarator| matches!(declarator.id.kind, BindingPatternKind::BindingIdentifier(_)))
     {
-      let rewritten = self.split_var_declaration(var_decl, Some(named_decl.span));
+      let rewritten = var_decl
+        .declarations
+        .take_in(self.snippet.alloc())
+        .into_iter()
+        .enumerate()
+        .map(|(i, declarator)| {
+          let new_decl = self.snippet.builder.alloc_variable_declaration(
+            SPAN,
+            var_decl.kind,
+            self.snippet.builder.vec_from_iter([declarator]),
+            var_decl.declare,
+          );
+          Statement::ExportNamedDeclaration(self.snippet.builder.alloc_export_named_declaration(
+            if i == 0 { named_decl.span } else { SPAN },
+            Some(Declaration::VariableDeclaration(new_decl)),
+            self.snippet.builder.vec(),
+            // Since it is `export a = 1, b = 2;`, source should be `None`
+            None,
+            ImportOrExportKind::Value,
+            NONE,
+          ))
+        })
+        .collect_vec();
+
       self.stmt_temp_storage.extend(rewritten);
       self.need_push_ast = false;
     }

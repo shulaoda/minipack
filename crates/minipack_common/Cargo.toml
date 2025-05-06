@@ -22,14 +22,12 @@ minipack_utils = { workspace = true }
 anyhow = { workspace = true }
 arcstr = { workspace = true }
 bitflags = { workspace = true }
-fast-glob = { workspace = true }
 itertools = { workspace = true }
 memchr = { workspace = true }
 oxc = { workspace = true }
 oxc_index = { workspace = true, features = ["serde"] }
 rustc-hash = { workspace = true }
 serde = { version = "1.0.203", features = ["derive"] }
-serde_json = { workspace = true }
 sugar_path = { workspace = true }
 
 [package.metadata.cargo-shear]

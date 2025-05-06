@@ -44,8 +44,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
     }
 
     self.result.hashbang_range = program.hashbang.as_ref().map(GetSpan::span);
-    self.result.dynamic_import_exports_usage =
-      std::mem::take(&mut self.dynamic_import_usage_info.dynamic_import_exports_usage);
   }
 
   fn visit_binding_identifier(&mut self, ident: &ast::BindingIdentifier) {
@@ -58,7 +56,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
   fn visit_identifier_reference(&mut self, ident: &IdentifierReference) {
     self.process_identifier_ref_by_scope(ident);
     self.try_diagnostic_forbid_const_assign(ident);
-    self.update_dynamic_import_binding_usage_info(ident);
   }
 
   fn visit_statement(&mut self, stmt: &ast::Statement<'ast>) {
@@ -80,7 +77,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
           ImportRecordMeta::empty()
         },
       );
-      self.init_dynamic_import_binding_usage_info(import_rec_idx);
       self.result.imports.insert(expr.span, import_rec_idx);
     }
     walk::walk_import_expression(self, expr);

@@ -6,7 +6,7 @@ use minipack_common::{
   DUMMY_MODULE_IDX, EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind,
   ImportRecordIdx, ImportRecordMeta, ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg,
   NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief,
-  RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule, side_effects::DeterminedSideEffects,
+  RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule,
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
@@ -21,7 +21,7 @@ use super::module_task::ModuleTask;
 use super::runtime_module_task::RuntimeModuleTask;
 use super::task_context::TaskContext;
 
-use crate::types::{DynImportUsageMap, IndexEcmaAst, IndexModules, SharedOptions, SharedResolver};
+use crate::types::{IndexEcmaAst, IndexModules, SharedOptions, SharedResolver};
 use crate::utils::ecmascript::legitimize_identifier_name;
 
 pub struct IntermediateNormalModules {
@@ -61,7 +61,6 @@ pub struct ModuleLoaderOutput {
   pub entry_points: Vec<EntryPoint>,
   pub runtime_module: RuntimeModuleBrief,
   pub warnings: Vec<anyhow::Error>,
-  pub dyn_import_usage_map: DynImportUsageMap,
 }
 
 impl ModuleLoader {
@@ -116,7 +115,6 @@ impl ModuleLoader {
     let mut runtime_module = None;
 
     let mut dynamic_import_entry_ids = FxHashMap::default();
-    let mut dynamic_import_exports_usage_pairs = vec![];
 
     while self.remaining > 0 {
       let Some(msg) = self.rx.recv().await else {
@@ -126,8 +124,8 @@ impl ModuleLoader {
       match msg {
         ModuleLoaderMsg::NormalModuleDone(task_result) => {
           let NormalModuleTaskResult {
-            mut ecma_related,
             mut module,
+            ecma_related,
             resolved_deps,
             raw_import_records,
             warnings: task_result_warnings,
@@ -135,15 +133,10 @@ impl ModuleLoader {
 
           warnings.extend(task_result_warnings);
 
-          let mut dynamic_import_rec_exports_usage = ecma_related
-            .as_mut()
-            .map(|item| std::mem::take(&mut item.dynamic_import_exports_usage))
-            .unwrap_or_default();
-
           let import_records = raw_import_records
-            .into_iter_enumerated()
+            .into_iter()
             .zip(resolved_deps)
-            .map(|((rec_idx, raw_rec), info)| {
+            .map(|(raw_rec, info)| {
               if raw_rec.meta.contains(ImportRecordMeta::IS_DUMMY) {
                 return raw_rec.into_resolved(DUMMY_MODULE_IDX);
               }
@@ -155,11 +148,6 @@ impl ModuleLoader {
                 kind: raw_rec.kind,
                 importer_path: ModuleId::new(module.id()),
               });
-              // defer usage merging, since we only have one consumer, we should keep action during fetching as simple
-              // as possible
-              if let Some(usage) = dynamic_import_rec_exports_usage.remove(&rec_idx) {
-                dynamic_import_exports_usage_pairs.push((id, usage));
-              }
 
               if raw_rec.kind == ImportKind::DynamicImport && !user_defined_entry_ids.contains(&id)
               {
@@ -258,21 +246,6 @@ impl ModuleLoader {
       Err(errors)?;
     }
 
-    let dyn_import_usage_map = dynamic_import_exports_usage_pairs.into_iter().fold(
-      FxHashMap::default(),
-      |mut acc, (idx, usage)| {
-        match acc.entry(idx) {
-          Entry::Vacant(vac) => {
-            vac.insert(usage);
-          }
-          Entry::Occupied(mut occ) => {
-            occ.get_mut().merge(usage);
-          }
-        };
-        acc
-      },
-    );
-
     let module_table: IndexVec<ModuleIdx, Module> = self
       .inm
       .modules
@@ -314,7 +287,6 @@ impl ModuleLoader {
       entry_points,
       runtime_module,
       warnings,
-      dyn_import_usage_map,
     })
   }
 
@@ -340,12 +312,8 @@ impl ModuleLoader {
             &legitimize_identifier_name(resolved_id.id.as_str()),
           );
 
-          self.inm.modules[idx] = Some(Module::external(ExternalModule::new(
-            idx,
-            resolved_id.id,
-            DeterminedSideEffects::NoTreeshake,
-            symbol_ref,
-          )));
+          self.inm.modules[idx] =
+            Some(Module::external(ExternalModule::new(idx, resolved_id.id, symbol_ref)));
         } else {
           let task = ModuleTask::new(
             self.shared_context.clone(),

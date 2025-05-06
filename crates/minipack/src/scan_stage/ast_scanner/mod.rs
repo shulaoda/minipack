@@ -1,4 +1,3 @@
-mod dynamic_import;
 mod impl_visit;
 pub mod pre_processor;
 mod side_effect_detector;
@@ -9,7 +8,6 @@ use minipack_common::{
   ImportKind, ImportRecordIdx, ImportRecordMeta, LocalExport, MemberExprRef, ModuleId, ModuleIdx,
   NamedImport, RawImportRecord, Specifier, StmtInfo, StmtInfos, SymbolRef, SymbolRefDbForModule,
   SymbolRefFlags,
-  dynamic_import_usage::{DynamicImportExportsUsage, DynamicImportUsageInfo},
 };
 use minipack_ecmascript::{BindingIdentifierExt, BindingPatternExt};
 use minipack_error::BuildResult;
@@ -55,8 +53,6 @@ pub struct AstScanResult {
   /// has hashbang. Storing the span of hashbang used for hashbang codegen in chunk level
   pub hashbang_range: Option<Span>,
   pub has_star_exports: bool,
-  /// We don't know the ImportRecord related ModuleIdx yet, so use ImportRecordIdx as key temporarily
-  pub dynamic_import_exports_usage: FxHashMap<ImportRecordIdx, DynamicImportExportsUsage>,
   pub this_expr_replace_map: FxHashSet<Span>,
 }
 
@@ -70,7 +66,6 @@ pub struct AstScanner<'me, 'ast> {
   cur_class_decl: Option<SymbolId>,
   visit_path: Vec<AstKind<'ast>>,
   scope_stack: Vec<Option<ScopeId>>,
-  dynamic_import_usage_info: DynamicImportUsageInfo,
   /// A flag to resolve `this` appear with propertyKey in class
   is_nested_this_inside_class: bool,
 }
@@ -114,7 +109,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       self_referenced_class_decl_symbol_ids: FxHashSet::default(),
       hashbang_range: None,
       has_star_exports: false,
-      dynamic_import_exports_usage: FxHashMap::default(),
       this_expr_replace_map: FxHashSet::default(),
     };
 
@@ -128,7 +122,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       cur_class_decl: None,
       visit_path: vec![],
       scope_stack: vec![],
-      dynamic_import_usage_info: DynamicImportUsageInfo::default(),
       is_nested_this_inside_class: false,
     }
   }

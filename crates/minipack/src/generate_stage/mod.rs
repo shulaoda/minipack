@@ -86,7 +86,6 @@ impl<'a> GenerateStage<'a> {
             linking_info,
             module,
             modules: &self.link_output.module_table,
-            linking_infos: &self.link_output.metadata,
             runtime: &self.link_output.runtime_module,
             chunk_graph: &chunk_graph,
             options: self.options,

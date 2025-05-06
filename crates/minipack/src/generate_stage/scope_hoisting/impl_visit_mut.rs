@@ -34,8 +34,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       })
       .collect::<FxHashSet<_>>();
 
-    let is_namespace_referenced = self.ctx.module.stmt_infos[StmtInfoIdx::new(0)].is_included;
-
     self.remove_unused_top_level_stmt(program);
 
     // the order should be
@@ -43,7 +41,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
     // 2. shimmed_exports
     // 3. hoisted_names
     // 4. wrapped module declaration
-    if is_namespace_referenced {
+    if self.ctx.module.stmt_infos[StmtInfoIdx::new(0)].is_included {
       let stmts = self.generate_declaration_of_module_namespace_object();
       program.body.splice(0..0, stmts);
     }
@@ -64,20 +62,6 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
       }
       ident.symbol_id.get_mut().take();
     }
-  }
-
-  fn visit_statement(&mut self, it: &mut ast::Statement<'ast>) {
-    walk_mut::walk_statement(self, it);
-  }
-
-  fn visit_identifier_reference(&mut self, ident: &mut ast::IdentifierReference) {
-    // This ensure all `IdentifierReference`s are processed
-    debug_assert!(
-      self.is_global_identifier_reference(ident) || ident.reference_id.get().is_none(),
-      "{} doesn't get processed in {}",
-      ident.name,
-      self.ctx.module.repr_name
-    );
   }
 
   fn visit_call_expression(&mut self, expr: &mut ast::CallExpression<'ast>) {

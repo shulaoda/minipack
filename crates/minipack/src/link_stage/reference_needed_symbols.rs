@@ -1,8 +1,6 @@
 use std::{ptr::addr_of, sync::Mutex};
 
-use minipack_common::{
-  ImportKind, ImportRecordMeta, Module, OutputFormat, side_effects::DeterminedSideEffects,
-};
+use minipack_common::{ImportKind, ImportRecordMeta, Module, OutputFormat};
 use minipack_utils::{
   concat_string,
   rayon::{IntoParallelRefIterator, ParallelIterator},
@@ -23,7 +21,6 @@ impl LinkStage<'_> {
       // - Mutating on `stmt_infos` doesn't rely on other mutating operations of other modules
       // - Mutating and parallel reading is in different memory locations
       let stmt_infos = unsafe { &mut *(addr_of!(importer.stmt_infos).cast_mut()) };
-      let importer_side_effect = unsafe { &mut *(addr_of!(importer.side_effects).cast_mut()) };
 
       // store the symbol reference to the declared statement index
       stmt_infos.infos.iter_mut().for_each(|stmt_info| {
@@ -57,27 +54,7 @@ impl LinkStage<'_> {
                 }
               }
             }
-            Module::Normal(importee) => {
-              if rec.kind == ImportKind::Import {
-                let is_reexport_all = rec.meta.contains(ImportRecordMeta::IS_EXPORT_STAR);
-                // for case:
-                // ```js
-                // export * from './foo'; /* importee wrap kind is `none`, but since `foo` has dynamic_export, we need to preserve the `__reExport(index_exports, foo_ns)` */
-                // ```
-                if is_reexport_all {
-                  let meta = &self.metadata[importee.idx];
-                  if meta.has_dynamic_exports {
-                    *importer_side_effect = DeterminedSideEffects::Analyzed(true);
-                    stmt_info.side_effect = true;
-                    stmt_info
-                      .referenced_symbols
-                      .push(self.runtime_module.resolve_symbol("__reExport").into());
-                    stmt_info.referenced_symbols.push(importer.namespace_object_ref.into());
-                    stmt_info.referenced_symbols.push(importee.namespace_object_ref.into());
-                  }
-                }
-              }
-            }
+            Module::Normal(_) => {}
           }
         });
       });

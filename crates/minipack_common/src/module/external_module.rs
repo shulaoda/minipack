@@ -21,16 +21,15 @@ impl ExternalModule {
   pub fn new(
     idx: ModuleIdx,
     name: ArcStr,
-    side_effects: DeterminedSideEffects,
     namespace_ref: SymbolRef,
   ) -> Self {
     Self {
       idx,
       name,
-      exec_order: u32::MAX,
       namespace_ref,
+      exec_order: u32::MAX,
       import_records: IndexVec::default(),
-      side_effects,
+      side_effects: DeterminedSideEffects::NoTreeshake,
     }
   }
 }

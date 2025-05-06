@@ -2,7 +2,7 @@ use arcstr::ArcStr;
 use minipack_error::BuildResult;
 use oxc::{
   allocator::Allocator,
-  codegen::{CodeGenerator, Codegen, CodegenOptions, CodegenReturn, LegalComment},
+  codegen::{Codegen, CodegenOptions, CodegenReturn, LegalComment},
   minifier::{CompressOptions, CompressOptionsKeepNames, MangleOptions, Minifier, MinifierOptions},
   parser::{ParseOptions, Parser},
   span::SourceType,
@@ -34,11 +34,11 @@ impl EcmaCompiler {
       }
     })?;
 
-    Ok(EcmaAst { program, source_type, contains_use_strict: false })
+    Ok(EcmaAst { program, source_type })
   }
 
   pub fn print(ast: &EcmaAst) -> CodegenReturn {
-    CodeGenerator::new()
+    Codegen::new()
       .with_options(CodegenOptions {
         comments: true,
         legal_comments: LegalComment::Inline,

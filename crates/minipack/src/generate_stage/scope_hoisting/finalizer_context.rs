@@ -6,7 +6,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   graph::ChunkGraph,
-  types::{IndexModules, LinkingMetadataVec, SharedOptions, linking_metadata::LinkingMetadata},
+  types::{IndexModules, SharedOptions, linking_metadata::LinkingMetadata},
 };
 
 pub struct ScopeHoistingFinalizerContext<'me> {
@@ -15,7 +15,6 @@ pub struct ScopeHoistingFinalizerContext<'me> {
   pub module: &'me NormalModule,
   pub modules: &'me IndexModules,
   pub linking_info: &'me LinkingMetadata,
-  pub linking_infos: &'me LinkingMetadataVec,
   pub symbol_db: &'me SymbolRefDb,
   pub canonical_names: &'me FxHashMap<SymbolRef, Rstr>,
   pub runtime: &'me RuntimeModuleBrief,

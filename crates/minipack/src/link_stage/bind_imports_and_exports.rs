@@ -91,9 +91,6 @@ pub enum ImportStatus {
     potentially_ambiguous_export_star_refs: Vec<SymbolRef>,
   },
 
-  /// The import is missing but there is a dynamic fallback object
-  DynamicFallback { namespace_ref: SymbolRef },
-
   /// The imported file was disabled by mapping it to false in the "browser" field of package.json
   _Disabled,
 
@@ -314,15 +311,13 @@ impl LinkStage<'_> {
                     // when we try to resolve `a.b.c`, and found that `b` is not exported by module
                     // that `a` pointed to, convert the `a.b.c` into `void 0` if module `a` do not
                     // have any dynamic exports.
-                    if !self.metadata[canonical_ref_owner.idx].has_dynamic_exports {
-                      resolved_map.insert(
-                        member_expr_ref.span,
-                        (None, member_expr_ref.props[cursor..].to_vec()),
-                      );
-                      warnings.push(anyhow::anyhow!("Import `{}` will always be undefined because there is no matching export in '{}'", 
-                      ArcStr::from(name.as_str()),
-                      canonical_ref_owner.stable_id.to_string()));
-                    }
+                    resolved_map.insert(
+                      member_expr_ref.span,
+                      (None, member_expr_ref.props[cursor..].to_vec()),
+                    );
+                    warnings.push(anyhow::anyhow!("Import `{}` will always be undefined because there is no matching export in '{}'", 
+                    ArcStr::from(name.as_str()),
+                    canonical_ref_owner.stable_id.to_string()));
                     break;
                   };
                   if !meta.sorted_and_non_ambiguous_resolved_exports.contains(&name.to_rstr()) {
@@ -506,8 +501,6 @@ impl BindImportsAndExportsContext<'_> {
               .clone()
               .unwrap_or_default(),
           }
-        } else if self.metas[importee_id].has_dynamic_exports {
-          ImportStatus::DynamicFallback { namespace_ref: importee.namespace_object_ref }
         } else {
           ImportStatus::NoMatch {}
         }
@@ -537,12 +530,6 @@ impl BindImportsAndExportsContext<'_> {
 
       let import_status = self.advance_import_tracker(ctx);
       let kind = match import_status {
-        ImportStatus::DynamicFallback { namespace_ref } => match &tracker.imported {
-          Specifier::Star => MatchImportKind::Namespace { namespace_ref },
-          Specifier::Literal(alias) => {
-            MatchImportKind::NormalAndNamespace { namespace_ref, alias: alias.clone() }
-          }
-        },
         ImportStatus::NoMatch { .. } => {
           break MatchImportKind::NoMatch;
         }
