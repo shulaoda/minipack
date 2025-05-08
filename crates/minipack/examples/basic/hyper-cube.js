@@ -7,5 +7,4 @@ export default function hyperCube(x) {
   return cube(x) * square(x);
 }
 
-export const treeShaking = function() {
-};
+export var a = 1, b = 2;

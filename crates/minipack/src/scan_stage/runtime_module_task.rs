@@ -87,7 +87,6 @@ impl RuntimeModuleTask {
       .map(|rec| ResolvedId {
         id: rec.specifier.as_str().into(),
         is_external: true,
-        package_json: None,
       })
       .collect();
 

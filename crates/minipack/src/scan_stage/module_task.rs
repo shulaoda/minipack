@@ -83,7 +83,7 @@ impl ModuleTask {
       .map(|item| {
         let specifier = item.specifier.as_str();
         if specifier == RUNTIME_MODULE_ID {
-          return Ok(ResolvedId { id: specifier.into(), is_external: false, package_json: None });
+          return Ok(ResolvedId { id: specifier.into(), is_external: false });
         }
 
         resolve_id(&self.ctx.resolver, specifier, Some(&self.resolved_id.id), false)

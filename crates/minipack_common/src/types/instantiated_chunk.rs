@@ -1,4 +1,4 @@
-use crate::{Asset, PreliminaryFilename};
+use crate::{OutputAsset, PreliminaryFilename};
 
 #[derive(Debug)]
 pub struct InstantiatedChunk {
@@ -7,7 +7,7 @@ pub struct InstantiatedChunk {
 }
 
 impl InstantiatedChunk {
-  pub fn finalize(self, filename: String) -> Asset {
-    Asset { filename, content: self.content }
+  pub fn finalize(self, filename: String) -> OutputAsset {
+    OutputAsset { filename, content: self.content }
   }
 }

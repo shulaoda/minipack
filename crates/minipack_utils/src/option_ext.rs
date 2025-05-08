@@ -22,7 +22,6 @@ impl<T> OptionExt<T> for Option<T> {
   /// None::<usize>.unpack();
   /// // Got `None` value when calling `OptionExt::unpack()` on `Option<usize>`
   /// ```
-  #[track_caller]
   fn unpack(self) -> T {
     self.map_or_else(
       || {

@@ -66,18 +66,20 @@ pub fn deconflict_chunk_symbols(
     .collect();
 
   if let ChunkKind::EntryPoint { module, .. } = chunk.kind {
-    let meta = &link_output.metadata[module];
-    meta.referenced_symbols_by_entry_point_chunk.iter().for_each(|symbol_ref| {
-      renamer.add_symbol_in_root_scope(*symbol_ref);
-    });
+    link_output.metadata[module].referenced_symbols_by_entry_point_chunk.iter().for_each(
+      |symbol_ref| {
+        renamer.add_symbol_in_root_scope(*symbol_ref);
+      },
+    );
   }
 
   if matches!(format, OutputFormat::Esm) {
     chunk.imports_from_external_modules.iter().for_each(|(module, _)| {
-      let db = link_output.symbols.local_db(*module);
-      db.classic_data.iter_enumerated().skip(1).for_each(|(symbol, _)| {
-        renamer.add_symbol_in_root_scope((*module, symbol).into());
-      });
+      link_output.symbols.local_db(*module).classic_data.iter_enumerated().skip(1).for_each(
+        |(symbol, _)| {
+          renamer.add_symbol_in_root_scope((*module, symbol).into());
+        },
+      );
     });
   }
 
@@ -93,5 +95,5 @@ pub fn deconflict_chunk_symbols(
     },
   );
 
-  (chunk.canonical_names, chunk.canonical_name_by_token) = renamer.into_canonical_names();
+  chunk.canonical_names = renamer.canonical_names;
 }

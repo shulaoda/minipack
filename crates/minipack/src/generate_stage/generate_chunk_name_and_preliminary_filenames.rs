@@ -8,7 +8,6 @@ use minipack_utils::{
   hash_placeholder::HashPlaceholderGenerator,
   path_ext::PathExt,
   rayon::{IntoParallelRefIterator, ParallelIterator},
-  sanitize_file_name::sanitize_file_name,
 };
 use oxc_index::IndexVec;
 use rustc_hash::FxHashMap;
@@ -47,26 +46,20 @@ impl GenerateStage<'_> {
                   sanitize_filename::sanitize(file_name).into()
                 })
             } else {
-              ArcStr::from(sanitize_file_name(&path.representative_file_name()))
+              ArcStr::from(path.representative_file_name())
             }
           }
-          ChunkKind::Common => {
-            // - rollup use the first entered/last executed module as the `[name]` of common chunks.
-            // - esbuild always use 'chunk' as the `[name]`. However we try to make the name more meaningful here.
-            chunk
-              .modules
-              .iter()
-              .rev()
-              .find(|each| **each != self.link_output.runtime_module.id())
-              .map_or_else(
-                || arcstr::literal!("chunk"),
-                |module_id| {
-                  ArcStr::from(sanitize_file_name(
-                    &module_table[*module_id].id().as_path().representative_file_name(),
-                  ))
-                },
-              )
-          }
+          ChunkKind::Common => chunk
+            .modules
+            .iter()
+            .rev()
+            .find(|each| **each != self.link_output.runtime_module.id())
+            .map_or_else(
+              || arcstr::literal!("chunk"),
+              |module_id| {
+                ArcStr::from(module_table[*module_id].id().as_path().representative_file_name())
+              },
+            ),
         }
       })
       .collect::<Vec<_>>()

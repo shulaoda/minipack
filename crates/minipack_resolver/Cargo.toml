@@ -20,7 +20,5 @@ minipack_common = { workspace = true }
 minipack_fs = { workspace = true }
 
 arcstr = { workspace = true }
-dashmap = { workspace = true }
-itertools = { workspace = true }
 oxc_resolver = { workspace = true }
 sugar_path = { workspace = true }

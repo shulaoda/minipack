@@ -10,6 +10,5 @@ pub mod rayon;
 pub mod replace_all_placeholder;
 pub mod rstr;
 pub mod rustc_hash;
-pub mod sanitize_file_name;
 pub mod to_str;
 pub mod xxhash;

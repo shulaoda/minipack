@@ -1,6 +1,5 @@
 use minipack_common::{
-  GetLocalDb, ModuleIdx, OutputFormat, SymbolNameRefToken, SymbolRef, SymbolRefDb,
-  SymbolRefDbForModule,
+  GetLocalDb, ModuleIdx, OutputFormat, SymbolRef, SymbolRefDb, SymbolRefDbForModule,
 };
 use minipack_utils::concat_string;
 use minipack_utils::rstr::{Rstr, ToRstr};
@@ -18,9 +17,6 @@ pub struct Renamer<'name> {
 
   // Maps internal SymbolRefs to their final, deconflicted names.
   pub canonical_names: FxHashMap<SymbolRef, Rstr>,
-
-  // Maps references to original symbol names (tokens) to their assigned deconflicted names.
-  pub canonical_token_to_name: FxHashMap<SymbolNameRefToken, Rstr>,
 
   /// Reference to the shared symbol database for looking up symbol information.
   pub symbol_db: &'name SymbolRefDb,
@@ -68,7 +64,6 @@ impl<'name> Renamer<'name> {
     Self {
       used_canonical_names,
       canonical_names: FxHashMap::default(),
-      canonical_token_to_name: FxHashMap::default(),
       symbol_db,
       module_used_names,
       entry_module: base_module_index.map(|index| symbol_db.local_db(index)),
@@ -174,11 +169,5 @@ impl<'name> Renamer<'name> {
       }
     }
     conflictless_name.to_string()
-  }
-
-  pub fn into_canonical_names(
-    self,
-  ) -> (FxHashMap<SymbolRef, Rstr>, FxHashMap<SymbolNameRefToken, Rstr>) {
-    (self.canonical_names, self.canonical_token_to_name)
   }
 }

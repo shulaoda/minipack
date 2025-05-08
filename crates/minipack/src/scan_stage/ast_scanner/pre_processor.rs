@@ -7,15 +7,23 @@ use oxc::ast::ast::{self, BindingPatternKind, Declaration, ImportOrExportKind, S
 use oxc::ast_visit::{VisitMut, walk_mut};
 use oxc::span::SPAN;
 
+use crate::utils::ecmascript::EnsureSpanUniqueness;
+
 pub struct PreProcessor<'ast> {
   snippet: AstSnippet<'ast>,
   need_push_ast: bool,
   stmt_temp_storage: Vec<Statement<'ast>>,
+  ensure_span_uniqueness: EnsureSpanUniqueness,
 }
 
 impl<'ast> PreProcessor<'ast> {
   pub fn new(alloc: &'ast Allocator) -> Self {
-    Self { snippet: AstSnippet::new(alloc), stmt_temp_storage: vec![], need_push_ast: false }
+    Self {
+      snippet: AstSnippet::new(alloc),
+      stmt_temp_storage: vec![],
+      need_push_ast: false,
+      ensure_span_uniqueness: EnsureSpanUniqueness::new(),
+    }
   }
 }
 
@@ -35,6 +43,7 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
       }
     }
 
+    self.ensure_span_uniqueness.next_unique_span_start = program.span.end + 1;
     program.body.extend(std::mem::take(&mut self.stmt_temp_storage));
   }
 
@@ -56,15 +65,20 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
       self.stmt_temp_storage.extend(
         var_decl.declarations.take_in(self.snippet.alloc()).into_iter().enumerate().map(
           |(i, declarator)| {
-            let new_decl = self.snippet.builder.alloc_variable_declaration(
-              SPAN,
-              var_decl.kind,
-              self.snippet.builder.vec_from_iter([declarator]),
-              var_decl.declare,
-            );
             Statement::ExportNamedDeclaration(self.snippet.builder.alloc_export_named_declaration(
-              if i == 0 { named_decl.span } else { SPAN },
-              Some(Declaration::VariableDeclaration(new_decl)),
+              if i == 0 {
+                named_decl.span
+              } else {
+                self.ensure_span_uniqueness.generate_unique_span()
+              },
+              Some(Declaration::VariableDeclaration(
+                self.snippet.builder.alloc_variable_declaration(
+                  SPAN,
+                  var_decl.kind,
+                  self.snippet.builder.vec_from_iter([declarator]),
+                  var_decl.declare,
+                ),
+              )),
               self.snippet.builder.vec(),
               // Since it is `export a = 1, b = 2;`, source should be `None`
               None,
@@ -86,13 +100,13 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
             SPAN,
             cond_expr.test.take_in(self.snippet.alloc()),
             self.snippet.builder.expression_import(
-              SPAN,
+              self.ensure_span_uniqueness.generate_unique_span(),
               cond_expr.consequent.take_in(self.snippet.alloc()),
               None,
               None,
             ),
             self.snippet.builder.expression_import(
-              SPAN,
+              self.ensure_span_uniqueness.generate_unique_span(),
               cond_expr.alternate.take_in(self.snippet.alloc()),
               None,
               None,

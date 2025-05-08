@@ -7,7 +7,7 @@ use ansi_term::Colour;
 use args::{EnhanceArgs, InputArgs, OutputArgs};
 use clap::Parser;
 
-use minipack::{Bundler, BundlerOptions, OutputChunk};
+use minipack::{Bundler, BundlerOptions, OutputAsset};
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -22,7 +22,7 @@ struct Commands {
   enhance: EnhanceArgs,
 }
 
-fn print_output_assets(outputs: Vec<OutputChunk>) {
+fn print_output_assets(outputs: Vec<OutputAsset>) {
   let mut left = 0;
   let mut right = 0;
 
@@ -39,12 +39,13 @@ fn print_output_assets(outputs: Vec<OutputChunk>) {
       left = output.filename.len()
     }
 
-    assets.push((output.filename, Colour::Cyan, size, true));
+    assets.push((output.filename, size, true));
   }
 
   let dim = Colour::White.dimmed();
+  let color = Colour::Cyan;
 
-  for (filename, color, size, is_chunk) in assets {
+  for (filename, size, is_chunk) in assets {
     let asset_type = if is_chunk { "chunk" } else { "asset" };
     let filename_len = filename.len();
 
@@ -66,12 +67,10 @@ fn print_output_assets(outputs: Vec<OutputChunk>) {
 #[tokio::main]
 async fn main() {
   let args = Commands::parse();
-
   let InputArgs { cwd, input, platform } = args.input;
-
   let input = input.map(|files| files.iter().map(|file| file.to_string_lossy().into()).collect());
 
-  let options = BundlerOptions {
+  let mut bundler = Bundler::new(BundlerOptions {
     cwd,
     input,
     platform: platform.map(Into::into),
@@ -80,11 +79,9 @@ async fn main() {
     entry_filenames: args.output.entry_filenames,
     chunk_filenames: args.output.chunk_filenames,
     minify: args.enhance.minify,
-  };
+  });
 
   let start = Instant::now();
-  let mut bundler = Bundler::new(options);
-
   match bundler.write().await {
     Ok(output) => {
       if !args.enhance.silent {

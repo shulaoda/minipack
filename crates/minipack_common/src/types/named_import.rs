@@ -29,12 +29,6 @@ pub enum Specifier {
   Literal(Rstr),
 }
 
-impl Specifier {
-  pub fn is_star(&self) -> bool {
-    matches!(self, Self::Star)
-  }
-}
-
 impl Display for Specifier {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {

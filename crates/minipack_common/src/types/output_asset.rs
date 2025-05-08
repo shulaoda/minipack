@@ -1,12 +1,10 @@
-use arcstr::ArcStr;
-
 #[derive(Debug, Clone)]
-pub struct OutputChunk {
-  pub filename: ArcStr,
+pub struct OutputAsset {
+  pub filename: String,
   pub content: String,
 }
 
-impl OutputChunk {
+impl OutputAsset {
   pub fn filename(&self) -> &str {
     &self.filename
   }

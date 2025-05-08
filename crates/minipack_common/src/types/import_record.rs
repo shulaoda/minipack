@@ -26,10 +26,10 @@ pub struct ImportRecord<State: Debug> {
   /// `./lib.js` in `import { foo } from './lib.js';`
   pub specifier: Rstr,
   pub kind: ImportKind,
+  pub meta: ImportRecordMeta,
   /// We will turn `import { foo } from './cjs.js'; console.log(foo);` to `var import_foo = require_cjs(); console.log(importcjs.foo)`;
   /// `namespace_ref` represent the potential `import_foo` in above example. It's useless if we imported n esm module.
   pub namespace_ref: SymbolRef,
-  pub meta: ImportRecordMeta,
   pub related_stmt_info_idx: Option<StmtInfoIdx>,
 }
 

@@ -8,6 +8,7 @@ use crate::{
   utils::chunk::render_chunk_exports::render_chunk_exports,
 };
 
+#[inline]
 fn render_modules_with_peek_runtime_module_at_first<'a>(
   ctx: &GenerateContext<'_>,
   source_joiner: &mut SourceJoiner<'a>,

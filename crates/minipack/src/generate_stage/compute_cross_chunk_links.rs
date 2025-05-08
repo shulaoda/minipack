@@ -330,14 +330,10 @@ impl GenerateStage<'_> {
       FxHashMap::with_capacity(chunk_exported_symbols.iter().map(FxHashSet::len).sum());
 
     for (chunk_id, chunk) in chunk_graph.chunk_table.iter_mut_enumerated() {
-      for chunk_export in chunk_exported_symbols[chunk_id]
-        .iter()
-        .sorted_by_cached_key(|symbol_ref| {
-          // same deconflict order in deconflict_chunk_symbols.rs
-          // https://github.com/rolldown/rolldown/blob/504ea76c00563eb7db7a49c2b6e04b2fbe61bdc1/crates/rolldown/src/utils/chunk/deconflict_chunk_symbols.rs?plain=1#L86-L102
+      for chunk_export in
+        chunk_exported_symbols[chunk_id].iter().sorted_by_cached_key(|symbol_ref| {
           Reverse::<u32>(self.link_output.module_table[symbol_ref.owner].exec_order())
         })
-        .copied()
       {
         let original_name = chunk_export.name(&self.link_output.symbols).to_rstr();
         let mut candidate_name = original_name.clone();
@@ -357,7 +353,7 @@ impl GenerateStage<'_> {
             }
           }
         }
-        chunk.exports_to_other_chunks.insert(chunk_export, candidate_name.clone());
+        chunk.exports_to_other_chunks.insert(*chunk_export, candidate_name.clone());
       }
     }
 

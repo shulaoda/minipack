@@ -1,7 +1,7 @@
-use minipack_common::OutputChunk;
+use minipack_common::OutputAsset;
 
 #[derive(Default)]
 pub struct BundleOutput {
-  pub assets: Vec<OutputChunk>,
+  pub assets: Vec<OutputAsset>,
   pub warnings: Vec<anyhow::Error>,
 }

@@ -13,13 +13,13 @@ pub struct GenerateOutput {
 }
 
 pub struct GenerateContext<'a> {
-  pub chunk_idx: ChunkIdx,
   pub chunk: &'a Chunk,
-  pub options: &'a NormalizedBundlerOptions,
-  pub link_output: &'a LinkStageOutput,
+  pub chunk_idx: ChunkIdx,
   pub chunk_graph: &'a ChunkGraph,
-  pub warnings: Vec<anyhow::Error>,
+  pub link_output: &'a LinkStageOutput,
+  pub options: &'a NormalizedBundlerOptions,
   pub module_id_to_codegen_ret: Vec<Option<String>>,
+  pub warnings: Vec<anyhow::Error>,
 }
 
 impl GenerateContext<'_> {

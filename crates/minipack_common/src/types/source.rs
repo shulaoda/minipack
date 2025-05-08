@@ -1,10 +1,5 @@
-use memchr::memmem;
-
 pub trait Source {
   fn content(&self) -> &str;
-  fn lines_count(&self) -> u32 {
-    u32::try_from(memmem::find_iter(self.content().as_bytes(), "\n").count()).unwrap()
-  }
 }
 
 impl Source for &str {

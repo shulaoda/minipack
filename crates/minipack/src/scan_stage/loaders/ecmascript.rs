@@ -35,7 +35,7 @@ pub async fn create_ecma_view(
   source: String,
 ) -> BuildResult<CreateEcmaViewReturn> {
   let ParseToEcmaAstResult { ast, scoping, warning } =
-    parse_to_ecma_ast(ctx.stable_id, &ctx.module_type, source)?;
+    parse_to_ecma_ast(ctx.stable_id.as_path(), &ctx.module_type, source)?;
 
   ctx.warnings.extend(warning);
 

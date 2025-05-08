@@ -2,7 +2,7 @@ use std::hash::Hash;
 
 use arcstr::ArcStr;
 use itertools::Itertools;
-use minipack_common::AssetIdx;
+use minipack_common::{AssetIdx, OutputAsset};
 use minipack_utils::{
   hash_placeholder::{extract_hash_placeholders, replace_placeholder_with_hash},
   indexmap::FxIndexSet,
@@ -14,10 +14,10 @@ use oxc_index::{IndexVec, index_vec};
 use rustc_hash::FxHashMap;
 use xxhash_rust::xxh3::Xxh3;
 
-use crate::types::{IndexAssets, IndexInstantiatedChunks};
+use crate::types::IndexInstantiatedChunks;
 
-pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAssets {
-  let asset_idx_by_placeholder = preliminary_assets
+pub fn finalize_assets(instantiated_chunks: IndexInstantiatedChunks) -> Vec<OutputAsset> {
+  let asset_idx_by_placeholder = instantiated_chunks
     .iter_enumerated()
     .filter_map(|(asset_idx, asset)| {
       asset.preliminary_filename.hash_placeholder().map(|placeholders| {
@@ -30,7 +30,7 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
     .flatten()
     .collect::<FxHashMap<ArcStr, _>>();
 
-  let index_direct_dependencies: IndexVec<AssetIdx, Vec<AssetIdx>> = preliminary_assets
+  let index_direct_dependencies: IndexVec<AssetIdx, Vec<AssetIdx>> = instantiated_chunks
     .par_iter()
     .map(|asset| {
       extract_hash_placeholders(&asset.content)
@@ -46,14 +46,14 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
   let index_transitive_dependencies: IndexVec<AssetIdx, FxIndexSet<AssetIdx>> =
     collect_transitive_dependencies(&index_direct_dependencies);
 
-  let index_standalone_content_hashes: IndexVec<AssetIdx, String> = preliminary_assets
+  let index_standalone_content_hashes: IndexVec<AssetIdx, String> = instantiated_chunks
     .par_iter()
     .map(|chunk| xxhash_base64_url(chunk.content.as_bytes()))
     .collect::<Vec<_>>()
     .into();
 
   let index_asset_hashers: IndexVec<AssetIdx, Xxh3> =
-    index_vec![Xxh3::default(); preliminary_assets.len()];
+    index_vec![Xxh3::default(); instantiated_chunks.len()];
 
   let index_final_hashes: IndexVec<AssetIdx, String> = index_asset_hashers
     .into_par_iter()
@@ -64,7 +64,7 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
       index_standalone_content_hashes[asset_idx].hash(&mut hasher);
 
       // hash itself's preliminary filename to prevent different chunks that have the same content from having the same hash
-      preliminary_assets[asset_idx].preliminary_filename.hash(&mut hasher);
+      instantiated_chunks[asset_idx].preliminary_filename.hash(&mut hasher);
 
       let dependencies = &index_transitive_dependencies[asset_idx];
       dependencies.iter().copied().for_each(|dep_id| {
@@ -80,7 +80,7 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
   let final_hashes_by_placeholder = index_final_hashes
     .iter_enumerated()
     .filter_map(|(idx, hash)| {
-      let asset = &preliminary_assets[idx];
+      let asset = &instantiated_chunks[idx];
       asset.preliminary_filename.hash_placeholder().map(|placeholders| {
         placeholders
           .iter()
@@ -90,7 +90,7 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
     .flatten()
     .collect::<FxHashMap<_, _>>();
 
-  preliminary_assets
+  instantiated_chunks
     .into_par_iter()
     .map(|mut asset| {
       let filename = replace_placeholder_with_hash(
@@ -103,7 +103,6 @@ pub fn finalize_assets(preliminary_assets: IndexInstantiatedChunks) -> IndexAsse
       asset.finalize(filename)
     })
     .collect::<Vec<_>>()
-    .into()
 }
 
 fn collect_transitive_dependencies(

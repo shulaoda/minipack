@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use arcstr::ArcStr;
 
@@ -8,7 +8,6 @@ use super::module_id::stabilize_module_id;
 pub struct ResolvedId {
   pub id: ArcStr,
   pub is_external: bool,
-  pub package_json: Option<PathBuf>,
 }
 
 impl ResolvedId {

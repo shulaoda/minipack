@@ -1,5 +1,4 @@
 use futures::future::try_join_all;
-use minipack_common::{Asset, OutputChunk};
 use minipack_ecmascript::EcmaCompiler;
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{
@@ -23,10 +22,7 @@ impl GenerateStage<'_> {
     chunk_graph: &mut ChunkGraph,
   ) -> BuildResult<BundleOutput> {
     let mut warnings = std::mem::take(&mut self.link_output.warnings);
-
-    let instantiated_chunks = self.instantiate_chunks(chunk_graph, &mut warnings).await?;
-
-    let mut assets = finalize_assets(instantiated_chunks);
+    let mut assets = finalize_assets(self.instantiate_chunks(chunk_graph, &mut warnings).await?);
 
     if self.options.minify {
       assets.par_iter_mut().for_each(|asset| {
@@ -34,12 +30,7 @@ impl GenerateStage<'_> {
       });
     }
 
-    let mut output = Vec::with_capacity(assets.len());
-    for Asset { content, filename } in assets {
-      output.push(OutputChunk { filename: filename.into(), content });
-    }
-
-    Ok(BundleOutput { assets: output, warnings })
+    Ok(BundleOutput { assets, warnings })
   }
 
   async fn instantiate_chunks(
