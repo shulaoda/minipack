@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
-use crate::types::generator::{GenerateContext, GenerateOutput};
-
 use minipack_common::{InstantiatedChunk, ModuleIdx, OutputFormat, Source};
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
 
-use super::formats::{cjs::render_cjs, esm::render_esm};
+use crate::types::generator::{GenerateContext, GenerateOutput};
 
-pub type RenderedModuleSources = Vec<RenderedModuleSource>;
+use super::formats::{cjs::render_cjs, esm::render_esm};
 
 pub struct RenderedModuleSource {
   pub module_idx: ModuleIdx,

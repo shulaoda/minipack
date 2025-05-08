@@ -9,9 +9,6 @@ pub enum SymbolOrMemberExprRef {
 }
 
 impl SymbolOrMemberExprRef {
-  /// get the first part of the expression,
-  /// e.g. `test.a.b` will return `test`
-  /// for identifier, it will return itself
   pub fn symbol_ref(&self) -> &SymbolRef {
     match self {
       Self::Symbol(s) => s,

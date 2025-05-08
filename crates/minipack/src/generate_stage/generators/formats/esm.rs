@@ -4,14 +4,13 @@ use minipack_common::{SourceJoiner, Specifier};
 use minipack_utils::{concat_string, ecmascript::to_module_import_export_name};
 
 use crate::{
-  generate_stage::generators::ecmascript::{RenderedModuleSource, RenderedModuleSources},
-  types::generator::GenerateContext,
+  generate_stage::generators::ecmascript::RenderedModuleSource, types::generator::GenerateContext,
   utils::chunk::render_chunk_exports::render_chunk_exports,
 };
 
 pub fn render_esm<'code>(
   ctx: &mut GenerateContext<'_>,
-  module_sources: &'code RenderedModuleSources,
+  module_sources: &'code [RenderedModuleSource],
 ) -> SourceJoiner<'code> {
   let mut source_joiner = SourceJoiner::default();
 

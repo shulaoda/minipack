@@ -125,7 +125,7 @@ impl LinkStage<'_> {
       symbols: &self.symbols,
       is_included_vec: &mut is_included_vec,
       is_module_included_vec: &mut is_module_included_vec,
-      runtime_id: self.runtime_module.id(),
+      runtime_id: self.runtime_module.idx,
       metadata: &self.metadata,
       used_symbol_refs: &mut self.used_symbol_refs,
     };

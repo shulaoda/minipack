@@ -32,7 +32,7 @@ impl<'ast> AstSnippet<'ast> {
   pub fn id(&self, name: PassedStr, span: Span) -> ast::BindingIdentifier<'ast> {
     self.builder.binding_identifier(span, self.builder.atom(name))
   }
-  
+
   #[inline]
   pub fn alloc_id_ref(
     &self,

@@ -3,8 +3,7 @@ use minipack_error::BuildResult;
 use minipack_utils::concat_string;
 
 use crate::{
-  generate_stage::generators::ecmascript::{RenderedModuleSource, RenderedModuleSources},
-  types::generator::GenerateContext,
+  generate_stage::generators::ecmascript::RenderedModuleSource, types::generator::GenerateContext,
   utils::chunk::render_chunk_exports::render_chunk_exports,
 };
 
@@ -12,13 +11,13 @@ use crate::{
 fn render_modules_with_peek_runtime_module_at_first<'a>(
   ctx: &GenerateContext<'_>,
   source_joiner: &mut SourceJoiner<'a>,
-  module_sources: &'a RenderedModuleSources,
+  module_sources: &'a [RenderedModuleSource],
   import_code: String,
 ) {
   let mut module_sources_peekable = module_sources.iter().peekable();
   match module_sources_peekable.peek() {
     Some(RenderedModuleSource { module_idx, sources: Some(emitted_sources) })
-      if *module_idx == ctx.link_output.runtime_module.id() =>
+      if *module_idx == ctx.link_output.runtime_module.idx =>
     {
       for source in emitted_sources.iter() {
         source_joiner.append_source(source);
@@ -41,7 +40,7 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
 
 pub fn render_cjs<'code>(
   ctx: &GenerateContext<'_>,
-  module_sources: &'code RenderedModuleSources,
+  module_sources: &'code [RenderedModuleSource],
 ) -> BuildResult<SourceJoiner<'code>> {
   let mut source_joiner = SourceJoiner::default();
   let mut modules = ctx.renderable_ecma_modules().peekable();

@@ -54,6 +54,8 @@ impl GenerateStage<'_> {
             module_id_to_codegen_ret,
           };
 
+          
+
           EcmaGenerator::instantiate_chunk(&mut ctx).await
         },
       );

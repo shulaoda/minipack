@@ -30,7 +30,7 @@ pub fn finalize_assets(instantiated_chunks: IndexInstantiatedChunks) -> Vec<Outp
     .flatten()
     .collect::<FxHashMap<ArcStr, _>>();
 
-  let index_direct_dependencies: IndexVec<AssetIdx, Vec<AssetIdx>> = instantiated_chunks
+  let index_direct_dependencies = instantiated_chunks
     .par_iter()
     .map(|asset| {
       extract_hash_placeholders(&asset.content)
@@ -43,8 +43,7 @@ pub fn finalize_assets(instantiated_chunks: IndexInstantiatedChunks) -> Vec<Outp
 
   // Instead of using `index_direct_dependencies`, we are gonna use `index_transitive_dependencies` to calculate the hash.
   // The reason is that we want to make sure, in `a -> b -> c`, if `c` is changed, not only the direct dependency `b` is changed, but also the indirect dependency `a` is changed.
-  let index_transitive_dependencies: IndexVec<AssetIdx, FxIndexSet<AssetIdx>> =
-    collect_transitive_dependencies(&index_direct_dependencies);
+  let index_transitive_dependencies = collect_transitive_dependencies(&index_direct_dependencies);
 
   let index_standalone_content_hashes: IndexVec<AssetIdx, String> = instantiated_chunks
     .par_iter()
@@ -121,18 +120,15 @@ fn collect_transitive_dependencies(
     }
   }
 
-  let index_transitive_dependencies: IndexVec<AssetIdx, FxIndexSet<AssetIdx>> =
-    index_direct_dependencies
-      .par_iter()
-      .enumerate()
-      .map(|(idx, _deps)| {
-        let idx = AssetIdx::from(idx);
-        let mut visited_deps = FxIndexSet::default();
-        traverse(idx, index_direct_dependencies, &mut visited_deps);
-        visited_deps
-      })
-      .collect::<Vec<_>>()
-      .into();
-
-  index_transitive_dependencies
+  index_direct_dependencies
+    .par_iter()
+    .enumerate()
+    .map(|(idx, _deps)| {
+      let idx = AssetIdx::from(idx);
+      let mut visited_deps = FxIndexSet::default();
+      traverse(idx, index_direct_dependencies, &mut visited_deps);
+      visited_deps
+    })
+    .collect::<Vec<_>>()
+    .into()
 }

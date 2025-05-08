@@ -53,7 +53,7 @@ impl GenerateStage<'_> {
             .modules
             .iter()
             .rev()
-            .find(|each| **each != self.link_output.runtime_module.id())
+            .find(|each| **each != self.link_output.runtime_module.idx)
             .map_or_else(
               || arcstr::literal!("chunk"),
               |module_id| {

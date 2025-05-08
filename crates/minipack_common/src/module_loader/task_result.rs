@@ -1,6 +1,7 @@
-use crate::{ImportRecordIdx, Module, RawImportRecord, ResolvedId, SymbolRefDbForModule};
 use minipack_ecmascript::EcmaAst;
 use oxc_index::IndexVec;
+
+use crate::{ImportRecordIdx, Module, RawImportRecord, ResolvedId, SymbolRefDbForModule};
 
 pub struct NormalModuleTaskResult {
   pub module: Module,

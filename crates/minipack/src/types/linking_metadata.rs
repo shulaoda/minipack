@@ -1,7 +1,6 @@
 use minipack_common::{ImportRecordIdx, ModuleIdx, SymbolRef};
 use minipack_utils::{indexmap::FxIndexSet, rstr::Rstr};
 use oxc::span::{CompactStr, Span};
-
 use rustc_hash::FxHashMap;
 
 /// Metadata generated for a module during the linking phase.

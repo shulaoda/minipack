@@ -306,7 +306,7 @@ impl GenerateStage<'_> {
           .filter(|(id, _)| *id != chunk_id)
           .filter(|(_, importee_chunk)| {
             importee_chunk.bits.has_bit(*importer_chunk_bit)
-              && importee_chunk.has_side_effect(self.link_output.runtime_module.id())
+              && importee_chunk.has_side_effect(self.link_output.runtime_module.idx)
           })
           .for_each(|(importee_chunk_id, _)| {
             cross_chunk_imports[chunk_id].insert(importee_chunk_id);

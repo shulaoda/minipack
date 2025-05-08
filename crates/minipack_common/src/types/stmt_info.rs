@@ -46,13 +46,6 @@ impl StmtInfos {
     id
   }
 
-  /// # Panic
-  /// Caller should guarantee the stmt is included in `stmts` before, or it will panic.
-  pub fn declare_symbol_for_stmt(&mut self, id: StmtInfoIdx, symbol_ref: SymbolRef) {
-    self.infos[id].declared_symbols.push(symbol_ref);
-    self.symbol_ref_to_declared_stmt_idx.entry(symbol_ref).or_default().push(id);
-  }
-
   pub fn replace_namespace_stmt_info(&mut self, info: StmtInfo) -> StmtInfoIdx {
     let idx = StmtInfoIdx::from_raw(0);
     self.infos[idx] = info;

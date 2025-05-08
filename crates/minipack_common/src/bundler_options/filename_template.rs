@@ -53,11 +53,6 @@ impl FilenameTemplate {
 }
 
 #[test]
-fn basic() {
-  FilenameTemplate::new("[name]-[hash:8].js".to_string());
-}
-
-#[test]
 fn hash_with_len() {
   let filename_template = FilenameTemplate::new("[name]-[hash:3]-[hash:3].js".to_string());
 

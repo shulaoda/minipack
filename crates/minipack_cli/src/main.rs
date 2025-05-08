@@ -68,7 +68,7 @@ fn print_output_assets(outputs: Vec<OutputAsset>) {
 async fn main() {
   let args = Commands::parse();
   let InputArgs { cwd, input, platform } = args.input;
-  let input = input.map(|files| files.iter().map(|file| file.to_string_lossy().into()).collect());
+  let input = input.map(|files| files.iter().map(|p| p.to_string_lossy().into()).collect());
 
   let mut bundler = Bundler::new(BundlerOptions {
     cwd,

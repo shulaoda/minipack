@@ -49,10 +49,6 @@ impl Module {
     }
   }
 
-  pub fn normal(v: NormalModule) -> Self {
-    Self::Normal(Box::new(v))
-  }
-
   pub fn external(v: ExternalModule) -> Self {
     Self::External(Box::new(v))
   }
@@ -78,13 +74,6 @@ impl Module {
     }
   }
 
-  pub fn as_external_mut(&mut self) -> Option<&mut ExternalModule> {
-    match self {
-      Self::External(v) => Some(v),
-      Self::Normal(_) => None,
-    }
-  }
-
   pub fn import_records(&self) -> &IndexVec<ImportRecordIdx, ResolvedImportRecord> {
     match self {
       Self::Normal(v) => &v.ecma_view.import_records,
@@ -106,23 +95,12 @@ impl Module {
     }
   }
 
-  /// Returns `true` if the module is [`Normal`].
-  ///
-  /// [`Normal`]: Module::Normal
-  #[must_use]
   pub fn is_normal(&self) -> bool {
     matches!(self, Self::Normal(..))
   }
 
   pub fn is_external(&self) -> bool {
     matches!(self, Self::External(..))
-  }
-
-  pub fn size(&self) -> usize {
-    match self {
-      Self::Normal(v) => v.source.len(),
-      Self::External(_) => 0,
-    }
   }
 }
 

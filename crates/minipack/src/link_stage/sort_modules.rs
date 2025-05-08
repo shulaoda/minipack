@@ -20,7 +20,7 @@ impl LinkStage<'_> {
       .iter()
       .rev()
       .map(|entry| Status::ToBeExecuted(entry.idx))
-      .chain(iter::once(Status::ToBeExecuted(self.runtime_module.id())))
+      .chain(iter::once(Status::ToBeExecuted(self.runtime_module.idx)))
       .collect::<Vec<_>>();
 
     let mut executed_ids = FxHashSet::with_capacity(self.module_table.len());

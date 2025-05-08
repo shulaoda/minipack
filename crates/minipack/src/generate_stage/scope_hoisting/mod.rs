@@ -398,12 +398,12 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
       let rec = &self.ctx.module.import_records[*rec_id];
       let importee_id = rec.state;
       match &self.ctx.modules[importee_id] {
-        Module::Normal(_importee) => {
+        Module::Normal(_) => {
           let importer_chunk = &self.ctx.chunk_graph.chunk_table[self.ctx.chunk_id];
           let importee_chunk_id = self.ctx.chunk_graph.entry_module_to_chunk[&importee_id];
           let importee_chunk = &self.ctx.chunk_graph.chunk_table[importee_chunk_id];
           let import_path = importer_chunk.import_path_for(importee_chunk);
-          let new_expr = self.snippet.promise_resolve_then_call_expr(
+          return Some(self.snippet.promise_resolve_then_call_expr(
             import_expr.span,
             self.snippet.builder.vec1(ast::Statement::ReturnStatement(
               self.snippet.builder.alloc_return_statement(
@@ -419,12 +419,9 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
                 ))),
               ),
             )),
-          );
-          return Some(new_expr);
+          ));
         }
-        Module::External(_) => {
-          // For `import('external')`, we just keep it as it is to preserve user's intention
-        }
+        Module::External(_) => {}
       }
     }
     None
@@ -435,9 +432,8 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
 
     // the first statement info is the namespace variable declaration
     // skip first statement info to make sure `program.body` has same index as `stmt_infos`
-    old_body.into_iter().enumerate().zip(self.ctx.module.stmt_infos.iter().skip(1)).for_each(
-      |((_top_stmt_idx, mut top_stmt), stmt_info)| {
-        debug_assert!(matches!(stmt_info.stmt_idx, Some(_top_stmt_idx)));
+    old_body.into_iter().zip(self.ctx.module.stmt_infos.iter().skip(1)).for_each(
+      |(mut top_stmt, stmt_info)| {
         if !stmt_info.is_included {
           return;
         }

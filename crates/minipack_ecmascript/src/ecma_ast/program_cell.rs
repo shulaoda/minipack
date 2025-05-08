@@ -12,7 +12,6 @@ pub struct ProgramCellDependent<'cell> {
 }
 
 self_cell!(
-  /// `ProgramCell` is a wrapper of `Program` that provides a safe way to treat `Program<'ast>` as as owned value without considering the lifetime of `'ast`.
   pub struct ProgramCell {
     owner: ProgramCellOwner,
 

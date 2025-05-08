@@ -132,8 +132,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       kind,
       namespace_ref,
       span,
-      // The first index stmt is reserved for the facade statement that constructs Module Namespace
-      // Object
       self.current_stmt_info.stmt_idx.map(|idx| idx + 1),
     )
     .with_meta(init_meta);

@@ -31,7 +31,6 @@ pub use crate::{
     instantiated_chunk::InstantiatedChunk,
     member_expr_ref::MemberExprRef,
     module_id::ModuleId,
-    module_info::ModuleInfo,
     named_export::LocalExport,
     named_import::{NamedImport, Specifier},
     namespace_alias::NamespaceAlias,
