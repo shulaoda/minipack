@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use minipack_common::{BundlerOptions, NormalizedBundlerOptions, OutputFormat, Platform};
 
-pub fn normalize_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOptions> {
+pub fn normalize_bundler_options(raw_options: BundlerOptions) -> Arc<NormalizedBundlerOptions> {
   let cwd =
     raw_options.cwd.unwrap_or_else(|| std::env::current_dir().expect("Failed to get current dir"));
 

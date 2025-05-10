@@ -37,11 +37,11 @@ impl SymbolRef {
   /// Not all symbols have flags info, we only care about part of them.
   /// If you want to ensure the flags info exists, use `flags_mut` instead.
   pub fn flags<'db, T: GetLocalDb>(&self, db: &'db T) -> Option<&'db SymbolRefFlags> {
-    db.local_db(self.owner).flags.get(&self.symbol)
+    db.local_db(self.owner).symbol_flags.get(&self.symbol)
   }
 
   pub fn flags_mut<'db, T: GetLocalDbMut>(&self, db: &'db mut T) -> &'db mut SymbolRefFlags {
-    db.local_db_mut(self.owner).flags.entry(self.symbol).or_default()
+    db.local_db_mut(self.owner).symbol_flags.entry(self.symbol).or_default()
   }
 
   // `None` means we don't know if it's declared by `const`.

@@ -3,7 +3,7 @@ use std::fmt::Debug;
 use minipack_utils::rstr::Rstr;
 use oxc::span::Span;
 
-use crate::{ImportKind, ModuleIdx, StmtInfoIdx, SymbolRef};
+use crate::{ImportKind, ModuleIdx, SymbolRef};
 
 pub type RawImportRecord = ImportRecord<Span>;
 pub type ResolvedImportRecord = ImportRecord<ModuleIdx>;
@@ -27,10 +27,7 @@ pub struct ImportRecord<State: Debug> {
   pub specifier: Rstr,
   pub kind: ImportKind,
   pub meta: ImportRecordMeta,
-  /// We will turn `import { foo } from './cjs.js'; console.log(foo);` to `var import_foo = require_cjs(); console.log(importcjs.foo)`;
-  /// `namespace_ref` represent the potential `import_foo` in above example. It's useless if we imported n esm module.
   pub namespace_ref: SymbolRef,
-  pub related_stmt_info_idx: Option<StmtInfoIdx>,
 }
 
 impl<State: Debug> ImportRecord<State> {
@@ -40,21 +37,8 @@ impl<State: Debug> ImportRecord<State> {
 }
 
 impl RawImportRecord {
-  pub fn new(
-    specifier: Rstr,
-    kind: ImportKind,
-    namespace_ref: SymbolRef,
-    span: Span,
-    related_stmt_info_idx: Option<StmtInfoIdx>,
-  ) -> Self {
-    Self {
-      specifier,
-      kind,
-      namespace_ref,
-      meta: ImportRecordMeta::empty(),
-      state: span,
-      related_stmt_info_idx,
-    }
+  pub fn new(specifier: Rstr, kind: ImportKind, namespace_ref: SymbolRef, span: Span) -> Self {
+    Self { specifier, kind, namespace_ref, meta: ImportRecordMeta::empty(), state: span }
   }
 
   pub fn with_meta(mut self, meta: ImportRecordMeta) -> Self {
@@ -69,7 +53,6 @@ impl RawImportRecord {
       kind: self.kind,
       namespace_ref: self.namespace_ref,
       meta: self.meta,
-      related_stmt_info_idx: self.related_stmt_info_idx,
     }
   }
 }

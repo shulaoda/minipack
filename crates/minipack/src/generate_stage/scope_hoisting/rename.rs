@@ -55,8 +55,8 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     let symbol_id = self.scope.symbol_id_for(reference_id)?;
 
     let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
-    let canonical_ref = self.ctx.symbol_db.canonical_ref_for(symbol_ref);
-    let symbol = self.ctx.symbol_db.get(canonical_ref);
+    let canonical_ref = self.ctx.symbol_ref_db.canonical_ref_for(symbol_ref);
+    let symbol = self.ctx.symbol_ref_db.get(canonical_ref);
 
     if let Some(ns_alias) = &symbol.namespace_alias {
       let canonical_ns_name = self.canonical_name_for(ns_alias.namespace_ref);
@@ -95,8 +95,8 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
       let symbol_id = self.scope.symbol_id_for(reference_id)?;
 
       let symbol_ref = (self.ctx.id, symbol_id).into();
-      let canonical_ref = self.ctx.symbol_db.canonical_ref_for(symbol_ref);
-      let symbol = self.ctx.symbol_db.get(canonical_ref);
+      let canonical_ref = self.ctx.symbol_ref_db.canonical_ref_for(symbol_ref);
+      let symbol = self.ctx.symbol_ref_db.get(canonical_ref);
 
       if let Some(ns_alias) = &symbol.namespace_alias {
         *target = ast::SimpleAssignmentTarget::from(self.snippet.literal_prop_access_member_expr(

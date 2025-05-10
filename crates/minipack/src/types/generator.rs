@@ -16,7 +16,7 @@ pub struct GenerateContext<'a> {
   pub chunk: &'a Chunk,
   pub chunk_idx: ChunkIdx,
   pub chunk_graph: &'a ChunkGraph,
-  pub link_output: &'a LinkStageOutput,
+  pub link_stage_output: &'a LinkStageOutput,
   pub options: &'a NormalizedBundlerOptions,
   pub module_id_to_codegen_ret: Vec<Option<String>>,
   pub warnings: Vec<anyhow::Error>,
@@ -30,7 +30,7 @@ impl GenerateContext<'_> {
     cur_chunk_idx: ChunkIdx,
     canonical_names: &FxHashMap<SymbolRef, Rstr>,
   ) -> String {
-    let symbol_db = &self.link_output.symbols;
+    let symbol_db = &self.link_stage_output.symbol_ref_db;
     let canonical_ref = symbol_db.canonical_ref_for(symbol_ref);
     if let OutputFormat::Cjs = self.options.format {
       let canonical_symbol = symbol_db.get(canonical_ref);
@@ -58,8 +58,8 @@ impl GenerateContext<'_> {
 
   pub fn renderable_ecma_modules(&self) -> impl Iterator<Item = &NormalModule> {
     self.chunk.modules.iter().copied().filter_map(move |id| {
-      let Module::Normal(module) = &self.link_output.module_table[id] else { return None };
-      let ast = &self.link_output.index_ecma_ast[module.ecma_ast_idx.unpack()].0;
+      let Module::Normal(module) = &self.link_stage_output.module_table[id] else { return None };
+      let ast = &self.link_stage_output.ecma_ast[module.ecma_ast_idx.unpack()].0;
       if !module.is_included() || ast.program().is_empty() { None } else { Some(&**module) }
     })
   }

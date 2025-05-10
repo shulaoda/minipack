@@ -2,7 +2,7 @@ use minipack_common::{OutputFormat, StmtInfo};
 
 use super::LinkStage;
 
-impl LinkStage<'_> {
+impl LinkStage {
   pub(crate) fn prepare_ecma_module_export_info(&mut self) {
     self.process_entry_point_module_exports();
     self.create_module_namespace_object_stmt_info();

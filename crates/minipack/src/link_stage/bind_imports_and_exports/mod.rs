@@ -17,7 +17,7 @@ use crate::{types::IndexModules, utils::ecmascript::legitimize_identifier_name};
 
 use super::LinkStage;
 
-impl LinkStage<'_> {
+impl LinkStage {
   /// Notices:
   /// - For external import like
   /// ```js
@@ -67,8 +67,8 @@ impl LinkStage<'_> {
     let mut ctx = BindImportsAndExportsContext {
       module_table: &self.module_table,
       metadata: &mut self.metadata,
-      symbol_db: &mut self.symbols,
-      options: self.options,
+      symbol_db: &mut self.symbol_ref_db,
+      options: &self.options,
       errors: Vec::default(),
       external_imports: FxHashMap::default(),
       side_effects_modules: &side_effects_modules,
@@ -86,7 +86,7 @@ impl LinkStage<'_> {
         let name = if key.as_str() == "default" {
           let key = symbol_set
             .first()
-            .map_or_else(|| key.clone(), |sym_ref| sym_ref.name(&self.symbols).into());
+            .map_or_else(|| key.clone(), |sym_ref| sym_ref.name(&self.symbol_ref_db).into());
           Cow::Owned(key)
         } else if is_validate_identifier_name(key.as_str()) {
           Cow::Borrowed(key)
@@ -94,9 +94,9 @@ impl LinkStage<'_> {
           let legal_name = legitimize_identifier_name(key);
           Cow::Owned(legal_name.as_ref().into())
         };
-        let target_symbol = self.symbols.create_facade_root_symbol_ref(*module_idx, &name);
+        let target_symbol = self.symbol_ref_db.create_facade_root_symbol_ref(*module_idx, &name);
         for symbol_ref in symbol_set {
-          self.symbols.link(*symbol_ref, target_symbol);
+          self.symbol_ref_db.link(*symbol_ref, target_symbol);
         }
       }
     }
@@ -186,7 +186,7 @@ impl LinkStage<'_> {
             stmt_info.referenced_symbols.iter().for_each(|symbol_ref| {
               if let SymbolOrMemberExprRef::MemberExpr(member_expr_ref) = symbol_ref {
                 // First get the canonical ref of `foo_ns`, then we get the `NormalModule#namespace_object_ref` of `foo.js`.
-                let mut canonical_ref = self.symbols.canonical_ref_for(member_expr_ref.object_ref);
+                let mut canonical_ref = self.symbol_ref_db.canonical_ref_for(member_expr_ref.object_ref);
                 let mut canonical_ref_owner: &NormalModule =
                   match &self.module_table[canonical_ref.owner] {
                     Module::Normal(module) => module,
@@ -231,7 +231,7 @@ impl LinkStage<'_> {
                     }
                   }
                   ns_symbol_list.push((canonical_ref, name.to_rstr()));
-                  canonical_ref = self.symbols.canonical_ref_for(*export_symbol);
+                  canonical_ref = self.symbol_ref_db.canonical_ref_for(*export_symbol);
                   canonical_ref_owner =
                     self.module_table[canonical_ref.owner].as_normal().unwrap();
                   cursor += 1;

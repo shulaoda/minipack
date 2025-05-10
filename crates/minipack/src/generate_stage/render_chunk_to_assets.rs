@@ -16,12 +16,12 @@ use crate::{
 
 use super::GenerateStage;
 
-impl GenerateStage<'_> {
+impl GenerateStage {
   pub async fn render_chunk_to_assets(
     &mut self,
     chunk_graph: &mut ChunkGraph,
   ) -> BuildResult<BundleOutput> {
-    let mut warnings = std::mem::take(&mut self.link_output.warnings);
+    let mut warnings = std::mem::take(&mut self.link_stage_output.warnings);
     let mut assets = finalize_assets(self.instantiate_chunks(chunk_graph, &mut warnings).await?);
 
     if self.options.minify {
@@ -47,14 +47,12 @@ impl GenerateStage<'_> {
           let mut ctx = GenerateContext {
             chunk_idx,
             chunk,
-            options: self.options,
-            link_output: self.link_output,
+            options: &self.options,
+            link_stage_output: &self.link_stage_output,
             chunk_graph,
             warnings: vec![],
             module_id_to_codegen_ret,
           };
-
-          
 
           EcmaGenerator::instantiate_chunk(&mut ctx).await
         },
@@ -85,8 +83,8 @@ impl GenerateStage<'_> {
           .modules
           .par_iter()
           .map(|&module_idx| {
-            if let Some(module) = self.link_output.module_table[module_idx].as_normal() {
-              let ast = &self.link_output.index_ecma_ast[module.ecma_ast_idx()].0;
+            if let Some(module) = self.link_stage_output.module_table[module_idx].as_normal() {
+              let ast = &self.link_stage_output.ecma_ast[module.ecma_ast_idx()].0;
               Some(EcmaCompiler::print(ast).code)
             } else {
               None

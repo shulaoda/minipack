@@ -2,8 +2,8 @@ use std::{path::Path, sync::Arc};
 
 use arcstr::ArcStr;
 use minipack_common::{
-  ImportKind, ImportRecordIdx, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleType,
-  NormalModule, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId,
+  ImportKind, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, ModuleType, NormalModule,
+  NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId,
 };
 use minipack_error::BuildResult;
 use minipack_fs::{FileSystem, OsFileSystem};
@@ -13,7 +13,7 @@ use tokio::sync::mpsc::Sender;
 
 use crate::{
   types::{SharedOptions, SharedResolver},
-  utils::{ecmascript::legitimize_identifier_name, resolve_id::resolve_id},
+  utils::ecmascript::legitimize_identifier_name,
 };
 
 use super::loaders::ecmascript::{CreateEcmaViewReturn, CreateModuleContext, create_ecma_view};
@@ -86,9 +86,9 @@ impl ModuleTask {
           return Ok(ResolvedId { id: specifier.into(), is_external: false });
         }
 
-        resolve_id(&self.ctx.resolver, specifier, Some(&self.resolved_id.id), false)
+        self.ctx.resolver.resolve_id(specifier, Some(&self.resolved_id.id), false)
       })
-      .collect::<BuildResult<IndexVec<ImportRecordIdx, ResolvedId>>>()?;
+      .collect::<BuildResult<IndexVec<_, _>>>()?;
 
     for (record, info) in raw_import_records.iter().zip(&resolved_deps) {
       match record.kind {

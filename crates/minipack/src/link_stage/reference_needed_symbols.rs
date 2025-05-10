@@ -10,9 +10,9 @@ use crate::utils::ecmascript::legitimize_identifier_name;
 
 use super::LinkStage;
 
-impl LinkStage<'_> {
+impl LinkStage {
   pub(crate) fn reference_needed_symbols(&mut self) {
-    let symbols_lock = Mutex::new(&mut self.symbols);
+    let symbol_ref_db = Mutex::new(&mut self.symbol_ref_db);
     self.module_table.par_iter().filter_map(|m| m.as_normal()).for_each(|normal_module| {
       // safety: No race conditions here:
       // - Mutating on `stmt_infos` is isolated in threads for each module
@@ -33,7 +33,7 @@ impl LinkStage<'_> {
             if import_record.meta.contains(ImportRecordMeta::IS_EXPORT_STAR) {
               // export * from 'external' would be just removed. So it references nothing.
               import_record.namespace_ref.set_name(
-                &mut symbols_lock.lock().unwrap(),
+                &mut symbol_ref_db.lock().unwrap(),
                 &concat_string!("import_", legitimize_identifier_name(&importee.name)),
               );
             } else {

@@ -17,14 +17,14 @@ use crate::graph::ChunkGraph;
 
 use super::GenerateStage;
 
-impl GenerateStage<'_> {
+impl GenerateStage {
   /// Notices:
   /// - Should generate filenames that are stable cross builds and os.
   pub async fn generate_chunk_name_and_preliminary_filenames(
     &self,
     chunk_graph: &mut ChunkGraph,
   ) -> BuildResult<FxHashMap<ChunkIdx, ArcStr>> {
-    let module_table = &self.link_output.module_table;
+    let module_table = &self.link_stage_output.module_table;
 
     let mut index_chunk_id_to_name = FxHashMap::default();
     let mut index_pre_generated_names: IndexVec<ChunkIdx, ArcStr> = chunk_graph
@@ -53,7 +53,7 @@ impl GenerateStage<'_> {
             .modules
             .iter()
             .rev()
-            .find(|each| **each != self.link_output.runtime_module.idx)
+            .find(|each| **each != self.link_stage_output.runtime_module.idx)
             .map_or_else(
               || arcstr::literal!("chunk"),
               |module_id| {
@@ -103,7 +103,7 @@ impl GenerateStage<'_> {
       index_chunk_id_to_name.insert(*chunk_id, pre_generated_chunk_name.clone());
 
       let preliminary_filename = chunk.generate_preliminary_filename(
-        self.options,
+        &self.options,
         pre_generated_chunk_name,
         &mut hash_placeholder_generator,
         &mut make_unique_name_for_ecma_chunk,

@@ -82,7 +82,7 @@ async fn main() {
   });
 
   let start = Instant::now();
-  match bundler.write().await {
+  match bundler.build(true).await {
     Ok(output) => {
       if !args.enhance.silent {
         // Print warnings

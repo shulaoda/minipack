@@ -15,7 +15,7 @@ pub struct ScopeHoistingFinalizerContext<'me> {
   pub module: &'me NormalModule,
   pub modules: &'me IndexModules,
   pub linking_info: &'me LinkingMetadata,
-  pub symbol_db: &'me SymbolRefDb,
+  pub symbol_ref_db: &'me SymbolRefDb,
   pub canonical_names: &'me FxHashMap<SymbolRef, Rstr>,
   pub runtime: &'me RuntimeModuleBrief,
   pub chunk_graph: &'me ChunkGraph,

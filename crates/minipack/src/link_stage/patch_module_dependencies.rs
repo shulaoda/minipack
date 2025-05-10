@@ -2,12 +2,12 @@ use minipack_common::{Module, SymbolOrMemberExprRef};
 
 use super::LinkStage;
 
-impl LinkStage<'_> {
+impl LinkStage {
   pub(crate) fn patch_module_dependencies(&mut self) {
     self.metadata.iter_mut_enumerated().for_each(|(idx, meta)| {
       // Symbols from runtime are referenced by bundler not import statements.
       meta.referenced_symbols_by_entry_point_chunk.iter().for_each(|symbol_ref| {
-        meta.dependencies.insert(self.symbols.canonical_ref_for(*symbol_ref).owner);
+        meta.dependencies.insert(self.symbol_ref_db.canonical_ref_for(*symbol_ref).owner);
       });
 
       // We need this step to include the runtime module, if there are symbols of it.
@@ -27,8 +27,8 @@ impl LinkStage<'_> {
                 }
               };
 
-              let canonical_ref = self.symbols.canonical_ref_for(sym_ref);
-              let symbol = self.symbols.get(canonical_ref);
+              let canonical_ref = self.symbol_ref_db.canonical_ref_for(sym_ref);
+              let symbol = self.symbol_ref_db.get(canonical_ref);
               if let Some(ns) = &symbol.namespace_alias {
                 meta.dependencies.insert(ns.namespace_ref.owner);
               }

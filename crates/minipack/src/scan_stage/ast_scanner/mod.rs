@@ -127,14 +127,8 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       "#"
     ));
 
-    let rec = RawImportRecord::new(
-      Rstr::from(module_request),
-      kind,
-      namespace_ref,
-      span,
-      self.current_stmt_info.stmt_idx.map(|idx| idx + 1),
-    )
-    .with_meta(init_meta);
+    let rec = RawImportRecord::new(Rstr::from(module_request), kind, namespace_ref, span)
+      .with_meta(init_meta);
 
     let id = self.result.import_records.push(rec);
     self.current_stmt_info.import_records.push(id);

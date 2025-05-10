@@ -35,7 +35,7 @@ pub struct ScopeHoistingFinalizer<'me, 'ast> {
 
 impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
   pub fn canonical_name_for(&self, symbol: SymbolRef) -> &'me str {
-    self.ctx.symbol_db.canonical_name_for(symbol, self.ctx.canonical_names)
+    self.ctx.symbol_ref_db.canonical_name_for(symbol, self.ctx.canonical_names)
   }
 
   pub fn finalized_expr_for_runtime_symbol(&self, name: &str) -> ast::Expression<'ast> {
@@ -70,17 +70,17 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
     symbol_ref: SymbolRef,
     preserve_this_semantic_if_needed: bool,
   ) -> ast::Expression<'ast> {
-    if !symbol_ref.is_declared_in_root_scope(self.ctx.symbol_db) {
+    if !symbol_ref.is_declared_in_root_scope(self.ctx.symbol_ref_db) {
       // No fancy things on none root scope symbols
       return self.snippet.id_ref_expr(self.canonical_name_for(symbol_ref), SPAN);
     }
 
-    let mut canonical_ref = self.ctx.symbol_db.canonical_ref_for(symbol_ref);
-    let mut canonical_symbol = self.ctx.symbol_db.get(canonical_ref);
+    let mut canonical_ref = self.ctx.symbol_ref_db.canonical_ref_for(symbol_ref);
+    let mut canonical_symbol = self.ctx.symbol_ref_db.get(canonical_ref);
     let namespace_alias = &canonical_symbol.namespace_alias;
     if let Some(ns_alias) = namespace_alias {
       canonical_ref = ns_alias.namespace_ref;
-      canonical_symbol = self.ctx.symbol_db.get(canonical_ref);
+      canonical_symbol = self.ctx.symbol_ref_db.get(canonical_ref);
     }
 
     let mut expr = if self.ctx.modules[canonical_ref.owner].is_external() {
@@ -92,7 +92,7 @@ impl<'me, 'ast> ScopeHoistingFinalizer<'me, 'ast> {
             canonical_symbol.chunk_id.unwrap_or_else(|| {
               // Scoped symbols don't get assigned a `ChunkId`. There are skipped for performance reason, because they are surely
               // belong to the chunk they are declared in and won't link to other chunks.
-              let symbol_name = canonical_ref.name(self.ctx.symbol_db);
+              let symbol_name = canonical_ref.name(self.ctx.symbol_ref_db);
               eprintln!(
                 "{canonical_ref:?} {symbol_name:?} is not in any chunk, which is unexpected",
               );

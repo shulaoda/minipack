@@ -8,14 +8,10 @@ mod runtime_module_task;
 use module_loader::{ModuleLoader, ModuleLoaderOutput};
 
 use arcstr::ArcStr;
-use minipack_common::ResolvedId;
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
 
-use crate::{
-  types::{SharedOptions, SharedResolver},
-  utils::resolve_id::resolve_id,
-};
+use crate::types::{SharedOptions, SharedResolver};
 
 pub type ScanStageOutput = ModuleLoaderOutput;
 
@@ -31,17 +27,13 @@ impl ScanStage {
   }
 
   pub async fn scan(&mut self) -> BuildResult<ScanStageOutput> {
-    if self.options.input.is_empty() {
-      return Err(anyhow::anyhow!("You must supply options.input to rolldown"))?;
-    }
-
     let module_loader = ModuleLoader::new(self.fs, self.options.clone(), self.resolver.clone())?;
-    let user_entries: Vec<(Option<ArcStr>, ResolvedId)> = self
-      .options
-      .input
-      .iter()
-      .map(|input_item| {
-        resolve_id(&self.resolver, &input_item.import, None, true)
+    let mut user_defined_entries = Vec::with_capacity(self.options.input.len());
+    for input_item in &self.options.input {
+      user_defined_entries.push(
+        self
+          .resolver
+          .resolve_id(&input_item.import, None, true)
           .map_err(|e| anyhow::anyhow!("ResolveError: {:?}", e))
           .and_then(|resolved_id| {
             if resolved_id.is_external {
@@ -52,10 +44,9 @@ impl ScanStage {
             } else {
               Ok((input_item.name.as_ref().map(ArcStr::from), resolved_id))
             }
-          })
-      })
-      .collect::<Result<_, anyhow::Error>>()?;
-
-    module_loader.fetch_all_modules(user_entries).await
+          })?,
+      );
+    }
+    module_loader.fetch_all_modules(user_defined_entries).await
   }
 }

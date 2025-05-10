@@ -13,31 +13,30 @@ use super::namespace_alias::NamespaceAlias;
 
 #[derive(Debug, Default, Clone)]
 pub struct SymbolRefDataClassic {
-  /// For case `import {a} from 'foo.cjs';console.log(a)`, the symbol `a` reference to `module.exports.a` of `foo.cjs`.
-  /// So we will transform the code into `console.log(foo_ns.a)`. `foo_ns` is the namespace symbol of `foo.cjs and `a` is the property name.
-  /// We use `namespace_alias` to represent this situation. If `namespace_alias` is not `None`, then this symbol must be rewritten to a property access.
-  pub namespace_alias: Option<NamespaceAlias>,
   /// The symbol that this symbol is linked to.
   pub link: Option<SymbolRef>,
   /// The chunk that this symbol is defined in.
   pub chunk_id: Option<ChunkIdx>,
+  /// For `import {a} from 'foo.cjs'`, the symbol `a` refers to `module.exports.a`,
+  /// it should be rewritten as `foo_ns.a` and `foo_ns` is the namespace of `foo.cjs`.
+  /// If `namespace_alias` is set, this symbol must be rewritten as a property access.
+  pub namespace_alias: Option<NamespaceAlias>,
 }
 
 bitflags::bitflags! {
   #[derive(Debug, Default)]
   pub struct SymbolRefFlags: u8 {
-    const IS_NOT_REASSIGNED = 1;
-    const IS_CONST = 1 << 1;
+    const IS_CONST = 1;
+    const IS_NOT_REASSIGNED = 1 << 1;
   }
 }
 
 #[derive(Debug)]
 pub struct SymbolRefDbForModule {
   pub owner: ModuleIdx,
-  root_scope_id: ScopeId,
   pub ast_scopes: AstScopes,
-  // Only some symbols would be cared about, so we use a hashmap to store the flags.
-  pub flags: FxHashMap<SymbolId, SymbolRefFlags>,
+  pub root_scope_id: ScopeId,
+  pub symbol_flags: FxHashMap<SymbolId, SymbolRefFlags>,
   pub classic_data: IndexVec<SymbolId, SymbolRefDataClassic>,
 }
 
@@ -51,14 +50,13 @@ impl SymbolRefDbForModule {
       ast_scopes: AstScopes::new(scoping),
       classic_data,
       root_scope_id,
-      flags: FxHashMap::default(),
+      symbol_flags: FxHashMap::default(),
     }
   }
 
   // The `facade` means the symbol is actually not exist in the AST.
   pub fn create_facade_root_symbol_ref(&mut self, name: &str) -> SymbolRef {
     self.classic_data.push(SymbolRefDataClassic::default());
-
     SymbolRef::from((
       self.owner,
       self.ast_scopes.create_symbol(
@@ -69,13 +67,6 @@ impl SymbolRefDbForModule {
         NodeId::DUMMY,
       ),
     ))
-  }
-
-  /// This method is used to hide the `SymbolTable::create_symbol` method since
-  /// `SymbolRefDbForModule` impl `Deref` for `SymbolTable`.
-  #[deprecated = "Use `create_facade_root_symbol_ref` instead"]
-  pub fn create_symbol(&mut self) {
-    panic!("Use `create_facade_root_symbol_ref` instead");
   }
 }
 

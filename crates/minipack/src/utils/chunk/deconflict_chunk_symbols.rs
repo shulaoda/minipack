@@ -11,34 +11,36 @@ use crate::{
 
 pub fn deconflict_chunk_symbols(
   chunk: &mut Chunk,
-  link_output: &LinkStageOutput,
+  link_stage_output: &LinkStageOutput,
   format: OutputFormat,
   index_chunk_id_to_name: &FxHashMap<ChunkIdx, ArcStr>,
 ) {
-  let mut renamer = Renamer::new(chunk.entry_module_idx(), &link_output.symbols, format);
+  let mut renamer =
+    Renamer::new(chunk.entry_module_idx(), &link_stage_output.symbol_ref_db, format);
 
   if matches!(format, OutputFormat::Cjs) {
     chunk.imports_from_external_modules.iter().for_each(|(idx, _)| {
-      if let Some(external_module) = link_output.module_table[*idx].as_external() {
+      if let Some(external_module) = link_stage_output.module_table[*idx].as_external() {
         renamer.add_symbol_in_root_scope(external_module.namespace_ref);
       }
     });
 
     if let Some(module) = chunk.entry_module_idx() {
-      let entry_module = link_output.module_table[module].as_normal().unwrap();
-      link_output.metadata[entry_module.idx].star_exports_from_external_modules.iter().for_each(
-        |rec_idx| {
+      let entry_module = link_stage_output.module_table[module].as_normal().unwrap();
+      link_stage_output.metadata[entry_module.idx]
+        .star_exports_from_external_modules
+        .iter()
+        .for_each(|rec_idx| {
           let rec = &entry_module.ecma_view.import_records[*rec_idx];
-          let external_module = &link_output.module_table[rec.state].as_external().unwrap();
+          let external_module = &link_stage_output.module_table[rec.state].as_external().unwrap();
           renamer.add_symbol_in_root_scope(external_module.namespace_ref);
-        },
-      );
+        });
     }
   }
 
   chunk.modules.iter().for_each(|id| {
-    if let Some(module) = link_output.module_table[*id].as_normal() {
-      for name in link_output.symbols[module.idx]
+    if let Some(module) = link_stage_output.module_table[*id].as_normal() {
+      for name in link_stage_output.symbol_ref_db[module.idx]
         .as_ref()
         .unwrap()
         .ast_scopes
@@ -66,7 +68,7 @@ pub fn deconflict_chunk_symbols(
     .collect();
 
   if let ChunkKind::EntryPoint { module, .. } = chunk.kind {
-    link_output.metadata[module].referenced_symbols_by_entry_point_chunk.iter().for_each(
+    link_stage_output.metadata[module].referenced_symbols_by_entry_point_chunk.iter().for_each(
       |symbol_ref| {
         renamer.add_symbol_in_root_scope(*symbol_ref);
       },
@@ -75,16 +77,24 @@ pub fn deconflict_chunk_symbols(
 
   if matches!(format, OutputFormat::Esm) {
     chunk.imports_from_external_modules.iter().for_each(|(module, _)| {
-      link_output.symbols.local_db(*module).classic_data.iter_enumerated().skip(1).for_each(
-        |(symbol, _)| {
+      link_stage_output
+        .symbol_ref_db
+        .local_db(*module)
+        .classic_data
+        .iter_enumerated()
+        .skip(1)
+        .for_each(|(symbol, _)| {
           renamer.add_symbol_in_root_scope((*module, symbol).into());
-        },
-      );
+        });
     });
   }
 
-  chunk.modules.iter().rev().filter_map(|&id| link_output.module_table[id].as_normal()).for_each(
-    |module| {
+  chunk
+    .modules
+    .iter()
+    .rev()
+    .filter_map(|&id| link_stage_output.module_table[id].as_normal())
+    .for_each(|module| {
       module.stmt_infos.iter().for_each(|stmt_info| {
         if stmt_info.is_included {
           for symbol_ref in &stmt_info.declared_symbols {
@@ -92,8 +102,7 @@ pub fn deconflict_chunk_symbols(
           }
         }
       });
-    },
-  );
+    });
 
   chunk.canonical_names = renamer.canonical_names;
 }

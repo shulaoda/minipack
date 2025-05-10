@@ -17,8 +17,9 @@ workspace = true
 
 [dependencies]
 minipack_common = { workspace = true }
+minipack_error = { workspace = true }
 minipack_fs = { workspace = true }
 
-arcstr = { workspace = true }
+anyhow = { workspace = true }
 oxc_resolver = { workspace = true }
 sugar_path = { workspace = true }

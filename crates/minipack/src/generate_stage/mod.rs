@@ -23,19 +23,19 @@ use crate::{
 
 use super::link_stage::LinkStageOutput;
 
-pub struct GenerateStage<'a> {
-  link_output: &'a mut LinkStageOutput,
-  options: &'a SharedOptions,
+pub struct GenerateStage {
+  options: SharedOptions,
+  link_stage_output: LinkStageOutput,
 }
 
-impl<'a> GenerateStage<'a> {
-  pub fn new(link_output: &'a mut LinkStageOutput, options: &'a SharedOptions) -> Self {
-    Self { link_output, options }
+impl GenerateStage {
+  pub fn new(link_stage_output: LinkStageOutput, options: SharedOptions) -> Self {
+    Self { link_stage_output, options }
   }
 
   pub async fn generate(&mut self) -> BuildResult<BundleOutput> {
-    if !self.link_output.errors.is_empty() {
-      return Err(std::mem::take(&mut self.link_output.errors))?;
+    if !self.link_stage_output.errors.is_empty() {
+      return Err(std::mem::take(&mut self.link_stage_output.errors))?;
     }
 
     let mut chunk_graph = self.generate_chunks().await;
@@ -46,11 +46,16 @@ impl<'a> GenerateStage<'a> {
       self.generate_chunk_name_and_preliminary_filenames(&mut chunk_graph).await?;
 
     chunk_graph.chunk_table.par_iter_mut().for_each(|chunk| {
-      deconflict_chunk_symbols(chunk, self.link_output, self.options.format, &chunk_id_to_name);
+      deconflict_chunk_symbols(
+        chunk,
+        &self.link_stage_output,
+        self.options.format,
+        &chunk_id_to_name,
+      );
     });
 
-    self.link_output.index_ecma_ast.par_iter_mut().for_each(|(ast, owner)| {
-      let Module::Normal(module) = &self.link_output.module_table[*owner] else {
+    self.link_stage_output.ecma_ast.par_iter_mut().for_each(|(ast, owner)| {
+      let Module::Normal(module) = &self.link_stage_output.module_table[*owner] else {
         return;
       };
 
@@ -58,10 +63,10 @@ impl<'a> GenerateStage<'a> {
         return;
       }
 
-      let ast_scope = &self.link_output.symbols[module.idx].as_ref().unwrap().ast_scopes;
+      let ast_scope = &self.link_stage_output.symbol_ref_db[module.idx].as_ref().unwrap().ast_scopes;
       let chunk_id = chunk_graph.module_to_chunk[module.idx].unwrap();
       let chunk = &chunk_graph.chunk_table[chunk_id];
-      let linking_info = &self.link_output.metadata[module.idx];
+      let linking_info = &self.link_stage_output.metadata[module.idx];
       ast.program.with_mut(|fields| {
         let (oxc_program, alloc) = (fields.program, fields.allocator);
         let mut finalizer = ScopeHoistingFinalizer {
@@ -70,13 +75,13 @@ impl<'a> GenerateStage<'a> {
             canonical_names: &chunk.canonical_names,
             id: module.idx,
             chunk_id,
-            symbol_db: &self.link_output.symbols,
+            symbol_ref_db: &self.link_stage_output.symbol_ref_db,
             linking_info,
             module,
-            modules: &self.link_output.module_table,
-            runtime: &self.link_output.runtime_module,
+            modules: &self.link_stage_output.module_table,
+            runtime: &self.link_stage_output.runtime_module,
             chunk_graph: &chunk_graph,
-            options: self.options,
+            options: &self.options,
           },
           scope: ast_scope,
           snippet: AstSnippet::new(alloc),

@@ -29,7 +29,7 @@ impl EcmaGenerator {
       .par_iter()
       .zip(module_id_to_codegen_ret)
       .filter_map(|(id, code)| {
-        ctx.link_output.module_table[*id].as_normal().map(|m| (m, code.unwrap()))
+        ctx.link_stage_output.module_table[*id].as_normal().map(|m| (m, code.unwrap()))
       })
       .map(|(m, code)| {
         RenderedModuleSource::new(

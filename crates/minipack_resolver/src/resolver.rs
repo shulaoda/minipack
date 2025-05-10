@@ -3,13 +3,11 @@ use std::{
   sync::Arc,
 };
 
-use arcstr::ArcStr;
-use sugar_path::SugarPath;
+use minipack_common::{Platform, ResolvedId};
+use minipack_fs::{FileSystem, OsFileSystem};
+use sugar_path::SugarPath as _;
 
 use oxc_resolver::{FsCache, ResolveError, ResolveOptions as OxcResolverOptions, ResolverGeneric};
-
-use minipack_common::Platform;
-use minipack_fs::{FileSystem, OsFileSystem};
 
 #[derive(Debug)]
 pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
@@ -18,7 +16,6 @@ pub struct Resolver<T: FileSystem + Default = OsFileSystem> {
 }
 
 impl<F: FileSystem + Default> Resolver<F> {
-  #[allow(clippy::too_many_lines)]
   pub fn new(platform: Platform, cwd: PathBuf, fs: F) -> Self {
     let mut import_conditions = vec!["import".to_string(), "default".to_string()];
 
@@ -67,12 +64,13 @@ impl<F: FileSystem + Default> Resolver<F> {
 }
 
 impl<F: FileSystem + Default> Resolver<F> {
-  pub fn resolve(
+  pub fn resolve_id(
     &self,
-    importer: Option<&Path>,
-    specifier: &str,
+    request: &str,
+    importer: Option<&str>,
     is_user_defined_entry: bool,
-  ) -> Result<ArcStr, ResolveError> {
+  ) -> minipack_error::BuildResult<ResolvedId> {
+    let importer = importer.map(Path::new);
     let resolver = &self.import_resolver;
 
     let dir = importer
@@ -80,17 +78,30 @@ impl<F: FileSystem + Default> Resolver<F> {
       .filter(|inner| inner.components().next().is_some())
       .unwrap_or(self.cwd.as_path());
 
-    let mut resolution = resolver.resolve(dir, specifier);
+    let mut resolution = resolver.resolve(dir, request);
 
     // Handle `{ input: 'main' }` -> `<CWD>/main.{js,mjs}`
-    if resolution.is_err() && is_user_defined_entry && !specifier.starts_with(['.', '/']) {
-      let normalized_specifier = self.cwd.join(specifier).normalize();
-      let result = resolver.resolve(dir, &normalized_specifier.to_string_lossy());
+    if resolution.is_err() && is_user_defined_entry && !request.starts_with(['.', '/']) {
+      let specifier = self.cwd.join(request).normalize();
+      let result = resolver.resolve(dir, &specifier.to_string_lossy());
       if result.is_ok() {
         resolution = result;
       }
     }
 
-    resolution.map(|info| info.full_path().to_str().expect("Should be valid utf8").into())
+    match resolution.map(|info| info.full_path().to_string_lossy().into()) {
+      Ok(id) => Ok(ResolvedId { id, is_external: false }),
+      Err(err) => match err {
+        ResolveError::Builtin { resolved, is_runtime_module } => Ok(ResolvedId {
+          id: if resolved.starts_with("node:") && !is_runtime_module {
+            resolved[5..].into()
+          } else {
+            resolved.into()
+          },
+          is_external: true,
+        }),
+        _ => Err(anyhow::anyhow!("{:?}", err))?,
+      },
+    }
   }
 }

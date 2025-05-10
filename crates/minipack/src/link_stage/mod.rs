@@ -21,9 +21,9 @@ use super::scan_stage::ScanStageOutput;
 pub struct LinkStageOutput {
   pub module_table: IndexModules,
   pub entry_points: Vec<EntryPoint>,
-  pub index_ecma_ast: IndexEcmaAst,
+  pub ecma_ast: IndexEcmaAst,
   pub metadata: LinkingMetadataVec,
-  pub symbols: SymbolRefDb,
+  pub symbol_ref_db: SymbolRefDb,
   pub runtime_module: RuntimeModuleBrief,
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
@@ -31,26 +31,26 @@ pub struct LinkStageOutput {
 }
 
 #[derive(Debug)]
-pub struct LinkStage<'a> {
+pub struct LinkStage {
   pub module_table: IndexModules,
   pub entry_points: Vec<EntryPoint>,
-  pub symbols: SymbolRefDb,
+  pub symbol_ref_db: SymbolRefDb,
   pub runtime_module: RuntimeModuleBrief,
   pub sorted_modules: Vec<ModuleIdx>,
   pub metadata: LinkingMetadataVec,
   pub warnings: Vec<anyhow::Error>,
   pub errors: Vec<anyhow::Error>,
-  pub index_ecma_ast: IndexEcmaAst,
-  pub options: &'a SharedOptions,
+  pub ecma_ast: IndexEcmaAst,
+  pub options: SharedOptions,
   pub used_symbol_refs: FxHashSet<SymbolRef>,
 }
 
-impl<'a> LinkStage<'a> {
-  pub fn new(scan_stage_output: ScanStageOutput, options: &'a SharedOptions) -> Self {
+impl LinkStage {
+  pub fn new(scan_stage_output: ScanStageOutput, options: SharedOptions) -> Self {
     let ScanStageOutput {
       module_table,
-      index_ecma_ast,
-      symbols,
+      ecma_ast,
+      symbol_ref_db,
       entry_points,
       runtime_module,
       warnings,
@@ -85,12 +85,12 @@ impl<'a> LinkStage<'a> {
       metadata,
       module_table,
       entry_points,
-      symbols,
+      symbol_ref_db,
       runtime_module,
       warnings,
       errors: vec![],
       sorted_modules: vec![],
-      index_ecma_ast,
+      ecma_ast,
       options,
       used_symbol_refs: FxHashSet::default(),
     }
@@ -106,12 +106,12 @@ impl<'a> LinkStage<'a> {
     self.patch_module_dependencies();
 
     LinkStageOutput {
-      symbols: self.symbols,
+      symbol_ref_db: self.symbol_ref_db,
       metadata: self.metadata,
       entry_points: self.entry_points,
       module_table: self.module_table,
       runtime_module: self.runtime_module,
-      index_ecma_ast: self.index_ecma_ast,
+      ecma_ast: self.ecma_ast,
       used_symbol_refs: self.used_symbol_refs,
       warnings: self.warnings,
       errors: self.errors,

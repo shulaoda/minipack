@@ -12,7 +12,7 @@ use crate::link_stage::LinkStage;
 
 struct Context<'a> {
   module_table: &'a IndexModules,
-  symbols: &'a SymbolRefDb,
+  symbol_ref_db: &'a SymbolRefDb,
   is_included_vec: &'a mut IndexVec<ModuleIdx, IndexVec<StmtInfoIdx, bool>>,
   is_module_included_vec: &'a mut IndexVec<ModuleIdx, bool>,
   runtime_id: ModuleIdx,
@@ -53,8 +53,8 @@ fn include_module(ctx: &mut Context, module: &NormalModule) {
 }
 
 fn include_symbol(ctx: &mut Context, symbol_ref: SymbolRef) {
-  let mut canonical_ref = ctx.symbols.canonical_ref_for(symbol_ref);
-  let canonical_ref_symbol = ctx.symbols.get(canonical_ref);
+  let mut canonical_ref = ctx.symbol_ref_db.canonical_ref_for(symbol_ref);
+  let canonical_ref_symbol = ctx.symbol_ref_db.get(canonical_ref);
   if let Some(namespace_alias) = &canonical_ref_symbol.namespace_alias {
     canonical_ref = namespace_alias.namespace_ref;
   }
@@ -106,7 +106,7 @@ fn include_statement(ctx: &mut Context, module: &NormalModule, stmt_info_id: Stm
   });
 }
 
-impl LinkStage<'_> {
+impl LinkStage {
   pub fn include_statements(&mut self) {
     let mut is_included_vec = self
       .module_table
@@ -122,7 +122,7 @@ impl LinkStage<'_> {
 
     let context = &mut Context {
       module_table: &self.module_table,
-      symbols: &self.symbols,
+      symbol_ref_db: &self.symbol_ref_db,
       is_included_vec: &mut is_included_vec,
       is_module_included_vec: &mut is_module_included_vec,
       runtime_id: self.runtime_module.idx,

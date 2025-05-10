@@ -5,8 +5,8 @@ use arcstr::ArcStr;
 use minipack_common::{
   EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind, ImportRecordIdx,
   ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, NormalModuleTaskResult,
-  RUNTIME_MODULE_ID, ResolvedId, ResolvedImportRecord, RuntimeModuleBrief, RuntimeModuleTaskResult,
-  SymbolRefDb, SymbolRefDbForModule,
+  RUNTIME_MODULE_ID, ResolvedId, RuntimeModuleBrief, RuntimeModuleTaskResult, SymbolRefDb,
+  SymbolRefDbForModule,
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
@@ -17,45 +17,49 @@ use oxc_index::IndexVec;
 use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::Receiver;
 
-use super::module_task::{ModuleTask, TaskContext};
-use super::runtime_module_task::RuntimeModuleTask;
-
 use crate::types::{IndexEcmaAst, IndexModules, SharedOptions, SharedResolver};
 use crate::utils::ecmascript::legitimize_identifier_name;
 
+use super::module_task::{ModuleTask, TaskContext};
+use super::runtime_module_task::RuntimeModuleTask;
+
 pub struct IntermediateNormalModules {
-  pub modules: IndexVec<ModuleIdx, Option<Module>>,
-  pub importers: IndexVec<ModuleIdx, Vec<ImporterRecord>>,
-  pub index_ecma_ast: IndexEcmaAst,
+  pub ecma_ast: IndexEcmaAst,
+  pub module_table: IndexVec<ModuleIdx, Option<Module>>,
+  pub importer_record: IndexVec<ModuleIdx, Vec<ImporterRecord>>,
 }
 
 impl IntermediateNormalModules {
   pub fn new() -> Self {
-    Self { modules: IndexVec::new(), importers: IndexVec::new(), index_ecma_ast: IndexVec::new() }
+    Self {
+      ecma_ast: IndexVec::new(),
+      module_table: IndexVec::new(),
+      importer_record: IndexVec::new(),
+    }
   }
 
   pub fn alloc_ecma_module_idx(&mut self) -> ModuleIdx {
-    self.modules.push(None);
-    self.importers.push(Vec::new())
+    self.module_table.push(None);
+    self.importer_record.push(Vec::new())
   }
 }
 
 pub struct ModuleLoader {
   rx: Receiver<ModuleLoaderMsg>,
-  remaining: u32,
-  shared_context: Arc<TaskContext>,
-  runtime_idx: ModuleIdx,
-  symbols: SymbolRefDb,
   inm: IntermediateNormalModules,
+  remaining: u32,
+  runtime_idx: ModuleIdx,
+  symbol_ref_db: SymbolRefDb,
+  shared_context: Arc<TaskContext>,
   visited: FxHashMap<ArcStr, ModuleIdx>,
 }
 
 #[derive(Debug)]
 pub struct ModuleLoaderOutput {
   // Stored all modules
-  pub symbols: SymbolRefDb,
+  pub ecma_ast: IndexEcmaAst,
   pub module_table: IndexModules,
-  pub index_ecma_ast: IndexEcmaAst,
+  pub symbol_ref_db: SymbolRefDb,
   // Entries that user defined + dynamic import entries
   pub entry_points: Vec<EntryPoint>,
   pub runtime_module: RuntimeModuleBrief,
@@ -68,52 +72,48 @@ impl ModuleLoader {
     options: SharedOptions,
     resolver: SharedResolver,
   ) -> BuildResult<Self> {
-    // 1024 should be enough for most cases
-    // over 1024 pending tasks are insane
+    // 1024 should be enough for most cases, over 1024 pending tasks are insane
     let (tx, rx) = tokio::sync::mpsc::channel(1024);
 
     let mut inm = IntermediateNormalModules::new();
 
-    let symbols = SymbolRefDb::default();
     let runtime_idx = inm.alloc_ecma_module_idx();
+    let symbol_ref_db = SymbolRefDb::default();
 
     let visited = FxHashMap::from_iter([(RUNTIME_MODULE_ID.into(), runtime_idx)]);
     let shared_context = Arc::new(TaskContext { fs, resolver, options, tx: tx.clone() });
 
     let task = RuntimeModuleTask::new(runtime_idx, tx.clone());
-
     tokio::spawn(async { task.run() });
 
-    Ok(Self { rx, remaining: 1, shared_context, runtime_idx, symbols, inm, visited })
+    Ok(Self { rx, remaining: 1, shared_context, runtime_idx, symbol_ref_db, inm, visited })
   }
 
   pub async fn fetch_all_modules(
     mut self,
     user_defined_entries: Vec<(Option<ArcStr>, ResolvedId)>,
   ) -> BuildResult<ModuleLoaderOutput> {
-    let entries_count = user_defined_entries.len() + /* runtime */ 1;
+    let entries_count = user_defined_entries.len();
+    let modules_count = entries_count + /* runtime */ 1;
 
-    self.inm.modules.reserve(entries_count);
-    self.inm.index_ecma_ast.reserve(entries_count);
+    self.inm.ecma_ast.reserve(modules_count);
+    self.inm.module_table.reserve(modules_count);
 
     // Store the already consider as entry module
-    let mut user_defined_entry_ids = FxHashSet::with_capacity(user_defined_entries.len());
+    let mut entry_points = Vec::with_capacity(entries_count);
+    let mut user_defined_entry_ids = FxHashSet::with_capacity(entries_count);
 
-    let mut entry_points = user_defined_entries
-      .into_iter()
-      .map(|(name, info)| {
-        let idx = self.try_spawn_new_task(info, None, true);
-        user_defined_entry_ids.insert(idx);
-        EntryPoint { idx, name, kind: EntryPointKind::UserDefined, related_stmt_infos: vec![] }
-      })
-      .collect::<Vec<_>>();
+    for (name, info) in user_defined_entries.into_iter() {
+      let idx = self.try_spawn_new_task(info, None, true);
+      user_defined_entry_ids.insert(idx);
+      entry_points.push(EntryPoint { idx, name, kind: EntryPointKind::UserDefined });
+    }
 
     let mut errors = vec![];
     let mut warnings = vec![];
 
     let mut runtime_module = None;
-
-    let mut dynamic_import_entry_ids = FxHashMap::default();
+    let mut dynamic_import_entry_ids = FxHashSet::default();
 
     while self.remaining > 0 {
       let Some(msg) = self.rx.recv().await else {
@@ -140,28 +140,14 @@ impl ModuleLoader {
               let owner = normal_module.stable_id.as_str().into();
               let id = self.try_spawn_new_task(info, Some(owner), false);
               // Dynamic imported module will be considered as an entry
-              self.inm.importers[id].push(ImporterRecord {
+              self.inm.importer_record[id].push(ImporterRecord {
                 kind: raw_rec.kind,
                 importer_path: ModuleId::new(module.id()),
               });
 
               if raw_rec.kind == ImportKind::DynamicImport && !user_defined_entry_ids.contains(&id)
               {
-                match dynamic_import_entry_ids.entry(id) {
-                  Entry::Vacant(vac) => match raw_rec.related_stmt_info_idx {
-                    Some(stmt_info_idx) => {
-                      vac.insert(vec![(module.idx(), stmt_info_idx)]);
-                    }
-                    None => {
-                      vac.insert(vec![]);
-                    }
-                  },
-                  Entry::Occupied(mut occ) => {
-                    if let Some(stmt_info_idx) = raw_rec.related_stmt_info_idx {
-                      occ.get_mut().push((module.idx(), stmt_info_idx));
-                    }
-                  }
-                }
+                dynamic_import_entry_ids.insert(id);
               }
               raw_rec.into_resolved(id)
             })
@@ -171,11 +157,11 @@ impl ModuleLoader {
 
           let module_idx = module.idx();
           if let Some(EcmaRelated { ast, symbols, .. }) = ecma_related {
-            module.set_ecma_ast_idx(self.inm.index_ecma_ast.push((ast, module_idx)));
-            self.symbols.store_local_db(module_idx, symbols);
+            module.set_ecma_ast_idx(self.inm.ecma_ast.push((ast, module_idx)));
+            self.symbol_ref_db.store_local_db(module_idx, symbols);
           }
 
-          self.inm.modules[module_idx] = Some(module);
+          self.inm.module_table[module_idx] = Some(module);
           self.remaining -= 1;
         }
         ModuleLoaderMsg::RuntimeModuleDone(task_result) => {
@@ -187,46 +173,33 @@ impl ModuleLoader {
             raw_import_records,
             resolved_deps,
           } = task_result;
-          let import_records: IndexVec<ImportRecordIdx, ResolvedImportRecord> = raw_import_records
+
+          let import_records = raw_import_records
             .into_iter()
             .zip(resolved_deps)
             .map(|(raw_rec, info)| {
               let id = self.try_spawn_new_task(info, None, false);
               // Dynamic imported module will be considered as an entry
-              self.inm.importers[id]
+              self.inm.importer_record[id]
                 .push(ImporterRecord { kind: raw_rec.kind, importer_path: module.id.clone() });
 
               if raw_rec.kind == ImportKind::DynamicImport && !user_defined_entry_ids.contains(&id)
               {
-                match dynamic_import_entry_ids.entry(id) {
-                  Entry::Vacant(vac) => match raw_rec.related_stmt_info_idx {
-                    Some(stmt_info_idx) => {
-                      vac.insert(vec![(module.idx, stmt_info_idx)]);
-                    }
-                    None => {
-                      vac.insert(vec![]);
-                    }
-                  },
-                  Entry::Occupied(mut occ) => {
-                    if let Some(stmt_info_idx) = raw_rec.related_stmt_info_idx {
-                      occ.get_mut().push((module.idx, stmt_info_idx));
-                    }
-                  }
-                }
+                dynamic_import_entry_ids.insert(id);
               }
               raw_rec.into_resolved(id)
             })
             .collect::<IndexVec<ImportRecordIdx, _>>();
 
-          let ast_idx = self.inm.index_ecma_ast.push((ast, module.idx));
+          let ast_idx = self.inm.ecma_ast.push((ast, module.idx));
 
           module.ecma_ast_idx = Some(ast_idx);
           module.import_records = import_records;
 
           runtime_module = Some(runtime);
 
-          self.inm.modules[self.runtime_idx] = Some(module.into());
-          self.symbols.store_local_db(self.runtime_idx, symbols);
+          self.inm.module_table[self.runtime_idx] = Some(module.into());
+          self.symbol_ref_db.store_local_db(self.runtime_idx, symbols);
 
           self.remaining -= 1;
         }
@@ -243,14 +216,14 @@ impl ModuleLoader {
 
     let module_table = self
       .inm
-      .modules
+      .module_table
       .into_iter()
       .enumerate()
       .map(|(id, module)| {
         let mut module = module.expect("Module tasks did't complete as expected");
         if let Some(module) = module.as_normal_mut() {
           let id = ModuleIdx::from(id);
-          let importers = std::mem::take(&mut self.inm.importers[id]);
+          let importers = std::mem::take(&mut self.inm.importer_record[id]);
           for importer in &importers {
             if importer.kind.is_static() {
               module.importers.insert(importer.importer_path.clone());
@@ -263,11 +236,10 @@ impl ModuleLoader {
       })
       .collect::<IndexVec<_, _>>();
 
-    let mut dynamic_import_entry_ids = dynamic_import_entry_ids.into_iter().collect::<Vec<_>>();
-    dynamic_import_entry_ids.sort_unstable_by_key(|(id, _)| module_table[*id].stable_id());
-
-    entry_points.extend(dynamic_import_entry_ids.into_iter().map(|(idx, related_stmt_infos)| {
-      EntryPoint { idx, name: None, related_stmt_infos, kind: EntryPointKind::DynamicImport }
+    entry_points.extend(dynamic_import_entry_ids.into_iter().map(|idx| EntryPoint {
+      idx,
+      name: None,
+      kind: EntryPointKind::DynamicImport,
     }));
 
     let runtime_module =
@@ -275,8 +247,8 @@ impl ModuleLoader {
 
     Ok(ModuleLoaderOutput {
       module_table,
-      symbols: self.symbols,
-      index_ecma_ast: self.inm.index_ecma_ast,
+      symbol_ref_db: self.symbol_ref_db,
+      ecma_ast: self.inm.ecma_ast,
       entry_points,
       runtime_module,
       warnings,
@@ -295,17 +267,17 @@ impl ModuleLoader {
         let idx = self.inm.alloc_ecma_module_idx();
 
         if resolved_id.is_external {
-          self.symbols.store_local_db(
+          self.symbol_ref_db.store_local_db(
             idx,
             SymbolRefDbForModule::new(idx, Scoping::default(), ScopeId::new(0)),
           );
 
-          let namespace_ref = self.symbols.create_facade_root_symbol_ref(
+          let namespace_ref = self.symbol_ref_db.create_facade_root_symbol_ref(
             idx,
             &legitimize_identifier_name(resolved_id.id.as_str()),
           );
 
-          self.inm.modules[idx] =
+          self.inm.module_table[idx] =
             Some(Module::external(ExternalModule::new(idx, resolved_id.id, namespace_ref)));
         } else {
           let task = ModuleTask::new(

@@ -17,7 +17,7 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
   let mut module_sources_peekable = module_sources.iter().peekable();
   match module_sources_peekable.peek() {
     Some(RenderedModuleSource { module_idx, sources: Some(emitted_sources) })
-      if *module_idx == ctx.link_output.runtime_module.idx =>
+      if *module_idx == ctx.link_stage_output.runtime_module.idx =>
     {
       for source in emitted_sources.iter() {
         source_joiner.append_source(source);
@@ -86,15 +86,15 @@ fn render_cjs_chunk_imports(ctx: &GenerateContext<'_>) -> String {
 
   // render external imports
   ctx.chunk.imports_from_external_modules.iter().for_each(|(importee_id, _)| {
-    let importee = ctx.link_output.module_table[*importee_id]
+    let importee = ctx.link_stage_output.module_table[*importee_id]
       .as_external()
       .expect("Should be external module here");
 
     let require_path_str = concat_string!("require(\"", &importee.name, "\")");
 
-    if ctx.link_output.used_symbol_refs.contains(&importee.namespace_ref) {
+    if ctx.link_stage_output.used_symbol_refs.contains(&importee.namespace_ref) {
       let to_esm_fn_name = ctx.finalized_string_pattern_for_symbol_ref(
-        ctx.link_output.runtime_module.resolve_symbol("__toESM"),
+        ctx.link_stage_output.runtime_module.resolve_symbol("__toESM"),
         ctx.chunk_idx,
         &ctx.chunk.canonical_names,
       );

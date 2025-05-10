@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use crate::{InputItem, OutputFormat, Platform};
 
-// Using raw booleans is more clear in this case
 #[derive(Debug)]
 pub struct NormalizedBundlerOptions {
   // --- Input
@@ -21,6 +20,7 @@ pub struct NormalizedBundlerOptions {
 }
 
 impl NormalizedBundlerOptions {
+  #[inline]
   pub fn is_esm_format_with_node_platform(&self) -> bool {
     matches!(self.format, OutputFormat::Esm) && matches!(self.platform, Platform::Node)
   }

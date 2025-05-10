@@ -11,8 +11,8 @@ use minipack_utils::{
 use crate::{link_stage::LinkStageOutput, types::generator::GenerateContext};
 
 pub fn render_chunk_exports(ctx: &GenerateContext<'_>) -> Option<String> {
-  let GenerateContext { chunk, link_output, options, .. } = ctx;
-  let export_items = get_export_items(chunk, link_output).into_iter().collect::<Vec<_>>();
+  let GenerateContext { chunk, link_stage_output, options, .. } = ctx;
+  let export_items = get_export_items(chunk, link_stage_output).into_iter().collect::<Vec<_>>();
 
   match options.format {
     OutputFormat::Esm => {
@@ -23,8 +23,8 @@ pub fn render_chunk_exports(ctx: &GenerateContext<'_>) -> Option<String> {
       let rendered_items = export_items
         .into_iter()
         .map(|(exported_name, export_ref)| {
-          let canonical_ref = link_output.symbols.canonical_ref_for(export_ref);
-          let symbol = link_output.symbols.get(canonical_ref);
+          let canonical_ref = link_stage_output.symbol_ref_db.canonical_ref_for(export_ref);
+          let symbol = link_stage_output.symbol_ref_db.get(canonical_ref);
           let canonical_name = &chunk.canonical_names[&canonical_ref];
           if let Some(ns_alias) = &symbol.namespace_alias {
             let canonical_ns_name = &chunk.canonical_names[&ns_alias.namespace_ref];
@@ -59,25 +59,25 @@ pub fn render_chunk_exports(ctx: &GenerateContext<'_>) -> Option<String> {
       match chunk.kind {
         ChunkKind::EntryPoint { module, .. } => {
           let module =
-            &link_output.module_table[module].as_normal().expect("should be normal module");
+            &link_stage_output.module_table[module].as_normal().expect("should be normal module");
 
           let rendered_items = export_items
             .into_iter()
             .map(|(exported_name, export_ref)| {
-              let canonical_ref = link_output.symbols.canonical_ref_for(export_ref);
-              let symbol = link_output.symbols.get(canonical_ref);
+              let canonical_ref = link_stage_output.symbol_ref_db.canonical_ref_for(export_ref);
+              let symbol = link_stage_output.symbol_ref_db.get(canonical_ref);
               let mut canonical_name = Cow::Borrowed(&chunk.canonical_names[&canonical_ref]);
               let exported_value = if let Some(ns_alias) = &symbol.namespace_alias {
                 let canonical_ns_name = &chunk.canonical_names[&ns_alias.namespace_ref];
                 let property_name = &ns_alias.property_name;
                 Cow::Owned(property_access_str(canonical_ns_name, property_name).into())
-              } else if link_output.module_table[canonical_ref.owner].is_external() {
+              } else if link_stage_output.module_table[canonical_ref.owner].is_external() {
                 let namespace = &chunk.canonical_names[&canonical_ref];
                 Cow::Owned(namespace.as_str().into())
               } else {
                 let cur_chunk_idx = ctx.chunk_idx;
                 let canonical_ref_owner_chunk_idx =
-                  link_output.symbols.get(canonical_ref).chunk_id.unwrap();
+                  link_stage_output.symbol_ref_db.get(canonical_ref).chunk_id.unwrap();
                 let is_this_symbol_point_to_other_chunk =
                   cur_chunk_idx != canonical_ref_owner_chunk_idx;
                 if is_this_symbol_point_to_other_chunk {
@@ -92,7 +92,7 @@ pub fn render_chunk_exports(ctx: &GenerateContext<'_>) -> Option<String> {
                 canonical_name.clone()
               };
 
-              if must_keep_live_binding(export_ref, &link_output.symbols) {
+              if must_keep_live_binding(export_ref, &link_stage_output.symbol_ref_db) {
                 render_object_define_property(&exported_name, &exported_value)
               } else {
                 concat_string!(
@@ -105,14 +105,14 @@ pub fn render_chunk_exports(ctx: &GenerateContext<'_>) -> Option<String> {
             .collect::<Vec<_>>();
           s.push_str(&rendered_items.join("\n"));
 
-          let meta = &ctx.link_output.metadata[module.idx];
+          let meta = &ctx.link_stage_output.metadata[module.idx];
           let external_modules = meta
             .star_exports_from_external_modules
             .iter()
             .map(|rec_idx| module.ecma_view.import_records[*rec_idx].state)
             .collect::<FxIndexSet<ModuleIdx>>();
           external_modules.iter().for_each(|idx| {
-          let external = &ctx.link_output.module_table[*idx].as_external().expect("Should be external module here");
+          let external = &ctx.link_stage_output.module_table[*idx].as_external().expect("Should be external module here");
           let binding_ref_name =
           &ctx.chunk.canonical_names[&external.namespace_ref];
             let import_stmt =
@@ -129,8 +129,8 @@ pub fn render_chunk_exports(ctx: &GenerateContext<'_>) -> Option<String> {
         }
         ChunkKind::Common => {
           export_items.into_iter().for_each(|(exported_name, export_ref)| {
-            let canonical_ref = link_output.symbols.canonical_ref_for(export_ref);
-            let symbol = link_output.symbols.get(canonical_ref);
+            let canonical_ref = link_stage_output.symbol_ref_db.canonical_ref_for(export_ref);
+            let symbol = link_stage_output.symbol_ref_db.get(canonical_ref);
             let canonical_name = &chunk.canonical_names[&canonical_ref];
 
             if let Some(ns_alias) = &symbol.namespace_alias {

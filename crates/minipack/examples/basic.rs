@@ -14,5 +14,5 @@ async fn main() {
     ..Default::default()
   });
 
-  let _ = bundler.write().await;
+  let _ = bundler.build(true).await;
 }

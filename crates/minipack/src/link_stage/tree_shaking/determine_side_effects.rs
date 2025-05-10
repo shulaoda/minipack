@@ -10,7 +10,7 @@ enum SideEffectCache {
   Cache(DeterminedSideEffects),
 }
 
-impl LinkStage<'_> {
+impl LinkStage {
   pub fn determine_side_effects(&mut self) {
     let mut side_effects_cache =
       oxc_index::index_vec![SideEffectCache::None; self.module_table.len()];

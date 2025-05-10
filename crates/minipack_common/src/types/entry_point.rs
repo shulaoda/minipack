@@ -1,23 +1,16 @@
 use arcstr::ArcStr;
 
-use crate::{ModuleIdx, StmtInfoIdx};
+use crate::ModuleIdx;
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone)]
+#[derive(Debug)]
 pub struct EntryPoint {
   pub idx: ModuleIdx,
   pub name: Option<ArcStr>,
   pub kind: EntryPointKind,
-  pub related_stmt_infos: Vec<(ModuleIdx, StmtInfoIdx)>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum EntryPointKind {
   UserDefined,
   DynamicImport,
-}
-
-impl EntryPointKind {
-  pub fn is_user_defined(&self) -> bool {
-    matches!(self, Self::UserDefined)
-  }
 }

@@ -12,7 +12,7 @@ enum Status {
   WaitForExit(ModuleIdx),
 }
 
-impl LinkStage<'_> {
+impl LinkStage {
   pub(crate) fn sort_modules(&mut self) {
     // The runtime module should always be the first module to be executed
     let mut execution_stack = self

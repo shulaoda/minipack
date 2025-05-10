@@ -22,7 +22,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
         let rec_id = v.record_id;
         let importee_idx = self.ctx.module.ecma_view.import_records[rec_id].state;
         self.ctx.modules[importee_idx].as_normal()?;
-        self.ctx.symbol_db.get(*symbol_ref).namespace_alias.as_ref().and_then(|alias| {
+        self.ctx.symbol_ref_db.get(*symbol_ref).namespace_alias.as_ref().and_then(|alias| {
           (alias.property_name.as_str() == "default").then_some(symbol_ref.symbol)
         })
       })
