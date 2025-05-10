@@ -3,10 +3,9 @@ use std::sync::Arc;
 
 use arcstr::ArcStr;
 use minipack_common::{
-  EcmaRelated, EntryPoint, EntryPointKind, ExternalModule, ImportKind, ImportRecordIdx,
-  ImporterRecord, Module, ModuleId, ModuleIdx, ModuleLoaderMsg, NormalModuleTaskResult,
-  RUNTIME_MODULE_ID, ResolvedId, RuntimeModuleBrief, RuntimeModuleTaskResult, SymbolRefDb,
-  SymbolRefDbForModule,
+  EntryPoint, EntryPointKind, ExternalModule, ImportRecordIdx, ImporterRecord, Module, ModuleIdx,
+  ModuleLoaderMsg, NormalModuleTaskResult, RUNTIME_MODULE_ID, ResolvedId, RuntimeModuleBrief,
+  RuntimeModuleTaskResult, SymbolRefDb, SymbolRefDbForModule,
 };
 use minipack_error::BuildResult;
 use minipack_fs::OsFileSystem;
@@ -56,11 +55,9 @@ pub struct ModuleLoader {
 
 #[derive(Debug)]
 pub struct ModuleLoaderOutput {
-  // Stored all modules
   pub ecma_ast: IndexEcmaAst,
   pub module_table: IndexModules,
   pub symbol_ref_db: SymbolRefDb,
-  // Entries that user defined + dynamic import entries
   pub entry_points: Vec<EntryPoint>,
   pub runtime_module: RuntimeModuleBrief,
   pub warnings: Vec<anyhow::Error>,
@@ -72,7 +69,6 @@ impl ModuleLoader {
     options: SharedOptions,
     resolver: SharedResolver,
   ) -> BuildResult<Self> {
-    // 1024 should be enough for most cases, over 1024 pending tasks are insane
     let (tx, rx) = tokio::sync::mpsc::channel(1024);
 
     let mut inm = IntermediateNormalModules::new();
@@ -99,21 +95,19 @@ impl ModuleLoader {
     self.inm.ecma_ast.reserve(modules_count);
     self.inm.module_table.reserve(modules_count);
 
-    // Store the already consider as entry module
     let mut entry_points = Vec::with_capacity(entries_count);
     let mut user_defined_entry_ids = FxHashSet::with_capacity(entries_count);
 
-    for (name, info) in user_defined_entries.into_iter() {
-      let idx = self.try_spawn_new_task(info, None, true);
+    for (name, resolved_id) in user_defined_entries.into_iter() {
+      let idx = self.try_spawn_new_task(None, resolved_id, true);
       user_defined_entry_ids.insert(idx);
       entry_points.push(EntryPoint { idx, name, kind: EntryPointKind::UserDefined });
     }
 
-    let mut errors = vec![];
     let mut warnings = vec![];
-
     let mut runtime_module = None;
-    let mut dynamic_import_entry_ids = FxHashSet::default();
+
+    let mut dynamic_import_entry_ids = user_defined_entry_ids.clone();
 
     while self.remaining > 0 {
       let Some(msg) = self.rx.recv().await else {
@@ -121,164 +115,106 @@ impl ModuleLoader {
       };
 
       match msg {
-        ModuleLoaderMsg::NormalModuleDone(task_result) => {
-          let NormalModuleTaskResult {
-            mut module,
-            ecma_related,
-            resolved_deps,
-            raw_import_records,
-            warnings: task_result_warnings,
-          } = task_result;
+        ModuleLoaderMsg::NormalModuleDone(NormalModuleTaskResult {
+          mut module,
+          ecma_related,
+          resolved_deps,
+          raw_import_records,
+          warnings: task_result_warnings,
+        }) => {
+          let normal_module = module.as_normal_mut().unwrap();
+          let mut import_records =
+            IndexVec::<ImportRecordIdx, _>::with_capacity(raw_import_records.len());
+
+          for (import_record, resolved_id) in raw_import_records.into_iter().zip(resolved_deps) {
+            let owner = normal_module.stable_id.as_str().into();
+            let idx = self.try_spawn_new_task(Some(owner), resolved_id, false);
+            if import_record.kind.is_dynamic() && !dynamic_import_entry_ids.contains(&idx) {
+              dynamic_import_entry_ids.insert(idx);
+              entry_points.push(EntryPoint {
+                idx,
+                name: None,
+                kind: EntryPointKind::DynamicImport,
+              });
+            }
+
+            self.inm.importer_record[idx].push(ImporterRecord {
+              kind: import_record.kind,
+              importer_path: normal_module.id.clone(),
+            });
+
+            import_records.push(import_record.into_resolved(idx));
+          }
 
           warnings.extend(task_result_warnings);
+          normal_module.import_records = import_records;
 
-          let import_records = raw_import_records
-            .into_iter()
-            .zip(resolved_deps)
-            .map(|(raw_rec, info)| {
-              let normal_module = module.as_normal().unwrap();
-              let owner = normal_module.stable_id.as_str().into();
-              let id = self.try_spawn_new_task(info, Some(owner), false);
-              // Dynamic imported module will be considered as an entry
-              self.inm.importer_record[id].push(ImporterRecord {
-                kind: raw_rec.kind,
-                importer_path: ModuleId::new(module.id()),
-              });
-
-              if raw_rec.kind == ImportKind::DynamicImport && !user_defined_entry_ids.contains(&id)
-              {
-                dynamic_import_entry_ids.insert(id);
-              }
-              raw_rec.into_resolved(id)
-            })
-            .collect::<IndexVec<ImportRecordIdx, _>>();
-
-          module.set_import_records(import_records);
-
-          let module_idx = module.idx();
-          if let Some(EcmaRelated { ast, symbols, .. }) = ecma_related {
-            module.set_ecma_ast_idx(self.inm.ecma_ast.push((ast, module_idx)));
-            self.symbol_ref_db.store_local_db(module_idx, symbols);
+          let module_idx = normal_module.idx;
+          if let Some(ecma_related) = ecma_related {
+            module.set_ecma_ast_idx(self.inm.ecma_ast.push((ecma_related.ast, module_idx)));
+            self.symbol_ref_db.store_local_db(module_idx, ecma_related.symbols);
           }
 
           self.inm.module_table[module_idx] = Some(module);
           self.remaining -= 1;
         }
-        ModuleLoaderMsg::RuntimeModuleDone(task_result) => {
-          let RuntimeModuleTaskResult {
-            mut module,
-            runtime,
-            ast,
-            symbols,
-            raw_import_records,
-            resolved_deps,
-          } = task_result;
-
-          let import_records = raw_import_records
-            .into_iter()
-            .zip(resolved_deps)
-            .map(|(raw_rec, info)| {
-              let id = self.try_spawn_new_task(info, None, false);
-              // Dynamic imported module will be considered as an entry
-              self.inm.importer_record[id]
-                .push(ImporterRecord { kind: raw_rec.kind, importer_path: module.id.clone() });
-
-              if raw_rec.kind == ImportKind::DynamicImport && !user_defined_entry_ids.contains(&id)
-              {
-                dynamic_import_entry_ids.insert(id);
-              }
-              raw_rec.into_resolved(id)
-            })
-            .collect::<IndexVec<ImportRecordIdx, _>>();
-
-          let ast_idx = self.inm.ecma_ast.push((ast, module.idx));
-
-          module.ecma_ast_idx = Some(ast_idx);
-          module.import_records = import_records;
+        ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
+          mut module,
+          ast,
+          runtime,
+          symbols,
+        }) => {
+          let ecma_ast_idx = self.inm.ecma_ast.push((ast, module.idx));
 
           runtime_module = Some(runtime);
+          module.ecma_ast_idx = Some(ecma_ast_idx);
 
           self.inm.module_table[self.runtime_idx] = Some(module.into());
           self.symbol_ref_db.store_local_db(self.runtime_idx, symbols);
 
           self.remaining -= 1;
         }
-        ModuleLoaderMsg::BuildErrors(e) => {
-          errors.extend(e);
-          self.remaining -= 1;
+        ModuleLoaderMsg::BuildErrors(errors) => {
+          self.rx.close();
+          Err(errors)?;
         }
       }
     }
 
-    if !errors.is_empty() {
-      Err(errors)?;
-    }
-
-    let module_table = self
-      .inm
-      .module_table
-      .into_iter()
-      .enumerate()
-      .map(|(id, module)| {
-        let mut module = module.expect("Module tasks did't complete as expected");
-        if let Some(module) = module.as_normal_mut() {
-          let id = ModuleIdx::from(id);
-          let importers = std::mem::take(&mut self.inm.importer_record[id]);
-          for importer in &importers {
-            if importer.kind.is_static() {
-              module.importers.insert(importer.importer_path.clone());
-            } else {
-              module.dynamic_importers.insert(importer.importer_path.clone());
-            }
-          }
-        }
-        module
-      })
-      .collect::<IndexVec<_, _>>();
-
-    entry_points.extend(dynamic_import_entry_ids.into_iter().map(|idx| EntryPoint {
-      idx,
-      name: None,
-      kind: EntryPointKind::DynamicImport,
-    }));
-
-    let runtime_module =
-      runtime_module.expect("Failed to find runtime module. This should not happen");
+    let module_table = self.inm.module_table.into_iter().flatten().collect();
+    let runtime_module = runtime_module.expect("Failed to find runtime module.");
 
     Ok(ModuleLoaderOutput {
-      module_table,
-      symbol_ref_db: self.symbol_ref_db,
-      ecma_ast: self.inm.ecma_ast,
       entry_points,
+      module_table,
       runtime_module,
+      ecma_ast: self.inm.ecma_ast,
+      symbol_ref_db: self.symbol_ref_db,
       warnings,
     })
   }
 
   fn try_spawn_new_task(
     &mut self,
-    resolved_id: ResolvedId,
     owner: Option<Rstr>,
+    resolved_id: ResolvedId,
     is_user_defined_entry: bool,
   ) -> ModuleIdx {
     match self.visited.entry(resolved_id.id.clone()) {
       Entry::Occupied(visited) => *visited.get(),
       Entry::Vacant(not_visited) => {
         let idx = self.inm.alloc_ecma_module_idx();
-
         if resolved_id.is_external {
           self.symbol_ref_db.store_local_db(
             idx,
             SymbolRefDbForModule::new(idx, Scoping::default(), ScopeId::new(0)),
           );
 
-          let namespace_ref = self.symbol_ref_db.create_facade_root_symbol_ref(
-            idx,
-            &legitimize_identifier_name(resolved_id.id.as_str()),
-          );
+          let name = legitimize_identifier_name(resolved_id.id.as_str());
+          let namespace_ref = self.symbol_ref_db.create_facade_root_symbol_ref(idx, &name);
+          let module = Box::new(ExternalModule::new(idx, resolved_id.id, namespace_ref));
 
-          self.inm.module_table[idx] =
-            Some(Module::external(ExternalModule::new(idx, resolved_id.id, namespace_ref)));
+          self.inm.module_table[idx] = Some(Module::External(module));
         } else {
           let task = ModuleTask::new(
             self.shared_context.clone(),
@@ -287,11 +223,9 @@ impl ModuleLoader {
             resolved_id,
             is_user_defined_entry,
           );
-
-          self.remaining += 1;
           tokio::spawn(task.run());
+          self.remaining += 1;
         }
-
         *not_visited.insert(idx)
       }
     }

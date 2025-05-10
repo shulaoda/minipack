@@ -49,10 +49,6 @@ impl Module {
     }
   }
 
-  pub fn external(v: ExternalModule) -> Self {
-    Self::External(Box::new(v))
-  }
-
   pub fn as_normal(&self) -> Option<&NormalModule> {
     match self {
       Self::Normal(v) => Some(v),

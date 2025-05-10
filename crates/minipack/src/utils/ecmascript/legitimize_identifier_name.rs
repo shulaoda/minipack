@@ -16,7 +16,7 @@ pub fn legitimize_identifier_name(name: &str) -> Cow<str> {
 
   if first_invalid_char_index.is_none() {
     first_invalid_char_index =
-      chars_indices.find(|(_idx, char)| !identifier::is_identifier_part(*char)).map(|(idx, _)| idx);
+      chars_indices.find(|(_, char)| !identifier::is_identifier_part(*char)).map(|(idx, _)| idx);
   }
 
   let Some(first_invalid_char_index) = first_invalid_char_index else {
@@ -28,6 +28,7 @@ pub fn legitimize_identifier_name(name: &str) -> Cow<str> {
   if first_invalid_char_index == 0 {
     legitimized.push('_');
   }
+
   for char in rest_part.chars() {
     if identifier::is_identifier_part(char) {
       legitimized.push(char);

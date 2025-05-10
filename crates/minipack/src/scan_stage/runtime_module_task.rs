@@ -1,7 +1,6 @@
 use arcstr::ArcStr;
 use minipack_common::side_effects::DeterminedSideEffects;
 use minipack_error::BuildResult;
-use minipack_utils::indexmap::FxIndexSet;
 use oxc::ast_visit::VisitMut;
 use oxc::semantic::SemanticBuilder;
 use oxc::span::SourceType;
@@ -9,13 +8,13 @@ use oxc_index::IndexVec;
 use tokio::sync::mpsc::Sender;
 
 use minipack_common::{
-  EcmaView, EcmaViewMeta, ModuleIdx, ModuleType, NormalModule, RUNTIME_MODULE_ID, ResolvedId,
+  EcmaView, EcmaViewMeta, ModuleIdx, ModuleType, NormalModule, RUNTIME_MODULE_ID,
   RuntimeModuleBrief, RuntimeModuleTaskResult,
 };
 use minipack_common::{ModuleId, ModuleLoaderMsg};
 use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 
-use super::ast_scanner::{AstScanResult, AstScanner, pre_processor::PreProcessor};
+use super::ast_scanner::{AstScanResult, AstScanner, PreProcessor};
 
 pub struct RuntimeModuleTask {
   idx: ModuleIdx,
@@ -45,17 +44,14 @@ impl RuntimeModuleTask {
       namespace_object_ref,
       symbols,
       imports,
-      import_records: raw_import_records,
       has_star_exports,
       ..
     } = scan_result;
 
     let module = NormalModule {
       idx: self.idx,
-      repr_name: "rolldown_runtime".to_string(),
       stable_id: RUNTIME_MODULE_ID.to_string(),
       id: ModuleId::new(RUNTIME_MODULE_ID),
-      debug_id: RUNTIME_MODULE_ID.to_string(),
       exec_order: u32::MAX,
       is_user_defined_entry: false,
       module_type: ModuleType::Js,
@@ -63,15 +59,11 @@ impl RuntimeModuleTask {
         ecma_ast_idx: None,
         source,
         import_records: IndexVec::default(),
-        importers: FxIndexSet::default(),
-        dynamic_importers: FxIndexSet::default(),
-        imported_ids: FxIndexSet::default(),
-        dynamically_imported_ids: FxIndexSet::default(),
         side_effects: DeterminedSideEffects::Analyzed(false),
+        imports,
+        stmt_infos,
         named_imports,
         named_exports,
-        stmt_infos,
-        imports,
         default_export_ref,
         namespace_object_ref,
         meta: {
@@ -82,23 +74,9 @@ impl RuntimeModuleTask {
       },
     };
 
-    let resolved_deps = raw_import_records
-      .iter()
-      .map(|rec| ResolvedId {
-        id: rec.specifier.as_str().into(),
-        is_external: true,
-      })
-      .collect();
-
     let runtime = RuntimeModuleBrief::new(self.idx, &symbols.ast_scopes);
-    let result = ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
-      ast,
-      module,
-      runtime,
-      symbols,
-      resolved_deps,
-      raw_import_records,
-    });
+    let result =
+      ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult { ast, module, runtime, symbols });
 
     let _ = self.tx.try_send(result);
 
@@ -118,8 +96,7 @@ impl RuntimeModuleTask {
       SemanticBuilder::new().build(&dep.program).semantic.into_scoping()
     });
 
-    let file_path = ModuleId::new(RUNTIME_MODULE_ID);
-    let ast_scanner = AstScanner::new(self.idx, scoping, "minipack_runtime", &file_path);
+    let ast_scanner = AstScanner::new(self.idx, scoping, "minipack_runtime");
 
     let ast_scan_result = ast_scanner.scan(ast.program())?;
 

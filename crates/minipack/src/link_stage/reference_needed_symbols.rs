@@ -1,6 +1,6 @@
 use std::{ptr::addr_of, sync::Mutex};
 
-use minipack_common::{ImportKind, ImportRecordMeta, Module, OutputFormat};
+use minipack_common::{ImportRecordMeta, Module, OutputFormat};
 use minipack_utils::{
   concat_string,
   rayon::{IntoParallelRefIterator, ParallelIterator},
@@ -24,7 +24,7 @@ impl LinkStage {
         stmt_info.import_records.iter().for_each(|&import_record_id| {
           let import_record = &normal_module.import_records[import_record_id];
 
-          if import_record.kind != ImportKind::Import {
+          if import_record.kind.is_static() {
             return;
           }
 

@@ -9,17 +9,13 @@ use oxc_index::IndexVec;
 
 #[derive(Debug)]
 pub struct NormalModule {
-  pub exec_order: u32,
-  pub idx: ModuleIdx,
-  pub is_user_defined_entry: bool,
   pub id: ModuleId,
-  /// `stable_id` is calculated based on `id` to be stable across machine and os.
+  pub idx: ModuleIdx,
+  pub exec_order: u32,
   pub stable_id: String,
-  // Pretty resource id for debug
-  pub debug_id: String,
-  pub repr_name: String,
-  pub module_type: ModuleType,
   pub ecma_view: EcmaView,
+  pub module_type: ModuleType,
+  pub is_user_defined_entry: bool,
 }
 
 impl NormalModule {

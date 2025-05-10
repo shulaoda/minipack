@@ -8,7 +8,7 @@ use oxc::{
 
 use super::{AstScanner, side_effect_detector::SideEffectDetector};
 
-impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
+impl<'ast> Visit<'ast> for AstScanner<'ast> {
   fn enter_node(&mut self, kind: oxc::ast::AstKind<'ast>) {
     self.visit_path.push(kind);
   }
@@ -37,7 +37,6 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
 
   fn visit_identifier_reference(&mut self, ident: &IdentifierReference) {
     self.process_identifier_ref_by_scope(ident);
-    self.try_diagnostic_forbid_const_assign(ident);
   }
 
   fn visit_statement(&mut self, stmt: &ast::Statement<'ast>) {
@@ -53,11 +52,7 @@ impl<'me, 'ast: 'me> Visit<'ast> for AstScanner<'me, 'ast> {
         request.value.as_str(),
         ImportKind::DynamicImport,
         expr.source.span(),
-        if expr.source.span().is_empty() {
-          ImportRecordMeta::IS_UNSPANNED_IMPORT
-        } else {
-          ImportRecordMeta::empty()
-        },
+        ImportRecordMeta::empty(),
       );
       self.result.imports.insert(expr.span, import_rec_idx);
     }

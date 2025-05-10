@@ -13,10 +13,8 @@ bitflags::bitflags! {
   pub struct ImportRecordMeta: u8 {
     /// If it is `import {} from '...'` or `import '...'`
     const IS_PLAIN_IMPORT = 1;
-    /// the import is inserted during ast transformation, can't get source slice from the original source file
-    const IS_UNSPANNED_IMPORT = 1 << 1;
     /// `export * from 'mod'` only
-    const IS_EXPORT_STAR = 1 << 2;
+    const IS_EXPORT_STAR = 1 << 1;
   }
 }
 
@@ -30,12 +28,6 @@ pub struct ImportRecord<State: Debug> {
   pub namespace_ref: SymbolRef,
 }
 
-impl<State: Debug> ImportRecord<State> {
-  pub fn is_unspanned(&self) -> bool {
-    self.meta.contains(ImportRecordMeta::IS_UNSPANNED_IMPORT)
-  }
-}
-
 impl RawImportRecord {
   pub fn new(specifier: Rstr, kind: ImportKind, namespace_ref: SymbolRef, span: Span) -> Self {
     Self { specifier, kind, namespace_ref, meta: ImportRecordMeta::empty(), state: span }
@@ -46,13 +38,13 @@ impl RawImportRecord {
     self
   }
 
-  pub fn into_resolved(self, resolved_module: ModuleIdx) -> ResolvedImportRecord {
+  pub fn into_resolved(self, module_idx: ModuleIdx) -> ResolvedImportRecord {
     ResolvedImportRecord {
-      state: resolved_module,
-      specifier: self.specifier,
+      state: module_idx,
       kind: self.kind,
-      namespace_ref: self.namespace_ref,
       meta: self.meta,
+      specifier: self.specifier,
+      namespace_ref: self.namespace_ref,
     }
   }
 }

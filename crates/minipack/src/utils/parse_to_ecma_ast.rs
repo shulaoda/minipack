@@ -6,26 +6,19 @@ use minipack_ecmascript::{EcmaAst, EcmaCompiler};
 use minipack_error::BuildResult;
 use oxc::{
   ast_visit::VisitMut as _,
-  diagnostics::Severity as OxcSeverity,
   minifier::{CompressOptions, Compressor},
   semantic::{Scoping, SemanticBuilder},
   span::SourceType as OxcSourceType,
   transformer::{ESTarget, TransformOptions, Transformer},
 };
 
-use crate::scan_stage::ast_scanner::pre_processor::PreProcessor;
-
-pub struct ParseToEcmaAstResult {
-  pub ast: EcmaAst,
-  pub scoping: Scoping,
-  pub warning: Vec<anyhow::Error>,
-}
+use crate::scan_stage::ast_scanner::PreProcessor;
 
 pub fn parse_to_ecma_ast(
+  source: String,
   source_path: &Path,
   module_type: &ModuleType,
-  source: String,
-) -> BuildResult<ParseToEcmaAstResult> {
+) -> BuildResult<(EcmaAst, Scoping)> {
   let source = if *module_type == ModuleType::Empty { ArcStr::new() } else { source.into() };
   let oxc_source_type = {
     let default = OxcSourceType::default().with_module(true);
@@ -34,17 +27,9 @@ pub fn parse_to_ecma_ast(
 
   let mut ast = EcmaCompiler::parse(&source, oxc_source_type)?;
 
-  // Build initial semantic data and check for semantic errors.
   let semantic_ret = ast.program.with_mut(|fields| SemanticBuilder::new().build(fields.program));
-
-  let mut warning = vec![];
   if !semantic_ret.errors.is_empty() {
-    warning.extend(
-      semantic_ret
-        .errors
-        .into_iter()
-        .map(|error| anyhow::anyhow!("Parse failed, got: {:?}", error.message)),
-    );
+    Err(anyhow::anyhow!("Failed to parse, got: {:?}", semantic_ret.errors))?;
   }
 
   let stats = semantic_ret.semantic.stats();
@@ -56,22 +41,9 @@ pub fn parse_to_ecma_ast(
         .build_with_scoping(scoping, fields.program)
     });
 
-    let (errors, warnings) =
-      transformer_return.errors.into_iter().fold((Vec::new(), Vec::new()), |mut acc, item| {
-        let message = anyhow::anyhow!("Parse failed, got: {:?}", item.message);
-        if matches!(item.severity, OxcSeverity::Error) {
-          acc.0.push(message);
-        } else {
-          acc.1.push(message);
-        }
-        acc
-      });
-
-    if !errors.is_empty() {
-      Err(errors)?;
+    if !transformer_return.errors.is_empty() {
+      Err(anyhow::anyhow!("Failed to transform, got: {:?}", transformer_return.errors))?;
     }
-
-    warning.extend(warnings);
 
     scoping = transformer_return.scoping;
     ast.program.with_mut(|fields| {
@@ -88,5 +60,5 @@ pub fn parse_to_ecma_ast(
     SemanticBuilder::new().with_stats(stats).build(fields.program).semantic.into_scoping()
   });
 
-  Ok(ParseToEcmaAstResult { ast, scoping, warning })
+  Ok((ast, scoping))
 }

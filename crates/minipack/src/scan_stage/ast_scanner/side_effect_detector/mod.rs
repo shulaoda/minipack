@@ -11,15 +11,13 @@ use oxc::ast::ast::{
   VariableDeclarationKind,
 };
 use oxc::ast::{match_expression, match_member_expression};
+
 use utils::{
-  can_change_strict_to_loose, is_side_effect_free_unbound_identifier_ref,
+  PrimitiveType, can_change_strict_to_loose, extract_member_expr_chain, is_primitive_literal,
+  is_side_effect_free_unbound_identifier_ref, known_primitive_type,
   maybe_side_effect_free_global_constructor,
 };
-use utils::{extract_member_expr_chain, is_primitive_literal};
 
-use self::utils::{PrimitiveType, known_primitive_type};
-
-/// Detect if a statement "may" have side effect.
 pub struct SideEffectDetector<'a> {
   pub scope: &'a AstScopes,
 }

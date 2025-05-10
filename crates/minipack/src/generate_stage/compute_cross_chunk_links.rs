@@ -7,8 +7,8 @@ use super::GenerateStage;
 
 use itertools::{Itertools, multizip};
 use minipack_common::{
-  ChunkIdx, ChunkKind, CrossChunkImportItem, ImportKind, ImportRecordMeta, Module, ModuleIdx,
-  NamedImport, OutputFormat, SymbolOrMemberExprRef, SymbolRef,
+  ChunkIdx, ChunkKind, CrossChunkImportItem, ImportRecordMeta, Module, ModuleIdx, NamedImport,
+  OutputFormat, SymbolOrMemberExprRef, SymbolRef,
 };
 use minipack_utils::{
   concat_string,
@@ -170,14 +170,14 @@ impl GenerateStage {
                 if !importee.meta.is_included() {
                   return;
                 }
-                if rec.kind == ImportKind::DynamicImport {
+                if rec.kind.is_dynamic() {
                   let importee_chunk = chunk_graph.module_to_chunk[importee.idx].unwrap();
                   cross_chunk_dynamic_imports.insert(importee_chunk);
                 }
               }
             })
             .filter(|import_record| {
-              import_record.kind == ImportKind::Import
+              import_record.kind.is_static()
                 && !import_record.meta.contains(ImportRecordMeta::IS_EXPORT_STAR)
             })
             .filter_map(|import_record| {

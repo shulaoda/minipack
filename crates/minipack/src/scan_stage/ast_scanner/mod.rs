@@ -1,11 +1,13 @@
 mod impl_visit;
-pub mod pre_processor;
+mod pre_processor;
 mod side_effect_detector;
+
+pub use pre_processor::PreProcessor;
 
 use std::borrow::Cow;
 
 use minipack_common::{
-  ImportKind, ImportRecordIdx, ImportRecordMeta, LocalExport, MemberExprRef, ModuleId, ModuleIdx,
+  ImportKind, ImportRecordIdx, ImportRecordMeta, LocalExport, MemberExprRef, ModuleIdx,
   NamedImport, RawImportRecord, Specifier, StmtInfo, StmtInfos, SymbolRef, SymbolRefDbForModule,
   SymbolRefFlags,
 };
@@ -32,34 +34,28 @@ use crate::utils::ecmascript::legitimize_identifier_name;
 
 #[derive(Debug)]
 pub struct AstScanResult {
-  pub named_imports: FxHashMap<SymbolRef, NamedImport>,
-  pub named_exports: FxHashMap<Rstr, LocalExport>,
+  pub symbols: SymbolRefDbForModule,
   pub stmt_infos: StmtInfos,
-  pub import_records: IndexVec<ImportRecordIdx, RawImportRecord>,
+  pub has_star_exports: bool,
   pub default_export_ref: SymbolRef,
   pub namespace_object_ref: SymbolRef,
   pub imports: FxHashMap<Span, ImportRecordIdx>,
-  pub warnings: Vec<anyhow::Error>,
+  pub named_imports: FxHashMap<SymbolRef, NamedImport>,
+  pub named_exports: FxHashMap<Rstr, LocalExport>,
+  pub import_records: IndexVec<ImportRecordIdx, RawImportRecord>,
   pub errors: Vec<anyhow::Error>,
-  pub symbols: SymbolRefDbForModule,
-  pub has_star_exports: bool,
+  pub warnings: Vec<anyhow::Error>,
 }
 
-pub struct AstScanner<'me, 'ast> {
+pub struct AstScanner<'ast> {
   idx: ModuleIdx,
-  id: &'me ModuleId,
   result: AstScanResult,
   current_stmt_info: StmtInfo,
   visit_path: Vec<AstKind<'ast>>,
 }
 
-impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
-  pub fn new(
-    idx: ModuleIdx,
-    scoping: Scoping,
-    repr_name: &'me str,
-    file_path: &'me ModuleId,
-  ) -> Self {
+impl<'ast> AstScanner<'ast> {
+  pub fn new(idx: ModuleIdx, scoping: Scoping, repr_name: &str) -> Self {
     let root_scope_id = scoping.root_scope_id();
     let mut symbol_ref_db = SymbolRefDbForModule::new(idx, scoping, root_scope_id);
     // This is used for converting "export default foo;" => "var default_symbol = foo;"
@@ -94,7 +90,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       has_star_exports: false,
     };
 
-    Self { idx, current_stmt_info: StmtInfo::default(), result, id: file_path, visit_path: vec![] }
+    Self { idx, current_stmt_info: StmtInfo::default(), result, visit_path: vec![] }
   }
 
   pub fn scan(mut self, program: &Program<'ast>) -> BuildResult<AstScanResult> {
@@ -110,7 +106,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
     self.result.symbols.get_root_binding(name)
   }
 
-  /// `is_dummy` means if it the import record is created during ast transformation.
   fn add_import_record(
     &mut self,
     module_request: &str,
@@ -167,18 +162,16 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
 
   fn add_local_export(&mut self, export_name: &str, local: SymbolId, span: Span) {
     let symbol_ref: SymbolRef = (self.idx, local).into();
-
     let is_const = self.result.symbols.symbol_flags(local).is_const_variable();
-
-    // If there is any write reference to the local variable, it is reassigned.
     let is_reassigned = self.result.symbols.get_resolved_references(local).any(Reference::is_write);
 
-    let ref_flags = symbol_ref.flags_mut(&mut self.result.symbols);
+    let symbol_ref_flags = symbol_ref.flags_mut(&mut self.result.symbols);
+
     if is_const {
-      ref_flags.insert(SymbolRefFlags::IS_CONST);
+      symbol_ref_flags.insert(SymbolRefFlags::IS_CONST);
     }
     if !is_reassigned {
-      ref_flags.insert(SymbolRefFlags::IS_NOT_REASSIGNED);
+      symbol_ref_flags.insert(SymbolRefFlags::IS_NOT_REASSIGNED);
     }
 
     self
@@ -232,7 +225,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       let importee_repr = legitimize_identifier_name(&importee_repr);
       Cow::Owned(concat_string!(importee_repr, "_default"))
     } else {
-      // the export_name could be a string literal
       legitimize_identifier_name(export_name)
     };
 
@@ -278,11 +270,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       decl.source.value.as_str(),
       ImportKind::Import,
       decl.source.span(),
-      if decl.source.span().is_empty() {
-        ImportRecordMeta::IS_UNSPANNED_IMPORT
-      } else {
-        ImportRecordMeta::empty()
-      },
+      ImportRecordMeta::empty(),
     );
     if let Some(exported) = &decl.exported {
       // export * as ns from '...'
@@ -301,11 +289,7 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         source.value.as_str(),
         ImportKind::Import,
         source.span(),
-        if source.span().is_empty() {
-          ImportRecordMeta::IS_UNSPANNED_IMPORT
-        } else {
-          ImportRecordMeta::empty()
-        },
+        ImportRecordMeta::empty(),
       );
       decl.specifiers.iter().for_each(|spec| {
         self.add_re_export(
@@ -388,14 +372,10 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
       decl.source.value.as_str(),
       ImportKind::Import,
       decl.source.span(),
-      if decl.source.span().is_empty() {
-        ImportRecordMeta::IS_UNSPANNED_IMPORT
-      } else {
-        ImportRecordMeta::empty()
-      },
+      ImportRecordMeta::empty(),
     );
     self.result.imports.insert(decl.span, rec_id);
-    // // `import '...'` or `import {} from '...'`
+    // `import '...'` or `import {} from '...'`
     if decl.specifiers.as_ref().is_none_or(|s| s.is_empty()) {
       self.result.import_records[rec_id].meta.insert(ImportRecordMeta::IS_PLAIN_IMPORT);
     }
@@ -474,22 +454,6 @@ impl<'me, 'ast: 'me> AstScanner<'me, 'ast> {
         self.add_referenced_symbol(root_symbol_id);
       }
     }
-  }
-
-  fn try_diagnostic_forbid_const_assign(&mut self, id_ref: &IdentifierReference) -> Option<()> {
-    let ref_id = id_ref.reference_id.get()?;
-    let reference = &self.result.symbols.get_reference(ref_id);
-    if reference.is_write() {
-      let symbol_id = reference.symbol_id()?;
-      if self.result.symbols.symbol_flags(symbol_id).is_const_variable() {
-        self.result.errors.push(anyhow::anyhow!(
-          "Unexpected re-assignment of const variable `{0}` at {1}",
-          self.result.symbols.symbol_name(symbol_id),
-          self.id.as_ref()
-        ));
-      }
-    }
-    None
   }
 
   /// return a `Some(SymbolRef)` if the identifier referenced a top level `IdentBinding`
