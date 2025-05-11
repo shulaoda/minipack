@@ -1,8 +1,6 @@
 use minipack_common::{Module, ModuleIdx, side_effects::DeterminedSideEffects};
 use oxc_index::IndexVec;
 
-use crate::link_stage::LinkStage;
-
 #[derive(Debug, Clone, Copy)]
 enum SideEffectCache {
   None,
@@ -10,7 +8,7 @@ enum SideEffectCache {
   Cache(DeterminedSideEffects),
 }
 
-impl LinkStage {
+impl crate::link_stage::LinkStage {
   pub fn determine_side_effects(&mut self) {
     let mut side_effects_cache =
       oxc_index::index_vec![SideEffectCache::None; self.module_table.len()];
@@ -55,7 +53,6 @@ impl LinkStage {
         return side_effects;
       }
     }
-
     module_side_effects
   }
 }

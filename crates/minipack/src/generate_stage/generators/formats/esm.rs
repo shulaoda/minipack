@@ -19,14 +19,15 @@ pub fn render_esm<'code>(
   if let Some(entry_module) = ctx.chunk.entry_module(&ctx.link_stage_output.module_table) {
     entry_module
       .star_export_module_ids()
-      .filter_map(|importee| ctx.link_stage_output.module_table[importee].as_external().map(|m| &m.name))
+      .filter_map(|importee| {
+        ctx.link_stage_output.module_table[importee].as_external().map(|m| &m.name)
+      })
       .dedup()
       .for_each(|ext_name| {
         source_joiner.append_source(concat_string!("export * from \"", ext_name, "\"\n"));
       });
   }
 
-  // chunk content
   module_sources.iter().for_each(
     |RenderedModuleSource { sources: module_render_output, .. }| {
       if let Some(emitted_sources) = module_render_output {
@@ -90,7 +91,8 @@ fn render_esm_chunk_imports(ctx: &GenerateContext<'_>) -> String {
     let specifiers = named_imports
       .iter()
       .filter_map(|item| {
-        let canonical_ref = &ctx.link_stage_output.symbol_ref_db.canonical_ref_for(item.imported_as);
+        let canonical_ref =
+          &ctx.link_stage_output.symbol_ref_db.canonical_ref_for(item.imported_as);
         if !ctx.link_stage_output.used_symbol_refs.contains(canonical_ref) {
           return None;
         };

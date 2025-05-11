@@ -20,6 +20,7 @@ lint: lint-rust lint-node lint-repo
 
 lint-rust:
     cargo clippy --workspace --all-targets -- --deny warnings
+    cargo fmt --all
     cargo shear
 
 lint-node:

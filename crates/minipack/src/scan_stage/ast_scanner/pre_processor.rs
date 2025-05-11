@@ -47,7 +47,7 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
     program.body.extend(std::mem::take(&mut self.stmt_temp_storage));
   }
 
-  /// split `var a = 1, b = 2;` into `var a = 1; var b = 2;`
+  /// Split `var a = 1, b = 2;` into `var a = 1; var b = 2;`
   fn visit_export_named_declaration(&mut self, named_decl: &mut ast::ExportNamedDeclaration<'ast>) {
     walk_mut::walk_export_named_declaration(self, named_decl);
 
@@ -91,7 +91,7 @@ impl<'ast> VisitMut<'ast> for PreProcessor<'ast> {
     }
   }
 
-  /// transpose `import(test ? 'a' : 'b')` into `test ? import('a') : import('b')`
+  /// Transpose `import(test ? 'a' : 'b')` into `test ? import('a') : import('b')`
   fn visit_expression(&mut self, it: &mut ast::Expression<'ast>) {
     if let ast::Expression::ImportExpression(expr) = it {
       if expr.options.is_none() {

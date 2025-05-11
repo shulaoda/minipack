@@ -1,8 +1,6 @@
 use minipack_common::{Module, SymbolOrMemberExprRef};
 
-use super::LinkStage;
-
-impl LinkStage {
+impl super::LinkStage {
   pub(crate) fn patch_module_dependencies(&mut self) {
     self.metadata.iter_mut_enumerated().for_each(|(idx, meta)| {
       // Symbols from runtime are referenced by bundler not import statements.

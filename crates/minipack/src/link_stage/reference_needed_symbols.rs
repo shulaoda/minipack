@@ -8,9 +8,7 @@ use minipack_utils::{
 
 use crate::utils::ecmascript::legitimize_identifier_name;
 
-use super::LinkStage;
-
-impl LinkStage {
+impl super::LinkStage {
   pub(crate) fn reference_needed_symbols(&mut self) {
     let symbol_ref_db = Mutex::new(&mut self.symbol_ref_db);
     self.module_table.par_iter().filter_map(|m| m.as_normal()).for_each(|normal_module| {

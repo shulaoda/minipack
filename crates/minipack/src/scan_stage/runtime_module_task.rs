@@ -37,48 +37,47 @@ impl RuntimeModuleTask {
     let (ast, scan_result) = self.make_ecma_ast(&source)?;
 
     let AstScanResult {
+      symbols,
+      stmt_infos,
+      imports,
       named_imports,
       named_exports,
-      stmt_infos,
       default_export_ref,
       namespace_object_ref,
-      symbols,
-      imports,
-      has_star_exports,
       ..
     } = scan_result;
 
     let module = NormalModule {
       idx: self.idx,
-      stable_id: RUNTIME_MODULE_ID.to_string(),
       id: ModuleId::new(RUNTIME_MODULE_ID),
+      stable_id: RUNTIME_MODULE_ID.to_string(),
       exec_order: u32::MAX,
-      is_user_defined_entry: false,
       module_type: ModuleType::Js,
+      is_user_defined_entry: false,
       ecma_view: EcmaView {
-        ecma_ast_idx: None,
         source,
-        import_records: IndexVec::default(),
-        side_effects: DeterminedSideEffects::Analyzed(false),
         imports,
         stmt_infos,
         named_imports,
         named_exports,
         default_export_ref,
         namespace_object_ref,
-        meta: {
-          let mut meta = EcmaViewMeta::default();
-          meta.set(EcmaViewMeta::HAS_STAR_EXPORT, has_star_exports);
-          meta
-        },
+        ecma_ast_idx: None,
+        meta: EcmaViewMeta::empty(),
+        import_records: IndexVec::default(),
+        side_effects: DeterminedSideEffects::Analyzed(false),
       },
     };
 
     let runtime = RuntimeModuleBrief::new(self.idx, &symbols.ast_scopes);
-    let result =
-      ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult { ast, module, runtime, symbols });
+    let task_result = ModuleLoaderMsg::RuntimeModuleDone(Box::new(RuntimeModuleTaskResult {
+      ast,
+      module,
+      runtime,
+      symbols,
+    }));
 
-    let _ = self.tx.try_send(result);
+    let _ = self.tx.try_send(task_result);
 
     Ok(())
   }
@@ -97,7 +96,6 @@ impl RuntimeModuleTask {
     });
 
     let ast_scanner = AstScanner::new(self.idx, scoping, "minipack_runtime");
-
     let ast_scan_result = ast_scanner.scan(ast.program())?;
 
     Ok((ast, ast_scan_result))

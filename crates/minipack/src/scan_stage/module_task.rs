@@ -88,7 +88,7 @@ impl ModuleTask {
       })
       .collect::<BuildResult<IndexVec<_, _>>>()?;
 
-    let result = ModuleLoaderMsg::NormalModuleDone(NormalModuleTaskResult {
+    let result = ModuleLoaderMsg::NormalModuleDone(Box::new(NormalModuleTaskResult {
       module: Module::Normal(Box::new(NormalModule {
         id,
         idx: self.idx,
@@ -102,7 +102,7 @@ impl ModuleTask {
       resolved_deps,
       raw_import_records,
       warnings,
-    });
+    }));
 
     let _ = self.ctx.tx.send(result).await;
 

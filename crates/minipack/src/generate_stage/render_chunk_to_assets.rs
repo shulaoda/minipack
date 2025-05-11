@@ -44,7 +44,7 @@ impl GenerateStage {
     let tasks =
       chunk_graph.chunk_table.iter_enumerated().zip(chunk_index_to_codegen_rets.into_iter()).map(
         |((chunk_idx, chunk), module_id_to_codegen_ret)| async move {
-          let mut ctx = GenerateContext {
+          EcmaGenerator::instantiate_chunk(&mut GenerateContext {
             chunk_idx,
             chunk,
             options: &self.options,
@@ -52,9 +52,8 @@ impl GenerateStage {
             chunk_graph,
             warnings: vec![],
             module_id_to_codegen_ret,
-          };
-
-          EcmaGenerator::instantiate_chunk(&mut ctx).await
+          })
+          .await
         },
       );
 

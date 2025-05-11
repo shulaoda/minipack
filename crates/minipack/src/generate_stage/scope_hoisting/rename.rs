@@ -2,9 +2,7 @@ use minipack_common::SymbolRef;
 use minipack_ecmascript::ExpressionExt;
 use oxc::ast::ast::{self, Expression, IdentifierReference};
 
-use super::ScopeHoistingFinalizer;
-
-impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
+impl<'ast> super::ScopeHoistingFinalizer<'_, 'ast> {
   /// return `None` if
   /// - the reference is for a global variable/the reference doesn't have a `SymbolId`
   /// - the reference doesn't have a `ReferenceId`
@@ -18,7 +16,7 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     let reference_id = id_ref.reference_id.get()?;
 
     // we will hit this branch if the reference points to a global variable
-    let symbol_id = self.scope.symbol_id_for(reference_id)?;
+    let symbol_id = self.ast_scope.symbol_id_for(reference_id)?;
     let symbol_ref = (self.ctx.id, symbol_id).into();
 
     let mut expr = self.finalized_expr_for_symbol_ref(symbol_ref, is_callee);
@@ -52,7 +50,7 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     let reference_id = id_ref.reference_id.get()?;
 
     // we will hit this branch if the reference points to a global variable
-    let symbol_id = self.scope.symbol_id_for(reference_id)?;
+    let symbol_id = self.ast_scope.symbol_id_for(reference_id)?;
 
     let symbol_ref: SymbolRef = (self.ctx.id, symbol_id).into();
     let canonical_ref = self.ctx.symbol_ref_db.canonical_ref_for(symbol_ref);
@@ -92,7 +90,7 @@ impl<'ast> ScopeHoistingFinalizer<'_, 'ast> {
     // Some `IdentifierReference`s constructed by bundler don't have `ReferenceId` and we just ignore them.
     if let ast::SimpleAssignmentTarget::AssignmentTargetIdentifier(target_id_ref) = target {
       let reference_id = target_id_ref.reference_id.get()?;
-      let symbol_id = self.scope.symbol_id_for(reference_id)?;
+      let symbol_id = self.ast_scope.symbol_id_for(reference_id)?;
 
       let symbol_ref = (self.ctx.id, symbol_id).into();
       let canonical_ref = self.ctx.symbol_ref_db.canonical_ref_for(symbol_ref);

@@ -64,7 +64,8 @@ impl GenerateStage {
       );
     });
 
-    let mut module_to_assigned = oxc_index::index_vec![false; self.link_stage_output.module_table.len()];
+    let mut module_to_assigned =
+      oxc_index::index_vec![false; self.link_stage_output.module_table.len()];
 
     // 1. Assign modules to corresponding chunks
     // 2. Create shared chunks to store modules that belong to multiple chunks.
@@ -97,9 +98,9 @@ impl GenerateStage {
 
     // Sort modules in each chunk by execution order
     chunk_graph.chunk_table.iter_mut().for_each(|chunk| {
-      chunk
-        .modules
-        .sort_unstable_by_key(|module_id| self.link_stage_output.module_table[*module_id].exec_order());
+      chunk.modules.sort_unstable_by_key(|module_id| {
+        self.link_stage_output.module_table[*module_id].exec_order()
+      });
     });
 
     chunk_graph
@@ -117,7 +118,8 @@ impl GenerateStage {
             .exec_order()
             .cmp(&self.link_stage_output.module_table[*b_module_id].exec_order()),
           (ChunkKind::EntryPoint { module: a_module_id, .. }, ChunkKind::Common) => {
-            let a_module_exec_order = self.link_stage_output.module_table[*a_module_id].exec_order();
+            let a_module_exec_order =
+              self.link_stage_output.module_table[*a_module_id].exec_order();
             let b_chunk_first_module_exec_order =
               self.link_stage_output.module_table[b.modules[0]].exec_order();
             if a_module_exec_order == b_chunk_first_module_exec_order {
@@ -127,7 +129,8 @@ impl GenerateStage {
             }
           }
           (ChunkKind::Common, ChunkKind::EntryPoint { module: b_module_id, .. }) => {
-            let b_module_exec_order = self.link_stage_output.module_table[*b_module_id].exec_order();
+            let b_module_exec_order =
+              self.link_stage_output.module_table[*b_module_id].exec_order();
             let a_chunk_first_module_exec_order =
               self.link_stage_output.module_table[a.modules[0]].exec_order();
             if a_chunk_first_module_exec_order == b_module_exec_order {

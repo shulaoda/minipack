@@ -6,9 +6,9 @@ use oxc::{
   span::GetSpan,
 };
 
-use super::{AstScanner, side_effect_detector::SideEffectDetector};
+use super::side_effect_detector::SideEffectDetector;
 
-impl<'ast> Visit<'ast> for AstScanner<'ast> {
+impl<'ast> Visit<'ast> for super::AstScanner<'ast> {
   fn enter_node(&mut self, kind: oxc::ast::AstKind<'ast>) {
     self.visit_path.push(kind);
   }
@@ -19,9 +19,10 @@ impl<'ast> Visit<'ast> for AstScanner<'ast> {
 
   fn visit_program(&mut self, program: &ast::Program<'ast>) {
     for (idx, stmt) in program.body.iter().enumerate() {
+      let side_effect_detector = SideEffectDetector::new(&self.result.symbols.ast_scopes);
+
       self.current_stmt_info.stmt_idx = Some(idx.into());
-      self.current_stmt_info.side_effect =
-        SideEffectDetector::new(&self.result.symbols.ast_scopes).detect_side_effect_of_stmt(stmt);
+      self.current_stmt_info.side_effect = side_effect_detector.detect_side_effect_of_stmt(stmt);
 
       self.visit_statement(stmt);
       self.result.stmt_infos.add_stmt_info(std::mem::take(&mut self.current_stmt_info));

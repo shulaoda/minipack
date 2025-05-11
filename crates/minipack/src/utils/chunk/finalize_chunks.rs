@@ -1,6 +1,5 @@
 use std::hash::Hash;
 
-use arcstr::ArcStr;
 use itertools::Itertools;
 use minipack_common::{AssetIdx, OutputAsset};
 use minipack_utils::{
@@ -20,15 +19,12 @@ pub fn finalize_assets(instantiated_chunks: IndexInstantiatedChunks) -> Vec<Outp
   let asset_idx_by_placeholder = instantiated_chunks
     .iter_enumerated()
     .filter_map(|(asset_idx, asset)| {
-      asset.preliminary_filename.hash_placeholder().map(|placeholders| {
-        placeholders
-          .iter()
-          .map(|hash_placeholder| (hash_placeholder.into(), asset_idx))
-          .collect::<Vec<_>>()
+      asset.preliminary_filename.hash_placeholder().map(move |placeholders| {
+        placeholders.iter().map(move |hash_placeholder| (hash_placeholder.as_str(), asset_idx))
       })
     })
     .flatten()
-    .collect::<FxHashMap<ArcStr, _>>();
+    .collect::<FxHashMap<_, _>>();
 
   let index_direct_dependencies = instantiated_chunks
     .par_iter()
@@ -81,9 +77,7 @@ pub fn finalize_assets(instantiated_chunks: IndexInstantiatedChunks) -> Vec<Outp
     .filter_map(|(idx, hash)| {
       let asset = &instantiated_chunks[idx];
       asset.preliminary_filename.hash_placeholder().map(|placeholders| {
-        placeholders
-          .iter()
-          .map(|placeholder| (placeholder.clone().into(), &hash[..placeholder.len()]))
+        placeholders.iter().map(|placeholder| (placeholder.clone(), &hash[..placeholder.len()]))
       })
     })
     .flatten()
@@ -98,7 +92,7 @@ pub fn finalize_assets(instantiated_chunks: IndexInstantiatedChunks) -> Vec<Outp
       )
       .into_owned();
       asset.content =
-        replace_placeholder_with_hash(asset.content, &final_hashes_by_placeholder).into_owned();
+        replace_placeholder_with_hash(&asset.content, &final_hashes_by_placeholder).into_owned();
       asset.finalize(filename)
     })
     .collect::<Vec<_>>()

@@ -1,7 +1,5 @@
 use indexmap::IndexSet;
-use minipack_common::{
-  Module, ModuleIdx, NamespaceAlias, OutputFormat, Specifier, SymbolRef, SymbolRefDb,
-};
+use minipack_common::{Module, ModuleIdx, NamespaceAlias, Specifier, SymbolRef, SymbolRefDb};
 use minipack_utils::rstr::Rstr;
 use oxc::span::CompactStr;
 use rustc_hash::{FxHashMap, FxHashSet};
@@ -16,38 +14,19 @@ struct ImportTracker {
   pub imported_as: SymbolRef,
 }
 
-#[derive(Debug, Eq)]
-pub struct MatchImportKindNormal {
-  symbol: SymbolRef,
-  reexports: Vec<SymbolRef>,
-}
-
-impl PartialEq for MatchImportKindNormal {
-  fn eq(&self, other: &Self) -> bool {
-    self.symbol == other.symbol
-  }
-}
-
 #[derive(Debug, PartialEq, Eq)]
 pub enum MatchImportKind {
-  // "sourceIndex" and "ref" are in use
-  Normal(MatchImportKindNormal),
-  // "namespaceRef" and "alias" are in use
-  Namespace(SymbolRef),
-  // Both "matchImportNormal" and "matchImportNamespace"
-  NormalAndNamespace { namespace_ref: SymbolRef, alias: Rstr },
-  // The import could not be evaluated due to a cycle
   Cycle,
   NoMatch,
+  Namespace(SymbolRef),
+  Normal { symbol: SymbolRef, reexports: Vec<SymbolRef> },
+  NormalAndNamespace { namespace_ref: SymbolRef, alias: Rstr },
 }
 
 #[derive(Debug)]
 pub enum ImportStatus {
-  /// The imported file has no matching export
   NoMatch,
-  /// The imported file has a matching export
   Matched(SymbolRef),
-  /// The imported file is external and has unknown exports
   External(SymbolRef),
 }
 
@@ -57,8 +36,8 @@ pub(super) struct BindImportsAndExportsContext<'a> {
   pub symbol_db: &'a mut SymbolRefDb,
   pub options: &'a SharedOptions,
   pub errors: Vec<anyhow::Error>,
-  pub external_imports: FxHashMap<ModuleIdx, FxHashMap<CompactStr, IndexSet<SymbolRef>>>,
   pub side_effects_modules: &'a FxHashSet<ModuleIdx>,
+  pub external_imports: FxHashMap<ModuleIdx, FxHashMap<CompactStr, IndexSet<SymbolRef>>>,
   pub normal_symbol_exports_chain_map: &'a mut FxHashMap<SymbolRef, Vec<SymbolRef>>,
 }
 
@@ -68,7 +47,7 @@ impl BindImportsAndExportsContext<'_> {
       return;
     };
 
-    let is_esm = matches!(self.options.format, OutputFormat::Esm);
+    let is_esm = self.options.format.is_esm();
     for (&imported_as_ref, named_import) in &module.named_imports {
       let import_record = &module.import_records[named_import.record_id];
       let is_external = matches!(self.module_table[import_record.state], Module::External(_));
@@ -97,7 +76,10 @@ impl BindImportsAndExportsContext<'_> {
       );
 
       match ret {
-        MatchImportKind::Normal(MatchImportKindNormal { symbol, reexports }) => {
+        MatchImportKind::Namespace(namespace_ref) => {
+          self.symbol_db.link(imported_as_ref, namespace_ref);
+        }
+        MatchImportKind::Normal { symbol, reexports } => {
           for r in &reexports {
             if self.side_effects_modules.contains(&r.owner) {
               self.metadata[module_idx].dependencies.insert(r.owner);
@@ -105,9 +87,6 @@ impl BindImportsAndExportsContext<'_> {
           }
           self.normal_symbol_exports_chain_map.insert(imported_as_ref, reexports);
           self.symbol_db.link(imported_as_ref, symbol);
-        }
-        MatchImportKind::Namespace(namespace_ref) => {
-          self.symbol_db.link(imported_as_ref, namespace_ref);
         }
         MatchImportKind::NormalAndNamespace { namespace_ref, alias } => {
           self.symbol_db.get_mut(imported_as_ref).namespace_alias =
@@ -154,10 +133,10 @@ impl BindImportsAndExportsContext<'_> {
           if let Some(another_named_import) = owner.named_imports.get(&symbol) {
             let import_record = &owner.import_records[another_named_import.record_id];
             match &self.module_table[import_record.state] {
-              Module::External(_) => MatchImportKind::Normal(MatchImportKindNormal {
+              Module::External(_) => MatchImportKind::Normal {
                 symbol: another_named_import.imported_as,
                 reexports: vec![],
-              }),
+              },
               Module::Normal(importee) => {
                 tracker.importee = importee.idx;
                 tracker.importer = owner.idx;
@@ -168,17 +147,14 @@ impl BindImportsAndExportsContext<'_> {
               }
             }
           } else {
-            MatchImportKind::Normal(MatchImportKindNormal { symbol, reexports })
+            MatchImportKind::Normal { symbol, reexports }
           }
         }
         ImportStatus::External(symbol_ref) => {
           if self.options.format.is_esm() {
             // Imports from external modules should not be converted to CommonJS
             // if the output format preserves the original ES6 import statements
-            MatchImportKind::Normal(MatchImportKindNormal {
-              symbol: tracker.imported_as,
-              reexports: vec![],
-            })
+            MatchImportKind::Normal { symbol: tracker.imported_as, reexports: vec![] }
           } else {
             match &tracker.imported {
               Specifier::Star => MatchImportKind::Namespace(symbol_ref),

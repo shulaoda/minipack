@@ -456,7 +456,7 @@ impl<'ast> AstScanner<'ast> {
     }
   }
 
-  /// return a `Some(SymbolRef)` if the identifier referenced a top level `IdentBinding`
+  /// Return a `Some(SymbolRef)` if the identifier referenced a top level `IdentBinding`
   fn resolve_identifier_reference(&mut self, ident: &IdentifierReference) -> Option<SymbolRef> {
     self
       .resolve_symbol_from_reference(ident)

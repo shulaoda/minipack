@@ -153,7 +153,6 @@ impl<'a> SideEffectDetector<'a> {
           }
           ast::ObjectPropertyKind::SpreadProperty(_) => {
             // ...[expression] is considered as having side effect.
-            // see crates/rolldown/tests/fixtures/rollup/object-spread-side-effect
             true
           }
         })

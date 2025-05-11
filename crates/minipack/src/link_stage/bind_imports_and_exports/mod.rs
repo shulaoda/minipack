@@ -11,13 +11,9 @@ use minipack_utils::{
 };
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use bind_imports_and_exports_context::BindImportsAndExportsContext;
-
 use crate::{types::IndexModules, utils::ecmascript::legitimize_identifier_name};
 
-use super::LinkStage;
-
-impl LinkStage {
+impl super::LinkStage {
   /// Notices:
   /// - For external import like
   /// ```js
@@ -64,7 +60,7 @@ impl LinkStage {
 
     let mut normal_symbol_exports_chain_map = FxHashMap::default();
 
-    let mut ctx = BindImportsAndExportsContext {
+    let mut ctx = bind_imports_and_exports_context::BindImportsAndExportsContext {
       module_table: &self.module_table,
       metadata: &mut self.metadata,
       symbol_db: &mut self.symbol_ref_db,

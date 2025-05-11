@@ -8,8 +8,6 @@ use rustc_hash::FxHashSet;
 
 use crate::types::{IndexModules, LinkingMetadataVec};
 
-use crate::link_stage::LinkStage;
-
 struct Context<'a> {
   module_table: &'a IndexModules,
   symbol_ref_db: &'a SymbolRefDb,
@@ -20,16 +18,61 @@ struct Context<'a> {
   used_symbol_refs: &'a mut FxHashSet<SymbolRef>,
 }
 
+impl crate::link_stage::LinkStage {
+  pub fn include_statements(&mut self) {
+    let mut is_included_vec = self
+      .module_table
+      .iter()
+      .map(|m| {
+        m.as_normal().map_or(IndexVec::default(), |m| {
+          m.stmt_infos.iter().map(|_| false).collect::<IndexVec<StmtInfoIdx, _>>()
+        })
+      })
+      .collect::<IndexVec<ModuleIdx, _>>();
+
+    let mut is_module_included_vec = oxc_index::index_vec![false; self.module_table.len()];
+
+    let context = &mut Context {
+      module_table: &self.module_table,
+      symbol_ref_db: &self.symbol_ref_db,
+      is_included_vec: &mut is_included_vec,
+      is_module_included_vec: &mut is_module_included_vec,
+      runtime_id: self.runtime_module.idx,
+      metadata: &self.metadata,
+      used_symbol_refs: &mut self.used_symbol_refs,
+    };
+
+    self.entry_points.iter().for_each(|entry| {
+      if let Module::Normal(module) = &self.module_table[entry.idx] {
+        let meta = &self.metadata[entry.idx];
+        meta.referenced_symbols_by_entry_point_chunk.iter().for_each(|symbol_ref| {
+          include_symbol(context, *symbol_ref);
+        });
+        include_module(context, module);
+      }
+    });
+
+    self.module_table.par_iter_mut().for_each(|module| {
+      if let Module::Normal(module) = module {
+        let value = is_module_included_vec[module.idx];
+        module.meta.set(EcmaViewMeta::INCLUDED, value);
+        is_included_vec[module.idx].iter_enumerated().for_each(|(stmt_info_id, is_included)| {
+          module.stmt_infos.get_mut(stmt_info_id).is_included = *is_included;
+        });
+      }
+    });
+  }
+}
+
 /// if no export is used, and the module has no side effects, the module should not be included
 fn include_module(ctx: &mut Context, module: &NormalModule) {
   if ctx.is_module_included_vec[module.idx] {
     return;
   }
+
   ctx.is_module_included_vec[module.idx] = true;
 
   if module.idx == ctx.runtime_id {
-    // runtime module has no side effects and it's statements should be included
-    // by other modules's references.
     return;
   }
 
@@ -104,50 +147,4 @@ fn include_statement(ctx: &mut Context, module: &NormalModule, stmt_info_id: Stm
       }
     }
   });
-}
-
-impl LinkStage {
-  pub fn include_statements(&mut self) {
-    let mut is_included_vec = self
-      .module_table
-      .iter()
-      .map(|m| {
-        m.as_normal().map_or(IndexVec::default(), |m| {
-          m.stmt_infos.iter().map(|_| false).collect::<IndexVec<StmtInfoIdx, _>>()
-        })
-      })
-      .collect::<IndexVec<ModuleIdx, _>>();
-
-    let mut is_module_included_vec = oxc_index::index_vec![false; self.module_table.len()];
-
-    let context = &mut Context {
-      module_table: &self.module_table,
-      symbol_ref_db: &self.symbol_ref_db,
-      is_included_vec: &mut is_included_vec,
-      is_module_included_vec: &mut is_module_included_vec,
-      runtime_id: self.runtime_module.idx,
-      metadata: &self.metadata,
-      used_symbol_refs: &mut self.used_symbol_refs,
-    };
-
-    self.entry_points.iter().for_each(|entry| {
-      if let Module::Normal(module) = &self.module_table[entry.idx] {
-        let meta = &self.metadata[entry.idx];
-        meta.referenced_symbols_by_entry_point_chunk.iter().for_each(|symbol_ref| {
-          include_symbol(context, *symbol_ref);
-        });
-        include_module(context, module);
-      }
-    });
-
-    self.module_table.par_iter_mut().for_each(|module| {
-      if let Module::Normal(module) = module {
-        let value = is_module_included_vec[module.idx];
-        module.meta.set(EcmaViewMeta::INCLUDED, value);
-        is_included_vec[module.idx].iter_enumerated().for_each(|(stmt_info_id, is_included)| {
-          module.stmt_infos.get_mut(stmt_info_id).is_included = *is_included;
-        });
-      }
-    });
-  }
 }

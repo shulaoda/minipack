@@ -15,7 +15,6 @@ doctest = false
 workspace = true
 
 [dependencies]
-arcstr = { workspace = true }
 base-encode = { workspace = true }
 base64-simd = { workspace = true }
 indexmap = { workspace = true }

@@ -6,15 +6,12 @@ mod scope_hoisting;
 
 pub mod generators;
 
-use scope_hoisting::{ScopeHoistingFinalizer, ScopeHoistingFinalizerContext};
-
-use oxc::ast_visit::VisitMut;
-use rustc_hash::FxHashSet;
-
 use minipack_common::Module;
 use minipack_ecmascript::AstSnippet;
 use minipack_error::BuildResult;
 use minipack_utils::rayon::{IntoParallelRefMutIterator, ParallelIterator};
+use oxc::ast_visit::VisitMut;
+use rustc_hash::FxHashSet;
 
 use crate::{
   types::{SharedOptions, bundle_output::BundleOutput},
@@ -63,16 +60,17 @@ impl GenerateStage {
         return;
       }
 
-      let ast_scope = &self.link_stage_output.symbol_ref_db[module.idx].as_ref().unwrap().ast_scopes;
       let chunk_id = chunk_graph.module_to_chunk[module.idx].unwrap();
-      let chunk = &chunk_graph.chunk_table[chunk_id];
       let linking_info = &self.link_stage_output.metadata[module.idx];
+      let canonical_names = &chunk_graph.chunk_table[chunk_id].canonical_names;
       ast.program.with_mut(|fields| {
-        let (oxc_program, alloc) = (fields.program, fields.allocator);
-        let mut finalizer = ScopeHoistingFinalizer {
-          alloc,
-          ctx: ScopeHoistingFinalizerContext {
-            canonical_names: &chunk.canonical_names,
+        let (oxc_program, allocator) = (fields.program, fields.allocator);
+        let mut finalizer = scope_hoisting::ScopeHoistingFinalizer {
+          allocator,
+          snippet: AstSnippet::new(allocator),
+          ast_scope: &self.link_stage_output.symbol_ref_db[module.idx].as_ref().unwrap().ast_scopes,
+          ctx: scope_hoisting::ScopeHoistingFinalizerContext {
+            canonical_names,
             id: module.idx,
             chunk_id,
             symbol_ref_db: &self.link_stage_output.symbol_ref_db,
@@ -83,10 +81,7 @@ impl GenerateStage {
             chunk_graph: &chunk_graph,
             options: &self.options,
           },
-          scope: ast_scope,
-          snippet: AstSnippet::new(alloc),
           namespace_alias_symbol_id: FxHashSet::default(),
-          interested_namespace_alias_ref_id: FxHashSet::default(),
         };
         finalizer.visit_program(oxc_program);
       });

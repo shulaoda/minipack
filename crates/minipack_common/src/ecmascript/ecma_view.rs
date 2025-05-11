@@ -33,17 +33,14 @@ impl EcmaViewMeta {
 #[derive(Debug)]
 pub struct EcmaView {
   pub source: ArcStr,
+  pub meta: EcmaViewMeta,
   pub ecma_ast_idx: Option<EcmaAstIdx>,
-  /// Represents [Module Namespace Object](https://tc39.es/ecma262/#sec-module-namespace-exotic-objects)
+  pub stmt_infos: StmtInfos,
+  pub side_effects: DeterminedSideEffects,
+  pub default_export_ref: SymbolRef,
   pub namespace_object_ref: SymbolRef,
   pub named_imports: FxHashMap<SymbolRef, NamedImport>,
   pub named_exports: FxHashMap<Rstr, LocalExport>,
-  /// `stmt_infos[0]` represents the namespace binding statement
-  pub stmt_infos: StmtInfos,
-  pub import_records: IndexVec<ImportRecordIdx, ResolvedImportRecord>,
-  /// The key is the `Span` of `ImportDeclaration`, `ImportExpression`, `ExportNamedDeclaration`, `ExportAllDeclaration`.
   pub imports: FxHashMap<Span, ImportRecordIdx>,
-  pub default_export_ref: SymbolRef,
-  pub side_effects: DeterminedSideEffects,
-  pub meta: EcmaViewMeta,
+  pub import_records: IndexVec<ImportRecordIdx, ResolvedImportRecord>,
 }

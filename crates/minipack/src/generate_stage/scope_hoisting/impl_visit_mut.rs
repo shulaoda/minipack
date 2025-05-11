@@ -8,9 +8,7 @@ use oxc::{
 };
 use rustc_hash::FxHashSet;
 
-use super::ScopeHoistingFinalizer;
-
-impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
+impl<'ast> VisitMut<'ast> for super::ScopeHoistingFinalizer<'_, 'ast> {
   fn visit_program(&mut self, program: &mut ast::Program<'ast>) {
     self.namespace_alias_symbol_id = self
       .ctx
@@ -40,8 +38,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
 
   fn visit_binding_identifier(&mut self, ident: &mut ast::BindingIdentifier<'ast>) {
     if let Some(symbol_id) = ident.symbol_id.get() {
-      let symbol_ref = (self.ctx.id, symbol_id).into();
-      let canonical_name = self.canonical_name_for(symbol_ref);
+      let canonical_name = self.canonical_name_for((self.ctx.id, symbol_id).into());
       if ident.name != canonical_name {
         ident.name = self.snippet.atom(canonical_name);
       }
@@ -57,13 +54,11 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
     {
       expr.callee = new_expr;
     }
-
     walk_mut::walk_call_expression(self, expr);
   }
 
   fn visit_expression(&mut self, expr: &mut ast::Expression<'ast>) {
     match expr {
-      // inline dynamic import
       ast::Expression::ImportExpression(import_expr) => {
         if let Some(new_expr) = self.try_rewrite_inline_dynamic_import_expr(import_expr) {
           *expr = new_expr;
@@ -82,20 +77,19 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
         }
       }
     };
-
     walk_mut::walk_expression(self, expr);
   }
 
   // foo.js `export const bar = { a: 0 }`
   // main.js `import * as foo_exports from './foo.js';\n foo_exports.bar.a = 1;`
-  // The `foo_exports.bar.a` ast is `StaticMemberExpression(StaticMemberExpression)`, The outer StaticMemberExpression span is `foo_exports.bar.a`, the `visit_expression(Expression::MemberExpression)` is called with `foo_exports.bar`, the span is inner StaticMemberExpression.
+  // The `foo_exports.bar.a` ast is `StaticMemberExpression(StaticMemberExpression)`,
+  // The outer StaticMemberExpression span is `foo_exports.bar.a`,
+  // the `visit_expression(Expression::MemberExpression)` is called with `foo_exports.bar`,
+  // the span is inner StaticMemberExpression.
   fn visit_member_expression(&mut self, expr: &mut ast::MemberExpression<'ast>) {
     if let Some(new_expr) = self.try_rewrite_member_expr(expr) {
       *expr = new_expr.into_member_expression();
     } else {
-      if let Some(ref_id) = self.try_get_valid_namespace_alias_ref_id_from_member_expr(expr) {
-        self.interested_namespace_alias_ref_id.insert(ref_id);
-      };
       walk_mut::walk_member_expression(self, expr);
     }
   }
@@ -158,7 +152,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
         *property = ast::AssignmentTargetProperty::AssignmentTargetPropertyProperty(
           ast::AssignmentTargetPropertyProperty {
             name: ast::PropertyKey::StaticIdentifier(
-              self.snippet.id_name(&prop.binding.name, prop.span).into_in(self.alloc),
+              self.snippet.id_name(&prop.binding.name, prop.span).into_in(self.allocator),
             ),
             binding: if let Some(init) = prop.init.take() {
               ast::AssignmentTargetMaybeDefault::AssignmentTargetWithDefault(
@@ -167,7 +161,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
                   init,
                   span: Span::default(),
                 }
-                .into_in(self.alloc),
+                .into_in(self.allocator),
               )
             } else {
               ast::AssignmentTargetMaybeDefault::from(target)
@@ -175,7 +169,7 @@ impl<'ast> VisitMut<'ast> for ScopeHoistingFinalizer<'_, 'ast> {
             span: Span::default(),
             computed: false,
           }
-          .into_in(self.alloc),
+          .into_in(self.allocator),
         );
       } else {
         prop.binding.reference_id.get_mut().take();

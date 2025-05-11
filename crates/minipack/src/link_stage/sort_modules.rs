@@ -36,11 +36,9 @@ impl LinkStage {
           if executed_ids.contains(&id) {
             // Try to check if there is a circular dependency
             if let Some(index) = stack_indexes_of_executing_id.get(&id).copied() {
-              // Executing
               let cycles = execution_stack[index..]
                 .iter()
                 .filter_map(|action| match action {
-                  // Only modules with `Status::WaitForExit` are on the execution chain
                   Status::ToBeExecuted(_) => None,
                   Status::WaitForExit(id) => Some(*id),
                 })
@@ -52,7 +50,6 @@ impl LinkStage {
             executed_ids.insert(id);
             execution_stack.push(Status::WaitForExit(id));
             stack_indexes_of_executing_id.insert(id, execution_stack.len() - 1);
-
             execution_stack.extend(
               self.module_table[id]
                 .import_records()
@@ -88,7 +85,6 @@ impl LinkStage {
           .filter_map(|id| self.module_table[id].as_normal())
           .map(|module| module.id.to_string())
           .collect::<Vec<_>>();
-
         self.warnings.push(anyhow::anyhow!("Circular dependency: {}.", paths.join(" -> ")));
       }
     }

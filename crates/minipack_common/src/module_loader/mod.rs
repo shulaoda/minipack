@@ -6,7 +6,7 @@ pub mod runtime_task_result;
 pub mod task_result;
 
 pub enum ModuleLoaderMsg {
-  RuntimeModuleDone(RuntimeModuleTaskResult),
-  NormalModuleDone(NormalModuleTaskResult),
+  RuntimeModuleDone(Box<RuntimeModuleTaskResult>),
+  NormalModuleDone(Box<NormalModuleTaskResult>),
   BuildErrors(Vec<anyhow::Error>),
 }

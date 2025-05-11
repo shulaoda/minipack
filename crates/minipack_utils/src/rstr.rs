@@ -1,5 +1,5 @@
 //! `Rstr`:
-//! - is meant to be a bundler-specialized string type for rolldown.
+//! - is meant to be a bundler-specialized string type.
 //! - to smooth integration with `oxc`'s string types.
 
 use std::{fmt::Display, ops::Deref};

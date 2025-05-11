@@ -115,13 +115,15 @@ impl ModuleLoader {
       };
 
       match msg {
-        ModuleLoaderMsg::NormalModuleDone(NormalModuleTaskResult {
-          mut module,
-          ecma_related,
-          resolved_deps,
-          raw_import_records,
-          warnings: task_result_warnings,
-        }) => {
+        ModuleLoaderMsg::NormalModuleDone(task_result) => {
+          let NormalModuleTaskResult {
+            mut module,
+            ecma_related,
+            resolved_deps,
+            raw_import_records,
+            warnings: task_result_warnings,
+          } = *task_result;
+
           let normal_module = module.as_normal_mut().unwrap();
           let mut import_records =
             IndexVec::<ImportRecordIdx, _>::with_capacity(raw_import_records.len());
@@ -158,12 +160,9 @@ impl ModuleLoader {
           self.inm.module_table[module_idx] = Some(module);
           self.remaining -= 1;
         }
-        ModuleLoaderMsg::RuntimeModuleDone(RuntimeModuleTaskResult {
-          mut module,
-          ast,
-          runtime,
-          symbols,
-        }) => {
+        ModuleLoaderMsg::RuntimeModuleDone(task_result) => {
+          let RuntimeModuleTaskResult { mut module, ast, runtime, symbols } = *task_result;
+
           let ecma_ast_idx = self.inm.ecma_ast.push((ast, module.idx));
 
           runtime_module = Some(runtime);

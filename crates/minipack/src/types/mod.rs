@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use linking_metadata::LinkingMetadata;
 use minipack_common::{
-   AssetIdx, EcmaAstIdx, InstantiatedChunk, Module, ModuleIdx, NormalizedBundlerOptions,
+  AssetIdx, EcmaAstIdx, InstantiatedChunk, Module, ModuleIdx, NormalizedBundlerOptions,
 };
 use minipack_ecmascript::EcmaAst;
 use minipack_fs::OsFileSystem;
