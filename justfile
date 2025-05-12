@@ -15,6 +15,12 @@ setup:
     just setup-bench
     @echo "✅✅✅ Setup complete!"
 
+init-bench:
+  pnpm install rollup -g
+  pnpm install esbuild -g
+  pnpm install webpack-cli -g
+  cargo install --path ./crates/minipack_cli
+
 # Lint the codebase
 lint: lint-rust lint-node lint-repo
 
