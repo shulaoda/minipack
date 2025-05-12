@@ -1,7 +1,12 @@
 import nodePath from 'node:path';
 import nodeUtil from 'node:util';
 import * as bencher from './src/bencher.js';
-import { runEsbuild, runMinipack, runRollup } from './src/runner.js';
+import {
+  runEsbuild,
+  runMinipack,
+  runRollup,
+  runWebpack,
+} from './src/runner.js';
 import { REPO_ROOT } from './src/utils.js';
 
 /**
@@ -9,8 +14,19 @@ import { REPO_ROOT } from './src/utils.js';
  */
 const suites = [
   {
+    title: 'query-string',
+    inputs: [nodePath.join(REPO_ROOT, './tmp/bench/query-string/index.js')],
+    esbuildOptions: {
+      external: ['decode-uri-component', 'filter-obj', 'split-on-first'],
+    },
+  },
+  {
+    title: 'dayjs',
+    inputs: [nodePath.join(REPO_ROOT, './tmp/bench/dayjs/src/index.js')],
+  },
+  {
     title: 'threejs',
-    inputs: [nodePath.join(REPO_ROOT, './tmp/bench/three/entry.js')],
+    inputs: [nodePath.join(REPO_ROOT, './tmp/bench/threejs/entry.js')],
   },
 ];
 
@@ -22,6 +38,9 @@ for (const suite of suites) {
   const group = bencher.group(suite.title, (bench) => {
     bench.add('rollup', async () => {
       await runRollup(suite);
+    });
+    bench.add('webpack', async () => {
+      await runWebpack(suite);
     });
     bench.add('esbuild', async () => {
       await runEsbuild(suite);

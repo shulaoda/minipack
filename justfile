@@ -4,7 +4,7 @@ set shell := ["bash", "-cu"]
 _default:
     just --list -u
 
-setup:
+init:
     just check-setup-prerequisites
     # Rust related setup
     cargo install cargo-binstall
@@ -15,11 +15,8 @@ setup:
     just setup-bench
     @echo "✅✅✅ Setup complete!"
 
-init-bench:
-  pnpm install rollup -g
-  pnpm install esbuild -g
-  pnpm install webpack-cli -g
-  cargo install --path ./crates/minipack_cli
+setup:
+    cargo install --path ./crates/minipack_cli
 
 # Lint the codebase
 lint: lint-rust lint-node lint-repo

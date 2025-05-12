@@ -4,6 +4,7 @@ import { build as esbuild } from 'esbuild';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { rollup } from 'rollup';
+import webpack from 'webpack';
 import { PROJECT_ROOT } from './utils.js';
 
 /**
@@ -11,8 +12,6 @@ import { PROJECT_ROOT } from './utils.js';
  * @param {import('./types.js').BenchSuite} suite
  */
 export async function runRollup(suite) {
-  const { output: outputOptions = {}, ...inputOptions } = suite.rollupOptions ??
-    {};
   const build = await rollup({
     input: suite.inputs,
     onwarn() {},
@@ -21,14 +20,35 @@ export async function runRollup(suite) {
         exportConditions: ['import'],
         mainFields: ['module', 'browser', 'main'],
       }),
-      // @ts-ignore
       commonjs(),
     ],
-    ...inputOptions,
   });
   await build.write({
     dir: path.join(PROJECT_ROOT, `./dist/rollup/${suite.title}`),
-    ...outputOptions,
+  });
+}
+
+/**
+ * Webpack Bench
+ * @param {import('./types.js').BenchSuite} suite
+ */
+export async function runWebpack(suite) {
+  const compiler = webpack({
+    entry: suite.inputs,
+    target: 'node',
+    mode: 'production',
+    output: {
+      path: path.join(PROJECT_ROOT, `./dist/webpack/${suite.title}`),
+    },
+    stats: 'none',
+  });
+  return new Promise((resolve, reject) => {
+    compiler.run((err) => {
+      if (err) {
+        return reject(err);
+      }
+      resolve();
+    });
   });
 }
 
