@@ -1,8 +1,0 @@
-{
-  "extends": "../tsconfig.pure-js.json",
-  "include": ["misc/**/*.js", "misc/**/*.d.ts"],
-  "compilerOptions": {
-    "moduleResolution": "Bundler",
-    "module": "ESNext"
-  }
-}

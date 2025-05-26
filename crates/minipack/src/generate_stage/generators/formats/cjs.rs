@@ -15,16 +15,15 @@ fn render_modules_with_peek_runtime_module_at_first<'a>(
   import_code: String,
 ) {
   let mut module_sources_peekable = module_sources.iter().peekable();
-  match module_sources_peekable.peek() {
-    Some(RenderedModuleSource { module_idx, sources: Some(emitted_sources) })
-      if *module_idx == ctx.link_stage_output.runtime_module.idx =>
-    {
+  if let Some(RenderedModuleSource { module_idx, sources: Some(emitted_sources) }) =
+    module_sources_peekable.peek()
+  {
+    if *module_idx == ctx.link_stage_output.runtime_module.idx {
       for source in emitted_sources.iter() {
         source_joiner.append_source(source);
       }
       module_sources_peekable.next();
     }
-    _ => {}
   }
 
   source_joiner.append_source(import_code);
@@ -71,16 +70,15 @@ fn render_cjs_chunk_imports(ctx: &GenerateContext<'_>) -> String {
 
   // render imports from other chunks
   ctx.chunk.imports_from_other_chunks.iter().for_each(|(exporter_id, items)| {
-    let importee_chunk = &ctx.chunk_graph.chunk_table[*exporter_id];
-    let require_path_str =
-      concat_string!("require('", ctx.chunk.import_path_for(importee_chunk), "');\n");
+    let chunk = &ctx.chunk_graph.chunk_table[*exporter_id];
+    let require_path = concat_string!("require('", ctx.chunk.import_path_for(chunk), "');\n");
     if items.is_empty() {
-      s.push_str(&require_path_str);
+      s.push_str(&require_path);
     } else {
       s.push_str("const ");
       s.push_str(&ctx.chunk.require_binding_names_for_other_chunks[exporter_id]);
       s.push_str(" = ");
-      s.push_str(&require_path_str);
+      s.push_str(&require_path);
     }
   });
 

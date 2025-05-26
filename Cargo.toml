@@ -10,10 +10,6 @@ license = "MIT"
 readme = "README.md"
 repository = "https://github.com/shulaoda/minipack"
 
-[profile.release-debug]
-debug = true
-inherits = "release"
-
 [workspace.lints.clippy]
 dbg_macro = "deny"
 print_stdout = "deny"
@@ -70,36 +66,35 @@ minipack_fs = { version = "0.1.0", path = "./crates/minipack_fs" }
 minipack_resolver = { version = "0.1.0", path = "./crates/minipack_resolver" }
 minipack_utils = { version = "0.1.0", path = "./crates/minipack_utils" }
 
-anyhow = { version = "1.0.95" }
+anyhow = { version = "1.0.98" }
 append-only-vec = { version = "0.1.7" }
 arcstr = { version = "1.2.0" }
 base-encode = { version = "0.3.1" }
 base64-simd = { version = "0.8.0" }
-bitflags = { version = "2.8.0" }
+bitflags = { version = "2.9.1" }
 futures = { version = "0.3.31" }
-indexmap = { version = "2.7.0" }
+indexmap = { version = "2.9.0" }
 itertools = { version = "0.14.0" }
-itoa = { version = "1.0.14" }
+itoa = { version = "1.0.15" }
 rayon = { version = "1.10.0" }
 regex = { version = "1.11.1" }
-rustc-hash = { version = "2.1.0" }
-sanitize-filename = { version = "0.6.0" }
-self_cell = { version = "1.1.0" }
-serde_json = { version = "1.0.135" }
-smallvec = { version = "1.13.2" }
+rustc-hash = { version = "2.1.1" }
+self_cell = { version = "1.2.0" }
+serde_json = { version = "1.0.140" }
+smallvec = { version = "1.15.0" }
 sugar_path = { version = "1.2.0", features = ["cached_current_dir"] }
-tokio = { version = "1.43.0", default-features = false }
+tokio = { version = "1.45.0", default-features = false }
 xxhash-rust = { version = "0.8.15" }
 
 # oxc crates share the same version
 # Please update with `cargo update oxc_resolver oxc_index`
-oxc = { version = "0.68.1", features = ["ast_visit", "transformer", "minifier", "semantic", "codegen", "serialize", "regular_expression"] }
+oxc = { version = "0.72.0", features = ["ast_visit", "transformer", "minifier", "semantic", "codegen", "serialize"] }
 oxc_index = { version = "3", features = ["rayon"] }
-oxc_resolver = { version = "8" }
+oxc_resolver = { version = "9" }
 
 [profile.release]
 codegen-units = 1
-debug = false # Set to `true` for debug information
+debug = false
 lto = "fat"
 opt-level = 3
-strip = "symbols" # Set to `false` for debug information
+strip = "symbols"

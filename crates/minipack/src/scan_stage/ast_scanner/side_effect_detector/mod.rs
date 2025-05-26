@@ -82,9 +82,7 @@ impl<'a> SideEffectDetector<'a> {
           return true;
         }
 
-        let value_side_effect = def.r#static
-          && def.value.as_ref().is_some_and(|init| self.detect_side_effect_of_expr(init));
-        value_side_effect
+        def.r#static && def.value.as_ref().is_some_and(|init| self.detect_side_effect_of_expr(init))
       }
       ClassElement::AccessorProperty(def) => {
         (match &def.key {

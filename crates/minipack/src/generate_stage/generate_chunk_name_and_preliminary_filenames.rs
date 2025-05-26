@@ -42,9 +42,7 @@ impl GenerateStage {
                 .file_stem()
                 .and_then(|f| f.to_str())
                 .map(ToString::to_string)
-                .map_or(arcstr::literal!("input"), |file_name| {
-                  sanitize_filename::sanitize(file_name).into()
-                })
+                .map_or(arcstr::literal!("input"), |file_name| file_name.into())
             } else {
               ArcStr::from(path.representative_file_name())
             }

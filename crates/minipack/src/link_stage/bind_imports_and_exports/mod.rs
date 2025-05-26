@@ -2,7 +2,6 @@ mod bind_imports_and_exports_context;
 
 use std::borrow::Cow;
 
-use arcstr::ArcStr;
 use minipack_common::{Module, ModuleIdx, NormalModule, SymbolOrMemberExprRef, SymbolRef};
 use minipack_utils::{
   ecmascript::is_validate_identifier_name,
@@ -170,7 +169,6 @@ impl super::LinkStage {
     side_effects_modules: &FxHashSet<ModuleIdx>,
     normal_symbol_exports_chain_map: &FxHashMap<SymbolRef, Vec<SymbolRef>>,
   ) {
-    let warnings = append_only_vec::AppendOnlyVec::new();
     let resolved_meta_data = self
       .module_table
       .par_iter()
@@ -182,7 +180,8 @@ impl super::LinkStage {
             stmt_info.referenced_symbols.iter().for_each(|symbol_ref| {
               if let SymbolOrMemberExprRef::MemberExpr(member_expr_ref) = symbol_ref {
                 // First get the canonical ref of `foo_ns`, then we get the `NormalModule#namespace_object_ref` of `foo.js`.
-                let mut canonical_ref = self.symbol_ref_db.canonical_ref_for(member_expr_ref.object_ref);
+                let mut canonical_ref =
+                  self.symbol_ref_db.canonical_ref_for(member_expr_ref.object_ref);
                 let mut canonical_ref_owner: &NormalModule =
                   match &self.module_table[canonical_ref.owner] {
                     Module::Normal(module) => module,
@@ -197,16 +196,10 @@ impl super::LinkStage {
                   let meta = &self.metadata[canonical_ref_owner.idx];
                   let export_symbol = meta.resolved_exports.get(&name.to_rstr());
                   let Some(export_symbol) = export_symbol else {
-                    // when we try to resolve `a.b.c`, and found that `b` is not exported by module
-                    // that `a` pointed to, convert the `a.b.c` into `void 0` if module `a` do not
-                    // have any dynamic exports.
                     resolved_map.insert(
                       member_expr_ref.span,
                       (None, member_expr_ref.props[cursor..].to_vec()),
                     );
-                    warnings.push(anyhow::anyhow!("Import `{}` will always be undefined because there is no matching export in '{}'", 
-                    ArcStr::from(name.as_str()),
-                    canonical_ref_owner.stable_id.to_string()));
                     break;
                   };
                   if !meta.sorted_resolved_exports.contains(&name.to_rstr()) {
@@ -217,9 +210,7 @@ impl super::LinkStage {
                     return;
                   };
 
-                  if let Some(chains) =
-                    normal_symbol_exports_chain_map.get(export_symbol)
-                  {
+                  if let Some(chains) = normal_symbol_exports_chain_map.get(export_symbol) {
                     for item in chains {
                       if side_effects_modules.contains(&item.owner) {
                         side_effects_dependency.push(item.owner);
@@ -228,8 +219,7 @@ impl super::LinkStage {
                   }
                   ns_symbol_list.push((canonical_ref, name.to_rstr()));
                   canonical_ref = self.symbol_ref_db.canonical_ref_for(*export_symbol);
-                  canonical_ref_owner =
-                    self.module_table[canonical_ref.owner].as_normal().unwrap();
+                  canonical_ref_owner = self.module_table[canonical_ref.owner].as_normal().unwrap();
                   cursor += 1;
                   is_namespace_ref = canonical_ref_owner.namespace_object_ref == canonical_ref;
                 }
@@ -249,7 +239,6 @@ impl super::LinkStage {
       })
       .collect::<Vec<_>>();
 
-    self.warnings.extend(warnings);
     self.metadata.iter_mut().zip(resolved_meta_data).for_each(
       |(meta, (resolved_map, side_effects_dependency))| {
         meta.resolved_member_expr_refs = resolved_map;

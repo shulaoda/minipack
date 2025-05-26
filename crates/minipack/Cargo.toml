@@ -26,7 +26,6 @@ itoa = { workspace = true }
 oxc = { workspace = true }
 oxc_index = { workspace = true }
 rustc-hash = { workspace = true }
-sanitize-filename = { workspace = true }
 sugar_path = { workspace = true }
 tokio = { workspace = true, features = ["rt", "macros", "sync"] }
 xxhash-rust = { workspace = true, features = ["xxh3"] }

@@ -9,8 +9,7 @@ impl PathExt for std::path::Path {
   fn representative_file_name(&self) -> Cow<str> {
     let file_name =
       self.file_stem().map_or_else(|| self.to_string_lossy(), |s| s.to_string_lossy());
-
-    let file_name = match &*file_name {
+    match &*file_name {
       // "index": Node.js use `index` as a special name for directory import.
       // "mod": https://docs.deno.com/runtime/manual/references/contributing/style_guide#do-not-use-the-filename-indextsindexjs.
       "index" | "mod" => self
@@ -19,9 +18,7 @@ impl PathExt for std::path::Path {
         .map(OsStr::to_string_lossy)
         .map_or(file_name, |parent_dir_name| parent_dir_name),
       _ => file_name,
-    };
-
-    file_name
+    }
   }
 }
 
