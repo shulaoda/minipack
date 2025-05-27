@@ -41,6 +41,11 @@ impl Bundler {
       })?;
       for chunk in &generate_stage_output.assets {
         let filename = dist.join(&chunk.filename);
+        if let Some(p) = filename.parent() {
+          if !self.fs.exists(p) {
+            self.fs.create_dir_all(p).unwrap();
+          }
+        }
         self
           .fs
           .write(&filename, chunk.content.as_bytes())

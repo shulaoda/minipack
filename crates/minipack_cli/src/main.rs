@@ -67,18 +67,18 @@ fn print_output_assets(outputs: Vec<OutputAsset>) {
 #[tokio::main]
 async fn main() {
   let args = Commands::parse();
-  let InputArgs { cwd, input, platform } = args.input;
+  let InputArgs { input, platform } = args.input;
   let input = input.map(|files| files.iter().map(|p| p.to_string_lossy().into()).collect());
 
   let mut bundler = Bundler::new(BundlerOptions {
-    cwd,
+    cwd: None,
     input,
     platform: platform.map(Into::into),
     dir: args.output.dir,
     format: args.output.format.map(Into::into),
     entry_filenames: args.output.entry_filenames,
     chunk_filenames: args.output.chunk_filenames,
-    minify: args.enhance.minify,
+    minify: Some(args.enhance.minify),
   });
 
   let start = Instant::now();
